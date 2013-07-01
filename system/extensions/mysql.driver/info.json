@@ -1,0 +1,31 @@
+{
+	"title": "MySQL Database Driver",
+	"description": "This driver uses the PHP PDO MySQL driver to connect to an MySQL driver, and provides the basic query builder and DBO interfaces needed by the framework to work with this database.",
+	"version": "M1",
+	"author": "Quark Framework Team",
+	"copyright": "(c) 2012-2013 Jeffrey vH",
+	
+	"database": "mysql",
+	"classname": "\\Quark\\Database\\Driver\\MySQLDriver",
+	
+	"dependencies": [],
+	
+	"settings": [
+		{
+			"index": "hostname",
+			"description": "The hostname of the mysql server. (E.g. localhost, some.domain.com:2367 or 192.168.0.35)"
+		},
+		{
+			"index": "database",
+			"description": "The database to load."
+		},
+		{
+			"index": "username",
+			"description": "Username to connect to the database with."
+		},
+		{
+			"index": "password",
+			"description": "Password to connect to the database with."
+		}
+	]
+}

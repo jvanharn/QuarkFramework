@@ -1,0 +1,22 @@
+{
+	"last-update": "2937845297",
+	"libraries": {
+		"normalize": {
+			"type": "css",
+			"repository": "http://libs.quarkframework.org/repo/",
+			"version": "20120301",
+			
+			"name": "Normalize.css CSS Reset Stylesheet",
+			"description": "Normalize.css makes browsers render all elements more consistently and in line with modern standards. It precisely targets only the styles that need normalizing.",
+			
+			"directory": "normalize",
+			"resources": {
+				"css": {
+					"normalize.css": {"media": "all"}
+				}
+			},
+			
+			"dependencies": ["jquery"]
+		}
+	}
+}
