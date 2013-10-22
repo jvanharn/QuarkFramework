@@ -3,7 +3,7 @@
  * The resources/asset management class.
  * 
  * @package		Quark-Framework
- * @version		$Id: resources.php 75 2013-04-17 20:53:45Z Jeffrey $
+ * @version		$Id: resource.php 75 2013-04-17 20:53:45Z Jeffrey $
  * @author		Jeffrey van Harn <support@pagetreecms.org>
  * @since		March 7, 2013
  * @copyright	Copyright (C) 2013 Jeffrey van Harn. All rights reserved.

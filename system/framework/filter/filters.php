@@ -40,7 +40,7 @@ class Filters{
 	/**
 	 * Filters out all characters but the given character set(Based on the whitelist principe)
 	 * @param string $string Input string
-	 * @param string $options Options array('What chars to allow')
+	 * @param string $options Options array('What chars to allow', 'Whether to stop when non allowed char is found')
 	 * @subpackage Filters
 	 * @access private
 	 */

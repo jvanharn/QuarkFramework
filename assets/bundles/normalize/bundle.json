@@ -1,0 +1,35 @@
+{
+    "id": "normalize",
+	"type": "css",
+	"repository": "http://libs.quarkframework.org/repo/",
+	"version": "20120301",
+
+	"name": "Normalize.css CSS Reset Stylesheet",
+	"description": "Normalize.css makes browsers render all elements more consistently and in line with modern standards. It precisely targets only the styles that need normalizing.",
+
+	"resources": {
+		"css": {
+			"normalize.css": {"media": "all"}
+		}
+	},
+
+	"dependencies": [ // These libraries are required to be installed for this bundle to work.
+        "jquery", // any jquery version
+        ["lo-dash", ">=", "1.0"],
+        ["default", ">=", "1.0"],
+        ["default", "><", ["0.9", "1.1"]], // signifies a range of versions where it depends on/conflicts with/... (Given version included!)
+        ["default", "[..]", ["0.9", "1.1"]], // idem ditto
+        [
+            ["default", ">", "0.5"],
+            ["jquery", "*"]
+        ] // Dependency explanation: Default version 0.5 or greater OR jquery with any version (Notice that all entries in such an construction need to be an array!)
+    ],
+
+    "installation-conflicts": [ // Cannot be installed at the same time as .... (Same format as dependencies) (It is recommended to use runtime-conflicts instead of this one, for obvious reasons)
+        "jquery-base"
+    ],
+
+    "runtime-conflicts": [ // Cannot be included in a document at the same time as ..... (Same format as dependencies)
+        "mootools"
+    ]
+}

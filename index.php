@@ -75,7 +75,7 @@ namespace {
 	// Set the paths to data
 	define('DIR_DATA', DIR_BASE.'data'.DS);
 	define('DIR_LOGS', DIR_DATA.'logs'.DS);
-	define('DIR_TEMP', sys_get_temp_dir().'quark'.DS);
+	define('DIR_TEMP', sys_get_temp_dir().DS.'quark'.DS);
 }
 
 /**********************

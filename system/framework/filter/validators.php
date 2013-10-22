@@ -87,6 +87,13 @@ class Validators{
 		}
 		return true;
 	}
+
+	function URL($url){
+		$chars = CONTAINS_ALPHANUMERIC.'-._~:/?#[]@!$&\'()*+,;=';
+		if(self::CHARS($url, array($chars))){
+			return filter_var($url, FILTER_VALIDATE_URL);
+		}else return false;
+	}
 	
 	/**
 	 * RFC Email Parser

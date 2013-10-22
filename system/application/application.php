@@ -40,6 +40,7 @@ if(!defined('DIR_BASE')) exit;
 	'Framework.Security.Password'
 );
 
+use Quark\Archive\Zip;
 use	\Quark\Document\Utils\Text as Text,
 	\Quark\Document\Utils\Literal as Literal,
 	\Quark\Document\Utils\Paragraph as Paragraph,
@@ -78,6 +79,8 @@ class Application extends \Quark\System\Application\Application{
 				->prepare('SELECT * FROM lol WHERE id = ?')
 				->query([0])
 		);*/
+
+		date_default_timezone_set(@date_default_timezone_get()); // Fix timezone warnings.
 	}
 	
 	public function display(){
@@ -146,6 +149,7 @@ class Application extends \Quark\System\Application\Application{
 		$this->document->place(
 			new Text('Copyleft 2012 LessThanThree Design')
 		, 'FOOTER');
+
 		return true;
 	}
 }

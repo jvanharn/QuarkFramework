@@ -79,9 +79,10 @@ class Filter{
 	// Filtering functions
 	/**
 	 * Apply filters and validators on a mixed variable (External wrapping function for execFilter)
-	 * 
+	 *
 	 * @param mixed $input The input to filter
 	 * @param array $filters The filter(s) to apply
+	 * @throws RuntimeException
 	 * @return mixed
 	 */
 	public static function apply($input, $filters){
@@ -246,5 +247,7 @@ function filter_string($input, $filters){
 }
 
 function validate_string($input, $validators){
-	return Filter::apply($input, array(Filter::VALIDATOR=>$validators));
+	if(is_string($input) || is_numeric($input))
+		return Filter::apply((string) $input, array(Filter::VALIDATOR=>$validators));
+	else return false;
 }

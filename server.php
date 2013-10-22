@@ -1,6 +1,6 @@
 <?php
 if(php_sapi_name() != 'cli-server')
-	exit('This file is only intended for the PHP 5.4 cli-server.');
+	exit('This file is only intended for the PHP 5.4+ cli-server.');
 else define('QUARK_SERVER_MODE', true);
 /************************************************************************
  *   ____                   _    _   _           _____ 
@@ -25,9 +25,12 @@ else define('QUARK_SERVER_MODE', true);
 /**
  * The Router file/entry point for launching QuarkHS with the PHP CLI-webserver
  * 
- * Since PHP 5.4 the PHP-CLI executable has an in-built webserver. This file
- * makes it possible to launch QuarkHS as a small footprint application, by only
- * launching the php runtime. Especially usefull for low-power devices.
+ * Since PHP 5.4 the PHP-CLI executable has a builtin webserver. This php file
+ * makes it possible to launch QuarkHS as a small footprint application, hosted
+ * by this server inside the php runtime. This is especially useful for
+ * low-powered devices.
+ *
+ * Whilst executing in this CLI-server this file will act as the _router_.
  * 
  * WARNING!	If you use QuarkHS this way, please do not expose the server
  *			directly to the internet! This can be dangerous, as it was intended 

@@ -117,8 +117,9 @@ class Loader{
 			
 			// Set the paths to assets
 			define('DIR_ASSETS', DIR_BASE.'assets'.DS);
-			define('DIR_TEMPLATES', DIR_ASSETS.'templates'.DS);
-			
+			define('DIR_BUNDLES', DIR_ASSETS.'bundles'.DS);
+			define('DIR_SKINS', DIR_ASSETS.'skins'.DS);
+
 			// Set the paths to data
 			define('DIR_DATA', DIR_BASE.'data'.DS);
 			define('DIR_LOGS', DIR_DATA.'logs'.DS);

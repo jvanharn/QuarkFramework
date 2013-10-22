@@ -146,7 +146,7 @@ class Error{
 	 * @return boolean
 	 */
 	public static function raiseError($debugMessage, $userMessage=null, $debugCode=E_USER_ERROR){
-		return self::raise($debugMessage, $userMessage, $debugCode);
+		self::raise($debugMessage, $userMessage, $debugCode);
 	}
 	
 	/**
@@ -160,7 +160,7 @@ class Error{
 	 * @return boolean
 	 */
 	public static function raiseWarning($debugMessage, $userMessage=null, $debugCode=E_USER_WARNING){
-		return self::raise($debugMessage, $userMessage, $debugCode);
+		self::raise($debugMessage, $userMessage, $debugCode);
 	}
 	
 	/**
@@ -173,8 +173,9 @@ class Error{
 	 * @param string $debugCode (Optional) Error code in PHP format(See: {@link http://www.php.net/manual/en/errorfunc.constants.php List of PHP error codes})
 	 * @return boolean
 	 */
-	public static function raiseFatalError($debugMessage, $userMessage, $debugCode=E_USER_FATAL){
-		return self::raise($debugMessage, $userMessage, $debugCode);
+	public static function raiseFatalError($debugMessage, $userMessage=null, $debugCode=E_USER_ERROR){
+		self::raise($debugMessage, $userMessage, $debugCode);
+		exit('Fatal Error raised inside Application.');
 	}
 	
 	/**
@@ -185,7 +186,7 @@ class Error{
 	 * @param string $debugMessage Debug message for logging and debugging
 	 * @param string $userMessage (Optional) Message that can be displayed to the user
 	 * @param string $debugCode (Optional) Error code in PHP format(See: {@link http://www.php.net/manual/en/errorfunc.constants.php List of PHP error codes})
-	 * @return boolean
+	 * @return void
 	 */
 	public static function raise($debugMessage, $userMessage=null, $debugCode=E_USER_ERROR){
 		// Check if we don't exceed the MAX_ERRORS. If we do, exit. (Prevents error loops)
@@ -305,9 +306,6 @@ class Error{
 		// Log the error
 		// @TODO Log the error
 		//\Quark\System\logMessage((int) $info['log_level'], essage);
-		
-		// Everything went well.
-		return true;
 	}
 	
 	/**

@@ -19,19 +19,19 @@ abstract class PropertyObject {
 	/**
 	 * @var string
 	 */
-	private $name;
+	private $_childName;
 
 	/**
 	 * @var array
 	 */
-	private $properties;
+	private $_properties;
 
 	/**
 	 * Create a new property object.
 	 * @param array $values (Optionally) A hash-map containing the values for the properties of this object.
 	 */
 	public function __construct($values=null){
-		$this->name = get_called_class();
+		$this->_childName = get_called_class();
 		if($values != null && is_array($values))
 			$this->setArray($values);
 	}
@@ -41,9 +41,9 @@ abstract class PropertyObject {
 	 * @return array
 	 */
 	public function getProperties(){
-		if($this->properties == null)
-			$this->properties = get_class_vars($this->name);
-		return array_keys($this->properties);
+		if($this->_properties == null)
+			$this->_populateChildProperties();
+		return array_keys($this->_properties);
 	}
 
 	/**
@@ -51,9 +51,9 @@ abstract class PropertyObject {
 	 * @return array
 	 */
 	public function getDefaults(){
-		if($this->properties == null)
-			$this->properties = get_class_vars($this->name);
-		return $this->properties;
+		if($this->_properties == null)
+			$this->_populateChildProperties();
+		return $this->_properties;
 	}
 
 	/**
@@ -63,11 +63,39 @@ abstract class PropertyObject {
 	 * @throws \UnexpectedValueException
 	 */
 	public function setArray(array $values){
+		if($this->_properties == null)
+			$this->_properties = array();
+
 		foreach($values as $name => $value){
-			if(isset($this->properties[$value]))
+			if(isset($this->_properties[$value]))
 				$this->{$name} = $value;
 			else
 				throw new \UnexpectedValueException('The property name given in the $values hash-map is an invalid property name for this object.');
+		}
+	}
+
+	/**
+	 * Get the contents of all the properties and their values as an associative array.
+	 * @return array
+	 */
+	public function toArray(){
+		$result = array();
+		foreach($this->getProperties() as $prop)
+			$result[$prop] = $this->{$prop};
+		return $result;
+	}
+
+	/**
+	 * This method makes sure the object's properties are known.
+	 * @return array
+	 */
+	private function _populateChildProperties(){
+		if($this->_properties == null) {
+			$this->_properties = get_class_vars($this->_childName);
+			foreach($this->_properties as $prop => $value){
+				if(substr($prop, 0, 1) == '_')
+					unset($this->_properties[$prop]);
+			}
 		}
 	}
 }
