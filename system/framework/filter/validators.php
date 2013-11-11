@@ -40,11 +40,12 @@ class Validators{
 	/**
 	 * Filters out all characters but the given character set(Based on the whitelist principe)
 	 * @param string $string Input string
-	 * @param string $options Options array('What chars to allow')
+	 * @param array $options Options array('What chars to allow')
+	 * @return bool
 	 * @subpackage Filters
 	 * @access private
 	 */
-	function CHARS($string, array $options=array()){
+	public static function CHARS($string, array $options=array()){
 		// Set the allowed chars
 		if(!isset($options[0]) || $options[0] == null){
 			$allowed = CONTAINS_ALPHANUMERIC;
@@ -62,15 +63,16 @@ class Validators{
 		}
 		return true;
 	}
-	
+
 	/**
 	 * Filters out all unwanted chars(Based on the Blacklist principle)
 	 * @param string $string Input string
-	 * @param string $options Options array('What chars to rem(Defaults to: array()(Nothing will be filtered))')
+	 * @param array $options Options array('What chars to rem(Defaults to: array()(Nothing will be filtered))')
+	 * @return bool
 	 * @subpackage Filters
 	 * @access private
 	 */
-	function BLACKLIST_CHARS($string, array $options=array()){
+	public static function BLACKLIST_CHARS($string, array $options=array()){
 		// Set the blacklisted chars
 		if(!isset($options[0]) || $options[0] == null){
 			$da = array();
@@ -88,31 +90,36 @@ class Validators{
 		return true;
 	}
 
-	function URL($url){
+	/**
+	 * Validate an url.
+	 * @param $url
+	 * @return bool|mixed
+	 */
+	public static function URL($url){
 		$chars = CONTAINS_ALPHANUMERIC.'-._~:/?#[]@!$&\'()*+,;=';
 		if(self::CHARS($url, array($chars))){
 			return filter_var($url, FILTER_VALIDATE_URL);
 		}else return false;
 	}
-	
+
 	/**
 	 * RFC Email Parser
-	 * 
+	 *
 	 * Validates a email/adress based on RFC 822/2822/5322 etc.
 	 * The Comments and whitespaces where stripped of this function
 	 * Original source, with comments at: https://github.com/iamcal/rfc822/blob/master/rfc822.php
-	 * @version		Revision: 2719
-	 * @author		Cal Henderson <cal@iamcal.com>
-	 * @link		http://code.iamcal.com/php/rfc822/
-	 * @since		September 10, 2009
-	 * @copyright	Copyright (C) Cal Henderson
-	 * @license		Creative Commons Attribution-ShareAlike 2.5 License
-	 * 
-	 * @param string $string Input email/adress
-	 * @param array $options None
+	 * @version        Revision: 2719
+	 * @author        Cal Henderson <cal@iamcal.com>
+	 * @link        http://code.iamcal.com/php/rfc822/
+	 * @since        September 10, 2009
+	 * @copyright    Copyright (C) Cal Henderson
+	 * @license        Creative Commons Attribution-ShareAlike 2.5 License
+	 *
+	 * @param $email string $string Input email/adress
+	 * @return bool
 	 * @access private
 	 */
-	function EMAIL($email){
+	public static function EMAIL($email){
 		if(strlen($email) > 255)return false;
 		$no_ws_ctl = "[\\x01-\\x08\\x0b\\x0c\\x0e-\\x1f\\x7f]";
 		$alpha = "[\\x41-\\x5a\\x61-\\x7a]";
@@ -226,15 +233,16 @@ class Validators{
 		}
 		return true;
 	}
-	
+
 	/**
 	 * Validates an email adress
 	 * @param string $string Input email-adress
-	 * @param string $options Options
+	 * @param array $options Options
+	 * @return bool
 	 * @subpackage Filters
 	 * @access private
 	 */
-	function EMAIL_EXISTS($string, $options=array()){
+	public static function EMAIL_EXISTS($string, $options=array()){
 		// Check if the emailadress is valid
 		if(!(bool)_VALIDATE_EMAIL($string)) return false;
 
@@ -249,15 +257,16 @@ class Validators{
 		}
 		return true;
 	}
-	
+
 	/**
 	 * Checks the length or size of the string/integer/array
 	 * @param mixed $mixed Input variable
-	 * @param string $options An array with a max of 2 values
+	 * @param array $options An array with a max of 2 values
+	 * @return bool|int
 	 * @subpackage Filters
 	 * @access private
 	 */
-	function SIZE($mixed, array $options=array()) {
+	public static function SIZE($mixed, array $options=array()) {
 		// Get the Length
 		if(is_numeric($mixed))
 			$length = $mixed;

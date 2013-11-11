@@ -73,6 +73,7 @@ class Filter{
 			'EMAIL'				=> array('\\Quark\\Filter\\Validators', 'EMAIL'),
 			'EMAIL_EXISTS'		=> array('\\Quark\\Filter\\Validators', 'EMAIL_EXISTS'),
 			'SIZE'				=> array('\\Quark\\Filter\\Validators', 'SIZE'),
+			'URL'				=> array('\\Quark\\Filter\\Validators', 'URL'),
 		)
 	);
 	
@@ -82,42 +83,45 @@ class Filter{
 	 *
 	 * @param mixed $input The input to filter
 	 * @param array $filters The filter(s) to apply
-	 * @throws RuntimeException
+	 * @throws \RuntimeException
+	 * @throws \UnexpectedValueException
 	 * @return mixed
 	 */
-	public static function apply($input, $filters){
+	public static function apply($input, array $filters){
 		// Check if input is empty
 		if(empty($input)) return false;
 		
 		// Iterate and apply the individual filters
 		foreach($filters as $type => $list){
+			if(!is_array($list))
+				throw new \UnexpectedValueException('Expected array but got something else in the $filters argument.');
 			foreach($list as $filter => $options){
-				if(is_numeric($filter) && is_string($options)){
-					if(self::isRegistered($filter, $type))
-						$input = self::execFilter($input, $options, $type);
-					else \Quark\Error::raiseError('The '.(($type==self::FILTER)?'filter':'validator').' "'.$options.'" doesn\'t exist, thus I could not apply it on the string!');
-				}else if(is_string($filter) && is_array($options)){
-					if(self::isRegistered($filter, $type))
-						$input = self::execFilter($input, $filter, $type, $options);
-					else \Quark\Error::raiseError('The '.(($type==self::FILTER)?'filter':'validator').' "'.$filter.'" doesn\'t exist, thus I could not apply it on the string!');
-				}else if(is_string($filter) && is_string($options)){
-					if(self::isRegistered($filter, $type))
-						$input = self::execFilter($input, $filter, $type, array($options));
-					else \Quark\Error::raiseError('The '.(($type==self::FILTER)?'filter':'validator').' "'.$filter.'" doesn\'t exist, thus I could not apply it on the string!');
-				}else throw new RuntimeException('Filter::Apply()\'s $filters syntaxis was incorrect, and could not be processed. Stopped at filter "'.$filter.'" and options "'.var_export($options, true).'"');
+				if(!self::isRegistered($filter, $type))
+					\Quark\Error::raiseError('The '.(($type==self::FILTER)?'filter':'validator').' "'.$filter.'" doesn\'t exist, thus I could not apply it on the string!');
+				if(is_numeric($filter) && is_string($options))
+					$input = self::execFilter($input, $options, $type);
+				else if(is_string($filter) && is_array($options))
+					$input = self::execFilter($input, $filter, $type, $options);
+				else if(is_string($filter) && is_string($options))
+					$input = self::execFilter($input, $filter, $type, array($options));
+				else if(is_string($filter) && empty($options))
+					$input = self::execFilter($input, $filter, $type, array());
+				else
+					throw new \RuntimeException('Filter::Apply()\'s $filters syntaxis was incorrect, and could not be processed. Stopped at filter "'.$filter.'" and options "'.var_export($options, true).'"');
 			}
 		}
 		
 		// And return
 		return $input;
 	}
-	
+
 	/**
 	 * Executes a filter callback function on a input string
 	 * @param string $input Input string to apply the filter on
 	 * @param string $filter The filter name to apply
 	 * @param int $type Filter type
-	 * @param array $options Additional parameters to send to the filter calback function
+	 * @param array $options Additional parameters to send to the filter callback function
+	 * @throws \RuntimeException
 	 * @return string|bool|int Result of the callback on success integer -1 on error
 	 */
 	protected static function execFilter($input, $filter, $type, $options=array()){
@@ -246,6 +250,11 @@ function filter_string($input, $filters){
 	return Filter::apply($input, array(Filter::FILTER=>$filters));
 }
 
+/**
+ * @param $input
+ * @param $validators
+ * @return bool|mixed
+ */
 function validate_string($input, $validators){
 	if(is_string($input) || is_numeric($input))
 		return Filter::apply((string) $input, array(Filter::VALIDATOR=>$validators));

@@ -32,7 +32,7 @@ if(!defined('DIR_BASE')) exit;
 /**
  * 
  */
-class GridLayout extends Layout{
+class DynamicLayout extends Layout{
 	public function save() {
 		
 	}

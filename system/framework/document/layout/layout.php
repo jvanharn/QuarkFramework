@@ -47,6 +47,8 @@ if(!defined('DIR_BASE')) exit;
  * The layout class is the perfect place to implement a template parser, if the 
  * need arises within your application. (You can off course also choose to not 
  * use the document model at all, we are only here to help you.)
+ *
+ * @property-read Positions $positions Object that manages and exposes all available positions where UI elements can be placed in this layout.
  */
 abstract class Layout implements Element, \IteratorAggregate{
 	/**
@@ -56,7 +58,8 @@ abstract class Layout implements Element, \IteratorAggregate{
 	protected $positions = null;
 	
 	/**
-	 * Hashmap of all the positions and the elements they contain
+	 * Dictionary of all the positions and the elements they contain
+	 * @var Element[]
 	 */
 	protected $elements = array();
 	
@@ -67,7 +70,7 @@ abstract class Layout implements Element, \IteratorAggregate{
 		$this->positions = new Positions(array('MAIN_CONTENT' => ['Main Content', 'Contains the content for this layout.']), array());
 	}
 	
-	abstract public function save();
+	//abstract public function save();
 	
 	/**
 	 * Place an element on the given position in the layout
@@ -104,7 +107,7 @@ abstract class Layout implements Element, \IteratorAggregate{
 	}
 		
 	/**
-	 * IteratorAggregate implmentation.
+	 * IteratorAggregate implementation.
 	 * @return \ArrayIterator
 	 */
 	public function getIterator() {
@@ -129,12 +132,5 @@ abstract class Layout implements Element, \IteratorAggregate{
 	 */
 	final public function __invoke(Element $elem, $position=null){
 		$this->place($elem, $position);
-	}
-	
-	/**
-	 * Convert to html string representation.
-	 */
-	final public function __toString(){
-		return $this->save();
 	}
 }

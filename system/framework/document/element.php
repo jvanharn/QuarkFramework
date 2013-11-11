@@ -35,13 +35,27 @@ if(!defined('DIR_BASE')) exit;
  * 
  * Makes sure the element class has the right method(s) for getting it's HTML.
  */
-interface Element{
+interface Element {
 	/**
 	 * Retrieve the HTML representation of the element
+	 * @param Document $context The context within which the Element gets saved. (Contains data like encoding, XHTML or not etc.)
 	 * @return String HTML Representation
 	 */
-	public function save();
-	
+	public function save(Document $context);
+}
+
+/**
+ * Loose element without context.
+ *
+ * An loose or unbound element is an element that does not (Necessarily) need to know about the document it is in to render itself.
+ */
+interface IndependentElement extends Element {
+	/**
+	 * Retrieve the HTML representation of the element without requiring a document as context.
+	 * @return String HTML Representation
+	 */
+	public function independentSave();
+
 	/**
 	 * @see save()
 	 */
@@ -58,7 +72,7 @@ interface Element{
  */
 trait baseElement{
 	/**
-	 * Options that define the custumizable options for the element
+	 * Options that define the customizable options for the element
 	 */
 	protected $options = array();
 	
@@ -85,11 +99,12 @@ trait baseElement{
 				$this->options[$key] = $value;
 		}
 	}
-	
+
 	/**
 	 * Set an option on this box
 	 * @param string $option The option to set
 	 * @param string $value The new value
+	 * @throws \RuntimeException When the requested option does not exist.
 	 * @return void
 	 */
 	public function setOption($option, $value){
@@ -109,15 +124,41 @@ trait baseElement{
 		}
 	}
 	
-	/**
+	/*
 	 * Generates the HTML
 	 * @return string The HTML
 	 */
-	abstract public function save();
+	//abstract public function save();
 	
+
+}
+
+/**
+ * Basic implementation of an independent element.
+ * @package Quark\Document
+ */
+trait baseIndependentElement {
+	/**
+	 * Retrieve the HTML representation of the element
+	 * @param Document $context The context within which the Element gets saved. (Contains data like encoding, XHTML or not etc.)
+	 * @return String HTML Representation
+	 */
+	public function save(Document $context){
+		return $this->independentSave();
+	}
+
+	/**
+	 * Placeholder to satisfy the error checkers.
+	 * @return string
+	 * @ignore
+	 */
+	public function independentSave(){
+		return '';
+	}
+
 	/**
 	 * Makes it possible to convert the class to html
 	 * @return String
 	 */
-	public function __toString(){ return $this->save(); }
+	public function __toString(){ return $this->independentSave(); }
 }

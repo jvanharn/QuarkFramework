@@ -69,13 +69,13 @@ class Loader{
 	protected static $loaded = array();
 	
 	/**
-	 * List of aliasses for the Application
+	 * List of aliases for the Application
 	 * @var array
 	 */
-	protected static $aliasses = array('main', 'app');
+	protected static $aliases = array('main', 'app');
 	
 	/**
-	 * Appliaction object reference
+	 * Application object reference
 	 * @var \Quark\System\Application\Application
 	 */
 	protected static $application;
@@ -195,12 +195,26 @@ class Loader{
 			if(!class_exists($classname, false))
 				throw new \RuntimeException('Could not find the Application class "'.$classname.'" in the given namespace.');
 		}
-		
-		// Create and save reference
-		self::$application = new $classname();
-		
-		// Display the application
-		self::$application->display();
+
+		try {
+			// Create and save reference
+			self::$application = new $classname();
+
+			// Display the application
+			self::$application->display();
+		}catch(\Exception $exception){
+			// Handle any thrown exceptions
+			if(class_exists('\\Quark\\Error', false))
+				Error::prettyPrintErrorMessage(
+					'An uncaught exception occurred in the Application that was running, which led to an application abort.',
+					$exception->getCode(),
+					'An exception occurred in the application.',
+					$exception->getMessage(),
+					\Quark\Error\Debug::traceToString($exception->getTrace(), defined('EXTENDED_DEBUG') && EXTENDED_DEBUG)
+				);
+			else
+				print((string) $exception);
+		}
 	}
 	
 	/**
@@ -229,7 +243,7 @@ class Loader{
 	 */
 	public static function registerApplicationAlias($alias){
 		if(is_string($alias))
-			self::$aliasses[] = strtolower($alias);
+			self::$aliases[] = strtolower($alias);
 		else throw new \InvalidArgumentException('Alias should be a string.');
 	}
 	
@@ -261,7 +275,7 @@ class Loader{
 		if(!empty($classPath))
 			$path = self::_parseClassPath($classPath);
 		else throw new \InvalidArgumentException('The string given is empty.');
-		
+
 		// Check if it was included already
 		if(self::componentLoaded(implode('.', $path))) return true;
 		
@@ -288,13 +302,15 @@ class Loader{
 		
 		return $loaded;
 	}
-	
+
 	/**
 	 * Import one or multiple packages at once
-	 * @param String|Array $packages The package name or an array of package names
-	 * @param String $type One of the TYPE_* constants of this class. Namely Application, Utility or Framework
-	 * @param Boolean $required Whether or not the package is required
-	 * @return Boolean 
+	 * @param string|array $packages The package name or an array of package names
+	 * @param string $type One of the TYPE_* constants of this class. Namely Application, Utility or Framework
+	 * @param boolean $required Whether or not the package is required
+	 * @throws \RuntimeException
+	 * @throws \InvalidArgumentException
+	 * @return boolean
 	 */
 	public static function importPackage($packages, $type=self::TYPE_FRAMEWORK, $required=false){
 		// Check the arguments
@@ -357,8 +373,8 @@ class Loader{
 	 * Convert a PHP Class Reference to a Loadable Classpath
 	 * 
 	 * Conversion is mainly applied on the namespaces part.
-	 * @param type $classname The php class name (Function expects a valid classpath, please sanitize it first with {@see sanitizeClassPath})
-	 * @return string ClassPath
+	 * @param string $classpath The php class name (Function expects a valid classpath, please sanitize it first with {@see sanitizeClassPath})
+	 * @return string Class path
 	 * @see sanitizeClassPath
 	 * @access private
 	 */
@@ -378,7 +394,7 @@ class Loader{
 		
 		// Import a framework package's main include
 		if($cnt == 1){
-			if($exp[0] == 'application' || in_array($exp[0], self::$aliasses))
+			if($exp[0] == 'application' || in_array($exp[0], self::$aliases))
 				return array(self::TYPE_APPLICATION, 'application');
 			else
 				return array(self::TYPE_FRAMEWORK, $exp[0], $exp[0]);
@@ -388,7 +404,7 @@ class Loader{
 		else if($cnt == 2){
 			if($exp[0] == 'library' || $exp[0] == 'libraries')
 				return array(self::TYPE_LIBRARY, $exp[1]);
-			else if($exp[0] == 'application' || in_array($exp[0], self::$aliasses))
+			else if($exp[0] == 'application' || in_array($exp[0], self::$aliases))
 				return array(self::TYPE_APPLICATION, $exp[1]);
 			else if($exp[0] == 'framework')
 				return array(self::TYPE_FRAMEWORK, $exp[1], $exp[1]);
@@ -398,12 +414,15 @@ class Loader{
 		// Import a specific Util or Framework Component
 		else if($cnt >= 3){
 			$type = array_shift($exp);
-			if($type == 'framework' || $type == 'quark'){
-				array_unshift($exp, self::TYPE_FRAMEWORK);
-			}else if($type == 'library' || $type == 'libraries'){
-				if(class_exists('\\Quark\\Error', false)) \Quark\Error::raiseWarning('I found a class path that I can accept, but there probably is one or more dot(s) too many in the path: "'.$classPath.'". You can fix this by using only one dot when importing Utility Classes/Packages', 'If you are the developper, please check if your component paths match with the coding guidelines, or enable debugmode.');
+			if($type == 'library' || $type == 'libraries'){
+				//if(class_exists('\\Quark\\Error', false)) \Quark\Error::raiseWarning('I found a class path that I can accept, but there probably is one or more dot(s) too many in the path: "'.$classPath.'". You can fix this by using only one dot when importing Utility Classes/Packages', 'If you are the developper, please check if your component paths match with the coding guidelines, or enable debugmode.');
+				// Although we can parse these, it's not really the best loader to use for your external library, we recommend manually including the necessary files from your lib and/or registering an additional autoloader in there.
 				array_unshift($exp, self::TYPE_LIBRARY);
-			}else if($type == 'application' || in_array($type, self::$aliasses)){
+			}else if($type == 'quark' && $exp[0] == 'libraries'){
+				// do nothing, this is a fix for autoloading libraries that are using the \Quark\Libraries\LibraryName\* namespace.
+			}else if($type == 'framework' || $type == 'quark'){
+				array_unshift($exp, self::TYPE_FRAMEWORK);
+			}else if($type == 'application' || in_array($type, self::$aliases)){
 				array_unshift($exp, self::TYPE_APPLICATION);
 			}else return array_merge(array(self::TYPE_FRAMEWORK, $type), $exp);
 			return $exp;
@@ -421,7 +440,7 @@ class Loader{
 		else if($cnt == 2){
 			if($exp[0] == 'library' || $exp[0] == 'libraries')
 				return array(self::TYPE_LIBRARY, $exp[1]);
-			else if($exp[0] == 'application' || in_array($exp[0], self::$aliasses))
+			else if($exp[0] == 'application' || in_array($exp[0], self::$aliases))
 				return array(self::TYPE_APPLICATION, $exp[1]);
 			else if($exp[0] == 'framework')
 				return array(self::TYPE_FRAMEWORK, $exp[1], $exp[1]);
@@ -435,7 +454,7 @@ class Loader{
 			}else if($type == 'library' || $type == 'libraries'){
 				if(class_exists('\\Quark\\Error', false)) \Quark\Error::raiseWarning('I found a class path that I can accept, but there probably is one or more dot(s) too many in the path: "'.$packagePath.'". You can fix this by using only one dot when importing Utility Classes/Packages', 'If you are the developper, please check if your component paths match with the coding guidelines, or enable debugmode.');
 				array_unshift($exp, self::TYPE_LIBRARY);
-			}else if($type == 'application' || in_array($type, self::$aliasses)){
+			}else if($type == 'application' || in_array($type, self::$aliases)){
 				array_unshift($exp, self::TYPE_APPLICATION);
 			}else throw new \DomainException('Tried to parse invalid packagepath: After three or more path components the first must alsways be the path type, which is one of Loader::TYPE_UTILITY, Loader::TYPE_FRAMEWORK or Loader::TYPE_APPLICATION.');
 			return $exp;
@@ -579,7 +598,7 @@ class Loader{
 			}
 		}else if($numparts > 2){
 			// Check if it exists and try to correct if wrong
-			$path .= trim(implode(DIRECTORY_SEPARATOR, array_slice($classPath, 1, -1)), '.').DIRECTORY_SEPARATOR;
+			$path .= trim(implode(DIRECTORY_SEPARATOR, array_slice($classPath, 2, -1)), '.').DIRECTORY_SEPARATOR;
 			$filepath = self::_fixPathCase($path, end($classPath).'.php');
 			if($filepath === false){
 				System\Log::message(System\Log::ERROR, 'Unable to load classpath "'.implode('.', $classPath).'" as a library; library could not be found in library path variable (DIR_LIBRARY).');

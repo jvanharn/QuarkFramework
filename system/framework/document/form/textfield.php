@@ -24,6 +24,7 @@
 
 // Define Namespace
 namespace Quark\Document\Form;
+use Quark\Document\Document;
 
 // Prevent individual file access
 if(!defined('DIR_BASE')) exit;
@@ -58,8 +59,13 @@ class TextField extends Field implements ValidatableField, NormalizableField {
 		$this->value = (string) $value;
 		$this->placeholder = (string) $placeholder;
 	}
-	
-	public function save() {
+
+	/**
+	 * Retrieve the HTML representation of the element
+	 * @param Document $context The context within which the Element gets saved. (Contains data like encoding, XHTML or not etc.)
+	 * @return String HTML Representation
+	 */
+	public function save(Document $context) {
 		$value = ((empty($this->value) && empty($this->last))?'':' value="'.($this->value?:($this->last?:'')).'"');
 		return "\t\t\t\t<input type=\"text\" name=\"".$this->name."\" id=\"".$this->name."\"".$value."".(empty($this->placeholder)?'':' placeholder="'.$this->placeholder.'"')."/>\n";
 	}

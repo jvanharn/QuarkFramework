@@ -24,6 +24,7 @@
 
 // Define Namespace
 namespace Quark\Document\Form;
+use \Quark\Document\Document;
 
 // Prevent individual file access
 if(!defined('DIR_BASE')) exit;
@@ -91,9 +92,10 @@ class Selectable extends Field implements ValidatableField, NullableField {
 	
 	/**
 	 * Get the html representation of the selectable field.
-	 * @return string
+	 * @param Document $context The context within which the Element gets saved. (Contains data like encoding, XHTML or not etc.)
+	 * @return string HTML Representation
 	 */
-	public function save() {
+	public function save(Document $context) {
 		if($this->multiple !== false){
 			$saved = "\t\t\t\t<select size=\"4\" multiple=\"multiple\" name=\"".$this->name."[]\" id=\"".$this->name."\">\n";
 		}else{

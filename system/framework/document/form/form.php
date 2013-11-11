@@ -24,6 +24,8 @@
 
 // Define Namespace
 namespace Quark\Document\Form;
+use Quark\Document\Document,
+	Quark\Document\Element;
 
 // Prevent individual file access
 if(!defined('DIR_BASE')) exit;
@@ -35,7 +37,7 @@ if(!defined('DIR_BASE')) exit;
  * Simplifies the construction and the easy (and safe) extraction of data from
  * the resulting submit.
  */
-class Form implements \Quark\Document\Element {
+class Form implements Element {
 	/**
 	 * The hash algorithm to use to hash the "unique" form identifiers.
 	 * Should be as fast as possible. (Most platforms MD4 performs slightly faster)
@@ -75,7 +77,13 @@ class Form implements \Quark\Document\Element {
 	 * @var string
 	 */
 	private $fid = null;
-	
+
+	/**
+	 * The document this form was created in.
+	 * @var \Quark\Document\Document
+	 */
+	protected $context;
+
 	/**
 	 * The URL where the form get's submitted to.
 	 * @var string
@@ -124,17 +132,22 @@ class Form implements \Quark\Document\Element {
 	 * @var boolean
 	 */
 	private $validated = null;
-	
+
 	/**
 	 * Constructs a new Form object.
-	 * 
-	 * @param string $action The action url the form is submitted to. (Prefferably the same url as the current, or another. that leads to the same code stack. Unless you want to keep adding the same fields :P)
+	 *
+	 * @param \Quark\Document\Document $context The document where the form will reside in.
+	 * @param string $action The action url the form is submitted to. (Preferably the same url as the current, or another. that leads to the same code stack. Unless you want to keep adding the same fields :P)
 	 * @param string $method One of the METHOD_* class constants.
-	 * @param bool $group Whether or not to auto group fields. When turned on makes ungroued fields automatically fall into the 'default' group. This makes sure fields are always in a fieldset.
+	 * @param bool $group Whether or not to auto group fields. When turned on makes non-grouped fields automatically fall into the 'default' group. This makes sure fields are always in a fieldset.
 	 * @param string $unique Add a unique form identifier/name, to help differentiate between two forms with exactly the same fields (MAXLENGTH=32).
 	 * @throws \InvalidArgumentException
 	 */
-	public function __construct($action=null, $method=self::METHOD_POST, $group=true, $unique=false){
+	public function __construct(Document $context, $action=null, $method=self::METHOD_POST, $group=true, $unique=null){
+		if(!empty($context))
+			$this->context = $context;
+		else throw new \InvalidArgumentException('Expected Document object for argument $context, but got null.');
+
 		if(is_null($action)){
 			$app = \Quark\Loader::getApplication();
 			if(method_exists($app, 'getRouter'))
@@ -152,19 +165,12 @@ class Form implements \Quark\Document\Element {
 		
 		$this->setUID($unique);
 	}
-	
-	/**
-	 * @access protected
-	 * @return string
-	 */
-	public function __toString(){
-		return $this->save();
-	}
-	
+
 	/**
 	 * Place a field on the Form.
 	 * @param \Quark\Document\Form\Field $field
 	 * @param string|null $group Null to just add to last active group.
+	 * @throws \InvalidArgumentException
 	 * @return boolean
 	 */
 	public function place(Field $field, $group=null){
@@ -180,12 +186,14 @@ class Form implements \Quark\Document\Element {
 			}else return false;
 		}else throw new \InvalidArgumentException('Parameter $group for the method place should be of type "string" or "integer" but got "'.gettype($group).'".');
 	}
-	
+
 	/**
 	 * Define a group. (Optionally with it's fields)
 	 * @param string $name Internal name of the fieldset/group.
 	 * @param string $title Title of the group in the form, leave empty if you want no fieldset name.
 	 * @param array $fields Field objects to place in the group for quicker syntaxis.
+	 * @throws \UnexpectedValueException
+	 * @throws \InvalidArgumentException
 	 */
 	public function group($name, $title='', array $fields=array()){
 		if(!(is_string($name) || is_integer($name))) throw new \InvalidArgumentException('Parameter $name for the method group should be of type "string" or "integer" but got "'.gettype($name).'".');
@@ -292,9 +300,15 @@ class Form implements \Quark\Document\Element {
 	 * 
 	 * If validated was called earlier, the resulting errors will be displayed
 	 * in the form.
+	 *
+	 * @param Document $context The context within which the Element gets saved. (Contains data like encoding, XHTML or not etc.)
 	 * @return string The HTML form representation.
 	 */
-	public function save(){
+	public function save(Document $context) {
+		if($this->context != $context)
+			throw new \RuntimeException('It appears this form has been saved/added to an document where it was not created for, this might result in unexpected errors or incompatible encodings.');
+		$this->context = $context;
+
 		$data = $this->data();
 		$form = "\n<form action=\"".$this->action."\" method=\"".$this->method."\" class=\"".$this->class."\">\n";
 		$form .= "\t<input type=\"hidden\" name=\"formid\" value=\"".$this->getFID()."\"/>\n";
@@ -475,7 +489,7 @@ class Form implements \Quark\Document\Element {
 		return	"\t\t<div class=\"control-group\">\n".
 					(is_null($label)?'':"\t\t\t<label for=\"".$name."\">".$label."</label>\n").
 					"\t\t\t<div class=\"controls".($field_error?' invalid-value':'')."\">\n".
-						$field->save().
+						$field->save($this->context).
 						($field_error?"\t\t\t\t<span class=\"validation-errors\">".$this->validated[$name]."</span>\n":'').
 					"\t\t\t</div>\n".
 				"\t\t</div>\n";

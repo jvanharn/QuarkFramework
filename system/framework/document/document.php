@@ -24,7 +24,10 @@
 
 // Define Namespace
 namespace Quark\Document;
-use Quark\Document\Layout\Layout as Layout;
+use Quark\Document\Layout\Layout;
+use Quark\Event\baseObservable;
+use Quark\Event\Observable;
+use Quark\Util\Singleton;
 
 // Prevent individual file access
 if(!defined('DIR_BASE')) exit;
@@ -38,6 +41,7 @@ if(!defined('DIR_BASE')) exit;
 	'Framework.Document.Collection',
 	'Framework.Document.Style',
 	'Framework.Document.Headers',
+	'Framework.Document.Resources',
 	'Framework.Document.Layout.Layout'
 );
 
@@ -45,11 +49,21 @@ if(!defined('DIR_BASE')) exit;
  * Document Class
  * 
  * Generates the basic HTML(5) document structure, and makes it skinnable.
+ *
  * @package Quark-Framework
  * @subpackage UserInterface
+ *
+ * @property-read Layout $layout The object which manages all resources/assets which are used in the document, and makes sure they do not conflict with each other.
+ * @property-read Headers $headers The object which manages all tags in the head of the document.
+ * @property-read ResourceManager $resources The object which manages all resources/assets which are used in the document, and makes sure they do not conflict with each other.
+ * @property-read string $doctype HTML Document-type for this document.
+ * @property-read string $encoding The character encoding for this document.
+ * @property-read bool $xhtml Whether or not this document uses XHTML style unclosed tags.
+ *
+ * @method boolean place() place(Element $elem, string $position='') Place an element onto the current {@link \Quark\Document\Layout\Layout::place() layout}.
  */
-class Document implements \Quark\Util\Singleton, \Quark\Event\Observable, Element{
-	use	\Quark\Event\baseObservable;
+class Document implements Singleton, Observable {
+	use	baseObservable;
 	
 	// Preset Document Types
 	const TYPE_HTML5				= 'HTML5';
@@ -118,7 +132,7 @@ class Document implements \Quark\Util\Singleton, \Quark\Event\Observable, Elemen
 	// There are no specific region charsets included other than Latin-9 which will probably be removed too. We want to encourage use of utf-8 for those usecases, off course you are free to just use the EUC-JP string or others yourself.
 	const CHARSET_UTF8		= 'UTF-8';
 	const CHARSET_UTF16		= 'UTF-16';
-	const CHARSET_LATIN1		= 'ISO-8859-1';
+	const CHARSET_LATIN1	= 'ISO-8859-1';
 	const CHARSET_LATIN9	= 'ISO-8859-15';
 	const CHARSET_ASCII		= 'US_ASCII';
 	
@@ -177,13 +191,19 @@ class Document implements \Quark\Util\Singleton, \Quark\Event\Observable, Elemen
 	 * @var \Quark\Document\Layout\Layout
 	 */
 	protected $layout;
+
+	/**
+	 * Resource Manager
+	 * @var \Quark\Document\ResourceManager
+	 */
+	protected $resources;
 	
 	/**
 	 * @see \Quark\Document\Document::createInstance
 	 */
-	protected function __construct(Layout $layout, $type, $doctype, $encoding, $xmlns, $xhtml){
+	protected function __construct(Layout $layout, $type, $doctype, $encoding, $xmlns, $xhtml, Headers $headers){
 		// Initialize vital objects
-		$this->headers = new Headers($xhtml);
+		$this->headers = $headers;
 		$this->layout = $layout;
 		
 		// Set the options
@@ -192,7 +212,7 @@ class Document implements \Quark\Util\Singleton, \Quark\Event\Observable, Elemen
 		$this->setEncoding($encoding);
 		$this->setXMLNamespace($xmlns);
 		$this->setXHTML($xhtml);
-		
+
 		// Initialize the headers object
 		$this->headers->add(Headers::TITLE, array(), 'Quark Framework');
 		$this->headers->add(Headers::META, array('name'=>'viewport', 'content'=>'width=device-width, initial-scale=1.0, maximum-scale=1.0'));
@@ -268,7 +288,7 @@ class Document implements \Quark\Util\Singleton, \Quark\Event\Observable, Elemen
 	
 	/**
 	 * Whether or not we should export using the xhtml notation.
-	 * @param boolean $xhtml
+	 * @param boolean $xmlns
 	 * @return boolean
 	 */
 	public function setXMLNamespace($xmlns){
@@ -294,35 +314,62 @@ class Document implements \Quark\Util\Singleton, \Quark\Event\Observable, Elemen
 	public function setXHTML($xhtml){
 		if(is_bool($xhtml)){
 			$this->xhtml = $xhtml;
-			$this->headers->xhtml = $xhtml;
 			return true;
 		}else return false;
 	}
-	
+
+	/**
+	 *
+	 * @param bool $required
+	 * @return bool|object
+	 * @throws \RuntimeException
+	 */
+	public function getResourceManager($required=true) {
+		if(is_object($this->resources)){
+			return $this->resources;
+		}else if($required == true)
+			throw new \RuntimeException('Tried to retrieve the (Required) Resource Manager, but no resource manager was set on this document.');
+		else return false;
+	}
+
+	/**
+	 * Set the Resource Manager for this Document.
+	 * @param ResourceManager $resources
+	 * @return bool
+	 */
+	public function setResourceManager(ResourceManager $resources) {
+		if(is_object($resources)){
+			$this->resources = $resources;
+			return true;
+		}else return false;
+	}
+
 	/**
 	 * Magic method for making it easier to use the Document class variables.
 	 * @param string $name Name of currently accessed variable.
+	 * @throws \RuntimeException
 	 * @return mixed
 	 */
 	public function __get($name){
 		$name = strtolower($name);
-		if($name == 'layout'){
+		if($name == 'layout')
 			return $this->layout;
-		}else if($name == 'headers' || $name == 'head'){
+		else if($name == 'headers' || $name == 'head' || $name == 'headermanager')
 			return $this->headers;
-		}
+		else if($name == 'resources' || $name == 'resourcemanager')
+			return $this->resources;
 		else if($name == 'doctype') return $this->doctype;
 		else if($name == 'encoding' || $name == 'charset') return $this->encoding;
 		else if($name == 'xhtml') return $this->xhtml;
-		else{
-			throw new \RuntimeException('Tried to reference an invalid/non-existant variable name.');
-		}
+		else throw new \RuntimeException('Tried to reference an invalid/non-existant variable name.');
 	}
-	
+
 	/**
 	 * Magic Method that supplies shorthand methods for certain Layout and header functionality.
 	 * @param string $method Method to invoke.
 	 * @param array $arguments Arguments for the supplied method name.
+	 * @throws \RuntimeException
+	 * @throws \InvalidArgumentException
 	 * @return mixed
 	 */
 	public function __call($method, $arguments){
@@ -334,11 +381,12 @@ class Document implements \Quark\Util\Singleton, \Quark\Event\Observable, Elemen
 			else throw new \InvalidArgumentException('The arguments given to place|elem are invalid. Check the Layout::place documentation for more info.');
 		}else throw new \RuntimeException('Invalid method name given to __call: Could not resolve call.');
 	}
-	
+
 	/**
 	 * Magic Method that makes static calls on class methods possible.
 	 * @param string $method Method to invoke.
 	 * @param array $arguments Arguments for the supplied method name.
+	 * @throws \RuntimeException
 	 * @return mixed
 	 */
 	public static function __callStatic($method, $arguments) {
@@ -357,11 +405,11 @@ class Document implements \Quark\Util\Singleton, \Quark\Event\Observable, Elemen
 		self::$_saved = true;
 		
 		// Check if the layout has css
-		if($this->layout instanceof Style) // @TODO: For now we just add the css as a style element. Some caching and or saving to disk for performance might be interresting.
-			$this->headers->add(Headers::STYLE, array(), PHP_EOL.$this->layout->saveStyle());
+		if($this->layout instanceof Style) // @TODO: For now we just add the css as a style element. Some caching and or saving to disk for performance might be interesting.
+			$this->headers->add(Headers::STYLE, array(), PHP_EOL.$this->layout->saveStyle()); // @TODO @NOTE NO2: Maybe we could just scrape all the CSS from the header class and compile that, embedded CSS isn't something we should be encouraging anyways.
 		
 		// Get the document elements(children)
-		$children = $this->layout->save();
+		$children = $this->layout->save($this);
 		if(empty($children)) $children = '<div style="margin:20px auto;border:1px solid grey;width:500px;text-align:center;border-radius: 4px;background:#f0f0f0;font-family: sans-serif;"><h1 style="text-shadow:#555 0px 0px 3px;border-bottom:1px solid grey;padding:0px 0px 15px 0px">Quark: Internal 404</h1><p title="Sorry the layout bound to this Document did not return any HTML.">The framework could find absolutely nothing to display.</p><p style="font-size:9px"><strong>Technical info</strong> The system did initialize the UserInterface-&gt;Document object and added a Layout, but left the Layout in it\'s default (empty) state.<br/>Thus: the application created it and did nothing with it.</p></div>';
 		
 		// Check if it's x(ht)ml
@@ -373,7 +421,7 @@ class Document implements \Quark\Util\Singleton, \Quark\Event\Observable, Elemen
 		$doc = <<<DOCUMENT
 {$this->doctype}
 <html{$xmlns}>
-<head>{$this->headers->save()}
+<head>{$this->headers->save($this->xhtml)}
 </head>
 <body>
 {$children}</body>
@@ -417,7 +465,8 @@ DOCUMENT;
 	 * 
 	 * If display is given, sets whether or not to display at shutdown (Overrides even if it was already saved).
 	 * If display was not set or is null it will return whether or not it is going to display
-	 * @param bool $display 
+	 * @param bool $display
+	 * @return bool
 	 */
 	public static function autoDisplay($display=null){
 		if(is_bool($display))
@@ -465,27 +514,35 @@ DOCUMENT;
 	 */
 	public static function createInstance(Layout $layout, $type=self::TYPE_HTML){
 		if(is_string($type) && isset(self::$documentProperties[$type])){
-			return (self::$_instance = new Document($layout, $type, self::$documentProperties[$type]['doctype'], self::$documentProperties[$type]['charset'], self::$documentProperties[$type]['xmlns'], self::$documentProperties[$type]['xhtml']));
+			$headers = new Headers;
+			self::$_instance = new Document($layout, $type, self::$documentProperties[$type]['doctype'], self::$documentProperties[$type]['charset'], self::$documentProperties[$type]['xmlns'], self::$documentProperties[$type]['xhtml'], $headers);
+			self::$_instance->setResourceManager(new ResourceManager($headers));
+			return self::$_instance;
 		}else return false;
 	}
-	
+
 	/**
-	 * Create the document instance with custumized options.
+	 * Create the document instance with customized options.
 	 * @param \Quark\Document\Layout\Layout $layout Layout manager to use.
-	 * @param string $typename The TYPE_* constant that comes closest to your custom document, this is for compatability.
+	 * @param string $type The TYPE_* constant that comes closest to your custom document, this is for comparability.
 	 * @param string $doctype The (Custom) HTML Doctype to use for this document.
 	 * @param string $encoding Document encoding to use, see class constants to change or define your own. (Defaults to UTF-8)
 	 * @param string $xmlns The xmlns string to use
 	 * @param boolean $xhtml Whether or not to use the html style single tag closure style (<link />) or the HTML style (<link>).
-	 * @return \Quark\Document\Document|boolean Current 
+	 * @param Headers $headers The header manager to use for this document.
+	 * @param ResourceManager|null $resources Resource Manager object to use for this document, may be set to null.
+	 * @return bool|\Quark\Document\Document
 	 */
-	public static function createCustomInstance(Layout $layout, $type, $doctype, $encoding, $xmlns, $xhtml){
-		if((is_string($type) && isset(self::$documentProperties[$type])) && is_string($doctype) && is_string($encoding) && (is_string($xmlns) || $xmlns == false) && is_string($xhtml))
-			return (self::$_instance = new Document($layout, $type, $doctype, $encoding, $xmlns, $xhtml));
-		else return false;
+	public static function createCustomInstance(Layout $layout, $type, $doctype, $encoding, $xmlns, $xhtml, Headers $headers, ResourceManager $resources=null){
+		if((is_string($type) && isset(self::$documentProperties[$type])) && is_string($doctype) && is_string($encoding) && (is_string($xmlns) || $xmlns == false) && is_string($xhtml)){
+			self::$_instance = new Document($layout, $type, $doctype, $encoding, $xmlns, $xhtml, $headers);
+			if($resources !== null)
+				self::$_instance->setResourceManager($resources);
+			return self::$_instance;
+		}else return false;
 	}
 	
-	// These methods allow for custom document extending classes registring themselves as the active Document classes.
+	// These methods allow for custom document extending classes registering themselves as the active Document classes.
 	// For debugging purposes, not for production use, if you do, use at your own risk and inform the user(If it is an extension, component, etc via description)
 	/**
 	 * Reset's the document class to it's beginning state

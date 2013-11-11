@@ -24,9 +24,8 @@
 
 // Define Namespace
 namespace Quark\Document\Utils;
-
-// Import namespaces
-use Quark\Document\Element as Element;
+use Quark\Document\Document;
+use Quark\Document\Element;
 
 // Prevent individual file access
 if(!defined('DIR_BASE')) exit;
@@ -34,7 +33,7 @@ if(!defined('DIR_BASE')) exit;
 /**
  * Wraps existing elements with a HTML Tag.
  */
-class Wrapper implements Element{
+class Wrapper implements Element {
 	/**
 	 * The element to wrap.
 	 * @var \Quark\Document\Element
@@ -52,12 +51,13 @@ class Wrapper implements Element{
 	 * @var array
 	 */
 	protected $attributes;
-	
+
 	/**
 	 * Construct a new wrapper object.
-	 * @param \Quark\Document\Element $element The element to wrap.
+	 * @param \Quark\Document\Element|\Quark\Document\Element $element The element to wrap.
 	 * @param string $tagname Name/Type of tag to wrap with.
 	 * @param array $attributes Attributes and it's values for the wrapper element.
+	 * @throws \InvalidArgumentException
 	 */
 	public function __construct(Element $element, $tagname='div', $attributes=array()){
 		// Set the element
@@ -73,21 +73,15 @@ class Wrapper implements Element{
 			$this->attributes = $attributes;
 		else throw new \InvalidArgumentException('Argument $attributes should be of type "array".');
 	}
-	
+
 	/**
-	 * Get the string representation of the wrapper object in HTML.
-	 * @return string
+	 * Retrieve the HTML representation of the wrapper.
+	 * @param Document $context The context within which the Element gets saved. (Contains data like encoding, XHTML or not etc.)
+	 * @return String HTML Representation
 	 */
-	public function save(){
+	public function save(Document $context) {
 		$attr = '';
 		foreach($this->attributes as $name => $val) $attr .= $name.'="'.$val.'"';
-		return '<'.$this->tagname.$attr.'>'.($this->element->save()).'</'.$this->tagname.'>';
-	}
-	
-	/**
-	 * @see \Quark\Document\Utils\Wrapper::save()
-	 */
-	public function __toString(){
-		return $this->save();
+		return '<'.$this->tagname.$attr.'>'.($this->element->save($context)).'</'.$this->tagname.'>';
 	}
 }

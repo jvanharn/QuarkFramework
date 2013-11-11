@@ -12,16 +12,15 @@ namespace Quark\Services\HTTP;
 
 use Quark\Error;
 
+/**
+ * Class Response
+ * @package Quark\Services\HTTP
+ */
 class Response {
 	/**
-	 * @var array Misc info about the response.
+	 * @var string|array Http status code, message and version from response.
 	 */
-	protected $info;
-
-	/**
-	 * @var string Http status code, message and version from response.
-	 */
-	protected $status = array();
+	protected $status;
 
 	/**
 	 * @var array Response headers taken from the handle.
@@ -34,14 +33,15 @@ class Response {
 	protected $body;
 
 	/**
-	 * @param array $info
-	 * @param string $response
+	 * @param string $http_status
+	 * @param array $headers
+	 * @param string $body
 	 * @access private
 	 */
-	public function __construct($info, $response){
-		$this->info = $info;
-		$this->headers = self::parseHeaders(substr($response, 0, $info['header_size']), $this->status);
-		$this->body = substr($response, $info['header_size']);
+	public function __construct($http_status, $headers, $body){
+		$this->status = $http_status;
+		$this->headers = $headers;
+		$this->body = $body;
 	}
 
 	/**
@@ -57,6 +57,7 @@ class Response {
 	 * @return string
 	 */
 	public function getHttpVersion(){
+		self::_parseStatus();
 		return $this->status['http_version'];
 	}
 
@@ -65,6 +66,7 @@ class Response {
 	 * @return int
 	 */
 	public function getResponseCode(){
+		self::_parseStatus();
 		return $this->status['response_code'];
 	}
 
@@ -73,6 +75,7 @@ class Response {
 	 * @return string
 	 */
 	public function getResponseStatus(){
+		self::_parseStatus();
 		return $this->status['response_status'];
 	}
 
@@ -106,27 +109,22 @@ class Response {
 	}
 
 	/**
-	 * Parse headers into a dimensional array.
-	 * @param string $str Header string to parse.
-	 * @param array $status Give a reference to an array to also get all the http status string info
-	 * @return array
+	 * Check whether the response body was not empty.
 	 */
-	public static function parseHeaders($str, &$status=null){
-		$raw = explode("\n", $str);
-		$headers = array();
-		for($i=0; $i<count($raw); $i++){
-			if($i == 0 && strpos($raw[$i], ':') == -1){
-				if($status != null && is_array($status)){
-					$exp = explode(' ', $raw[$i]);
-					$status['http_version'] = $exp[0];
-					$status['response_code'] = intval($exp[1]);
-					$status['response_status'] = $exp[2];
-				}
-			}else{
-				$exp = explode(':', $raw[$i]);
-				$headers[trim($exp[0])] = trim($exp[1]);
-			}
-		}
-		return $headers;
+	public function hasBody(){
+		return !empty($this->body);
+	}
+
+	/**
+	 * Parses the status string into an array.
+	 */
+	private function _parseStatus(){
+		if(is_array($this->status)) return;
+		$exp = explode(' ', $this->status);
+		$this->status = array(
+			'http_version' => $exp[0],
+			'response_code' => intval($exp[1]),
+			'response_status' => $exp[2]
+		);
 	}
 }

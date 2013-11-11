@@ -72,7 +72,7 @@ abstract class Controller {
 	 */
 	public function getRoute(){
 		if(!empty($this->routables) && is_array($this->routables))
-			return new MVCRoute($this->routables);
+			return new MVCRoute($this->routables, $this);
 		else return MVCRoute::fromController($this);
 	}
 	
@@ -151,9 +151,9 @@ class MVCRoute implements \Quark\System\Router\Route {
 		}
 		
 		// filter methods and return
-		return new MVCRoute(array_filter($methods, function($method){
-			return ($method->isPublic() && $method->getDeclaringClass() == $reflected->getName() && substr($method->name, 0, 1) != '_');
-		}));
+		return new MVCRoute($name, array_filter($methods, function($method){
+			return ($method->isPublic() && $method->getDeclaringClass() == $method->getName() && substr($method->name, 0, 1) != '_');
+		}), $object);
 	}
 	
 	/**

@@ -10,10 +10,13 @@
 
 namespace Quark\Bundles;
 
-use Quark\Util\PropertyObject;
+use	Quark\Util\PropertyObject,
+	Quark\Filter;
 
 // Prevent individual file access
 if(!defined('DIR_BASE')) exit;
+
+\Quark\import('framework.filter.filter', true);
 
 /**
  * Defines a PageTree CMS resource or library bundle.
@@ -120,42 +123,49 @@ class LocalBundle extends Bundle {
 	 * @return LocalBundle
 	 */
 	public static function fromJSON($json){
-		$info = json_decode($json);
+		$info = json_decode($json, true);
+		if(!is_array($info))
+			throw new \UnexpectedValueException('JSON_Decode failed on the given json data ('.json_last_error().'), please check your syntaxis.');
 		$bundle = new LocalBundle();
 
-		if(isset($info['id']) && validate_string($info['id'], array('CHARS' => CONTAINS_ALPHANUMERIC.'.-')))
+		if(isset($info['id']) && \Quark\Filter\validate_string($info['id'], array('CHARS' => CONTAINS_ALPHANUMERIC.'.-')))
 			$bundle->id = $info['id'];
 		else throw new \UnexpectedValueException('LocalBundle->fromJSON; Expected "id" to be set and be filled with alpha-numeric characters and \'.-\'.');
 
-		if(isset($info['name']) && validate_string($info['name'], array('CHARS' => CONTAINS_ALPHANUMERIC.'.,-_()&@:;?! ')))
+		if(isset($info['name']) && \Quark\Filter\validate_string($info['name'], array('CHARS' => CONTAINS_ALPHANUMERIC.'.,-_()&@:;?! ')))
 			$bundle->name = $info['name'];
 		else throw new \UnexpectedValueException('LocalBundle->fromJSON; Expected "name" to be set and be filled with alpha-numeric characters and \'.,-_()&@:;?! \'.');
 
-		if(isset($info['version']) && validate_string($info['version'], array('CHARS' => CONTAINS_ALPHANUMERIC.'.-_ ')))
+		if(isset($info['version']) && \Quark\Filter\validate_string($info['version'], array('CHARS' => CONTAINS_ALPHANUMERIC.'.-_ ')))
 			$bundle->version = $info['version'];
 		else throw new \UnexpectedValueException('LocalBundle->fromJSON; Expected "version" to be set and be filled with alpha-numeric characters and \'.-_ \'.');
 
-		if(isset($info['description']) && validate_string($info['description'], array('CHARS' => CONTAINS_ALPHANUMERIC.'.-_ ')))
+		if(isset($info['description']) && \Quark\Filter\validate_string($info['description'], array('CHARS' => CONTAINS_ALPHANUMERIC.'\\|":;\'[]{}()*&%$#@!~+=,.-_ ')))
 			$bundle->description = $info['description'];
 		else throw new \UnexpectedValueException('LocalBundle->fromJSON; Expected "description" to be set.');
 
 		if(isset($info['resources']) && is_array($info['resources'])){
-			$bundle->resources = array('css' => array(), 'js' => array());
+			$bundle->resources = array('css' => array(), 'js' => array(), 'font' => array(), 'image' => array());
 			foreach($info['resources'] as $type => $resources){
-				if(!($type == 'js' || $type == 'css'))
-					throw new \UnexpectedValueException('LocalBundle->fromJSON; Resource type "'.$type.'" is malformed, it should be one of "css" or "js", and its contents be of type array. But I found "'.gettype($resources).'".');
+				if(!isset($bundle->resources[$type]))
+					throw new \UnexpectedValueException('LocalBundle->fromJSON; Resource type "'.$type.'" is malformed, it should be one of "css", "font", "image" or "js".');
 				foreach($resources as $resource => $properties){
-					if(is_string($resource) && validate_string($info['description'], array('CHARS' => CONTAINS_ALPHANUMERIC.'.-_ ')) && is_array($properties)){
+					if(is_string($resource) && \Quark\Filter\validate_string($resource, array('CHARS' => CONTAINS_ALPHANUMERIC.'/\\.-_ ')) && is_array($properties)){
 						$bundle->resources[$type][$resource] = array();
 						if($type == 'css')
 							$keys = array('media');
 						else if($type == 'js')
 							$keys = array();
+						else if($type == 'font')
+							$keys = array();
+						else if($type == 'image')
+							$keys = array();
+						else throw new \UnexpectedValueException('Found unexpected $type value where this should not be the case.');
 						for($i=0; $i<count($keys); $i++){
 							if(isset($properties[$keys[$i]]))
 								$bundle->resources[$type][$resource][$keys[$i]] = $properties[$keys[$i]];
 						}
-					}else throw new \UnexpectedValueException('LocalBundle->fromJSON; Resource "'.$resource.'" is malformed, it should be an array, but found "'.gettype($resource).'".');
+					}else throw new \UnexpectedValueException('LocalBundle->fromJSON; Resource "'.$resource.'" is malformed, it\'s properties should be of type "array", found "'.gettype($properties).'" or it\'s name contained illegal characters.');
 				}
 			}
 		}else throw new \UnexpectedValueException('LocalBundle->fromJSON; Expected "resources" to be set and be of type array.');
@@ -163,13 +173,21 @@ class LocalBundle extends Bundle {
 		$bundle->dependencies = array();
 		if(isset($info['dependencies']) && is_array($info['dependencies'])){
 			foreach($info['dependencies'] as $dependency){
-				if(is_string($dependency) && validate_string($info['id'], array('CHARS' => CONTAINS_ALPHANUMERIC.'.-')))
+				if(is_string($dependency) && \Quark\Filter\validate_string($dependency, array('CHARS' => CONTAINS_ALPHANUMERIC.'.-')))
 					$bundle->dependencies[] = $dependency;
-				else throw new \UnexpectedValueException('LocalBundle->fromJSON; Expected "id" to be set and be filled with alpha-numeric characters and \'.-\'.');
+				else if(is_array($dependency) && count($dependency) >= 2){
+					$dependencyId = array_shift($dependency);
+					try {
+						$version = normalize_version_rule($dependency);
+						$bundle->dependencies[] = array_merge(array($dependencyId), $version);
+					}catch(\Exception $e){
+						throw new \UnexpectedValueException('LocalBundle->fromJSON; Dependency "'.var_export($dependency, true).'" incorrectly formatted!', E_USER_ERROR, $e);
+					}
+				}else throw new \UnexpectedValueException('LocalBundle->fromJSON; Expected dependency id to be set and be filled with alpha-numeric characters and \'.-\' or an array foramtted as [bundleid, version comparisson operator, {version, [version, version]}].');
 			}
 		}// not required to be set
 
-		if(isset($info['repository']) && validate_string($info['repository'], 'url'))
+		if(isset($info['repository']) && \Quark\Filter\validate_string($info['repository'], array('url' => null)))
 			$bundle->repository = $info['repository'];
 		else throw new \UnexpectedValueException('LocalBundle->fromJSON; Expected "repository" to be set and be a valid URL.');
 
@@ -185,7 +203,7 @@ class LocalBundle extends Bundle {
 	 * @return LocalBundle
 	 */
 	public static function fromTrustedJSON($json){
-		$info = json_decode($json);
+		$info = json_decode($json, true);
 
 		/*$bundle = new LocalBundle();
 		$bundle->id = $info['id'];

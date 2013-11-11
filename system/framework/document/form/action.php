@@ -24,6 +24,7 @@
 
 // Define Namespace
 namespace Quark\Document\Form;
+use \Quark\Document\Document;
 
 // Prevent individual file access
 if(!defined('DIR_BASE')) exit;
@@ -57,9 +58,10 @@ class Action extends Field implements ValidatableField {
 	 * @var string
 	 */
 	protected $text;
-	
+
 	/**
 	 * @param integer $action One of the ACTION_* constants.
+	 * @param string $text Button label.
 	 * @throws \InvalidArgumentException When the integer used for $action is invalid.
 	 */
 	public function __construct($action, $text='Submit'){
@@ -80,8 +82,10 @@ class Action extends Field implements ValidatableField {
 	
 	/**
 	 * Save the button to HTML.
+	 * @param Document $context The context within which the Element gets saved. (Contains data like encoding, XHTML or not etc.)
+	 * @return String HTML Representation
 	 */
-	public function save() {
-		return "\t\t\t\t<input type=\"".$this->name."\" name=\"".$this->name."\" value=\"".$this->text."\"/>\n";
+	public function save(Document $context) {
+		return "\t\t\t\t<input type=\"".$this->name."\" name=\"".$this->name."\" value=\"".$context->encodeText($this->text)."\"/>\n";
 	}
 }

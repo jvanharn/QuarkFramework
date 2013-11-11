@@ -37,8 +37,9 @@ if(!defined('DIR_BASE')) exit;
 class Debug{
 	/**
 	 * Returns the Line of a given file
-	 * @param $file Filename to look in.
-	 * @param $line The line to extract.
+	 * @param string $file Filename to look in.
+	 * @param int $line The line to extract.
+	 * @return bool|string
 	 */
 	public static function getLine($file, $line){
 		// Read file if possible
@@ -58,6 +59,7 @@ class Debug{
 	/**
 	 * Returns the last function in a string form
 	 * @param array $trace The trace array.
+	 * @return string
 	 */
 	public static function getLastFunctionAsString($trace){
 		if(is_array($trace) && count($trace) >= 1){
@@ -76,15 +78,17 @@ class Debug{
 			return 'request entry file <u>"'.$trace[count($trace)-1]['file'].'"</u> on line: '.$trace[count($trace)-1]['line'];
 		}
 	}
-	
+
 	/**
 	 * Get the last called function(Or many back (:) from the current stack
 	 * @param int $back How many functions back to look?
-	 * @return callback|bool An function name or an array with class and function name.
+	 * @throws \RuntimeException
+	 * @throws \InvalidArgumentException
+	 * @return callback|bool A function name or an array with class and function name.
 	 */
 	public static function getLastCallback($back=0){
 		// Check the parameter
-		if(!is_int($back)) throw new \Exception('The param $back should be of type "Integer" but got "'.gettype($back).'".');
+		if(!is_int($back)) throw new \InvalidArgumentException('The param $back should be of type "Integer" but got "'.gettype($back).'".');
 		
 		// Make sure it does not return the call to this function
 		$back += 1;
@@ -107,14 +111,14 @@ class Debug{
 			}else return $trace[$back]['function'];
 		}else return false;
 	}
-	
-	/**
+
+	/*
 	 * Get the $object context from the last method that called(If it was an object)
 	 * @param int $back How many functions back to look?
 	 * @param bool $object Include the object in the returned backtrace
 	 * @return callback|bool An function name or an array with class and function name.
 	 */
-	public static function getCallingObject($back=0){
+	/*public static function getCallingObject($back=0){
 		// Check the parameters
 		if(!is_int($back)) throw new \Exception('The param $back should be of type "Integer" but got "'.gettype($back).'".');
 		if(!is_bool($object)) throw new \Exception('The param $object should be of type "Boolean" but got "'.gettype($object).'".');
@@ -132,12 +136,13 @@ class Debug{
 		else throw new \RuntimeException('This code shouldn\'t be running on anything less than PHP 5.3! It seems you are running '.PHP_VERSION.'...');
 		
 		
-	}
+	}*/
 	
 	/**
 	 * Converts an trace array to an string(Like one from debug_backtrace())
 	 * @param array $trace The trace array to be converted
 	 * @param bool $code Preview the code that is resulting in the error
+	 * @return string
 	 */
 	public static function traceToString($trace, $code=false){
 		$t = count($trace);
@@ -154,23 +159,50 @@ class Debug{
 				if(count($trace[$i]['args']) != 0){
 					foreach($trace[$i]['args'] as $k=>$arg){
 						if($k<(count($trace[$i]['args'])-1))
-							$ret .= var_export($arg, true).', ';
+							$ret .= self::exportVariable($arg, $code).', ';
 						else
-							$ret .= var_export($arg, true);
+							$ret .= self::exportVariable($arg, $code);
 					}
 				}
 				$ret .= ') ';
 			}
 			if(isset($trace[$i]['line'])){
 				// Called at
-				$ret .= 'called at ['.$trace[$i]['file'].':'.$trace[$i]['line'].']'.PHP_EOL;
+				$ret .= 'called at <span style="color:#999">['.$trace[$i]['file'].':<b>'.$trace[$i]['line'].'</b>]</span>'.PHP_EOL;
 				// Add the lines
 				if($code == true){
-					$ret .= self::getLine($trace[$i]['file'], $trace[$i]['line']).PHP_EOL;
+					$ret .= '<div style="margin-left: 10px;margin-bottom:5px">'.self::getLine($trace[$i]['file'], $trace[$i]['line']).'</div>';
 				}
 			}else $ret .= 'from an <i>internal call</i>'.PHP_EOL;
 		}
 		$ret .= '#'.$i.' {main}';
 		return $ret;
+	}
+
+	/**
+	 * Pretty export a php variable.
+	 * @param mixed $var
+	 * @param bool $code
+	 * @return mixed|string
+	 */
+	public static function exportVariable($var, $code=false){
+		if(is_object($var)){
+			if($code === true){
+				$content = '<a style="text-decoration: none" href="#" title="Click to see the complete object." onclick="var w = window.open(\'\', \'\', \'width=600,height=400,resizeable,scrollbars\');w.document.body.appendChild(this.children[1].children[0]);w.document.close();return false;">';
+				$content .= '<span style="color: #007700">(Object) ['.get_class($var).']</span><span style="display:none"><pre>'.highlight_string('<?php'.PHP_EOL.var_export($var, true), true).'</pre></span></a>';
+				return $content;
+			}else return '(Object) ['.get_class($var).']';
+		}else if(is_string($var) && strlen($var) > 30){
+			if($code === true){
+				$content = '<a style="text-decoration: none" href="#" title="Click to see the complete string." onclick="var w = window.open(\'\', \'\', \'width=600,height=400,resizeable,scrollbars\');w.document.body.appendChild(this.children[1].children[0]);w.document.close();return false;">';
+				$content .= '<span style="color: #DD0000">[String('.strlen($var).')]</span><span style="display:none"><pre>'.var_export($var, true).'</pre></span></a>';
+				return $content;
+			}else return '[String('.strlen($var).')]';
+		}else{
+			if($code === true)
+				return var_export($var, true);
+			else
+				return '['.ucfirst(gettype($var)).']';
+		}
 	}
 }

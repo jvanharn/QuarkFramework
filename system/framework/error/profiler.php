@@ -22,16 +22,19 @@
  * GNU General Public License (License.txt) for more details.
  */
 
-// Prevents Unauthorized access
-if(!defined('PT_RUNNING')) exit;
+// Define Namespace
+namespace Quark;
+
+// Prevent individual file access
+if(!defined('DIR_BASE')) exit;
+
+// Dependencies
+\Quark\import('Error', 'Error.Debug', true);
 
 /**
  * Generate extended debug reports and memory profiles easily
- * 
- * @package PageTree-Core
- * @subpackage Error
- */
-class ptProfiler extends ptObject{
+*/
+class Profiler {
 	/**
 	 * Contains the raw ticks logged by the tick functions
 	 */
@@ -85,7 +88,7 @@ class ptProfiler extends ptObject{
 	}
 	
 	/**
-	 * Start registring and ticking those profiles
+	 * Start registering and ticking those profiles
 	 * @param int $ticks How many ticks to register. 0 for infinite
 	 * @return bool
 	 */
@@ -97,8 +100,8 @@ class ptProfiler extends ptObject{
 	}
 	
 	/**
-	 * Stop registring tick activity
-	 * @return bool|int Bool false on failure, or integer(Ticks registred)
+	 * Stop registering tick activity
+	 * @return bool|int Bool false on failure, or integer(Ticks registered)
 	 */
 	public function stop(){
 		// Unregister tick function
@@ -141,11 +144,11 @@ class ptProfiler extends ptObject{
 	public function export($type){
 		// Create a graph(Only from numeric values)
 		if($type == self::EXPORT_GRAPH){
-			throw new Exception('Not yet supported');
+			throw new \Exception('Not yet supported');
 			
 		// Create an XML file
 		}else if($type == self::EXPORT_XML){
-			throw new Exception('Not yet supported');
+			throw new \Exception('Not yet supported');
 		
 		// Return an array with data
 		}else if($type == self::EXPORT_ARRAY){
@@ -153,13 +156,11 @@ class ptProfiler extends ptObject{
 			
 		// Markup the results with some HTML
 		}else if($type == self::EXPORT_HTML){
-			throw new Exception('Not yet supported');
+			throw new \Exception('Not yet supported');
 		
 		// Or an error
-		}else{
-			throw new Exception('The export type you gave was invalid.');
-			return false;
-		}
+		}else
+			throw new \Exception('The export type you gave was invalid.');
 	}
 	
 	/**
@@ -207,7 +208,7 @@ class ptProfiler extends ptObject{
 	}
 	
 	/**
-	 * Make sure the tick function is unregistred
+	 * Make sure the tick function is unregistered
 	 */
 	public function __destruct(){
 		@unregister_tick_function(array(&$this, '_register_tick'));

@@ -97,12 +97,6 @@ class Headers {
 	const CONTENT_UNIQUE	= 3;
 	
 	/**
-	 * Whether or not to export tags in (x)html style.
-	 * @var boolean
-	 */
-	protected $xhtml = true;
-	
-	/**
 	 * Whether or not to enforce strict attribute specifications
 	 * @var boolean
 	 */
@@ -128,13 +122,12 @@ class Headers {
 	 * @var array
 	 */
 	protected $headers = array();
-	
+
 	/**
 	 * Create a headers class.
 	 * @param boolean $strict Whether or not to enforce strict html attribute specifications
 	 */
-	public function __construct($xhtml=true, $strict=true){
-		$this->xhtml = $xhtml;
+	public function __construct($strict=true){
 		$this->strict = $strict;
 	}
 	
@@ -149,7 +142,10 @@ class Headers {
 		if(is_string($type) && $this->isType($type) && is_array($attr)){
 			// Check for required attributes
 			foreach($this->types[$type][0] as $at => $v){
-				if($v === null && !isset($attr[$at])) return false;
+				if($v === null && !isset($attr[$at])){
+					\Quark\Error::raiseWarning('Attribute "'.$at.'" for the tag "'.$type.'" was set to null, or is not a valid attribute for this tag.');
+					return false;
+				}
 				if($v !== null && !isset($attr[$at])) $attr[$at] = $v;
 			}
 			// Check strictly for optional parameters if strict and/or set by tagtype
@@ -216,12 +212,13 @@ class Headers {
 	public function isType($type){
 		return isset($this->types[$type]);
 	}
-	
+
 	/**
-	 * 
+	 * Register a new header tag type. (Recommended to stick to the defaults.)
 	 * @param string $type
 	 * @param array $attr
 	 * @param array $opt Optional attributes for the header tag, or null if you want to allow all attributes
+	 * @param int $content One of the CONTENT_* constants.
 	 * @return boolean
 	 */
 	public function registerType($type, $attr, $opt=null, $content=self::CONTENT_REMOVE){
@@ -238,26 +235,13 @@ class Headers {
 	public function getTypes(){
 		return array_keys($this->types);
 	}
-	
-	/**
-	 * Check the contents of variables before they are assigned.
-	 * @param string $name
-	 * @param mixed $value
-	 * @ignore
-	 */
-	public function __set($name, $value){
-		if($name == 'xhtml' && is_bool($value))
-			$this->xhtml = $value;
-		else if($name == 'strict')
-			throw new \RuntimeException('Strict value cannot be changed after initialization.');
-		else throw new \RuntimeException('Tried to access non-existant or publically unavailable class variable.');
-	}
-	
+
 	/**
 	 * Get the html representation of the saved headers.
+	 * @param bool $xhtml Whether or not to export tags in (x)html style.
 	 * @return string
 	 */
-	public function save(){
+	public function save($xhtml=true){
 		$saved = '';
 		foreach($this->headers as $header){
 			$saved .= "\n\t".'<'.$header[0];
@@ -265,14 +249,14 @@ class Headers {
 				$saved .= ' '.$attr.'="'.addcslashes($val,'"').'"';
 			}
 			if($this->types[$header[0]][2] == self::CONTENT_NONE)
-				$saved .= ' '.($this->xhtml?'/':'').'>';
+				$saved .= ' '.($xhtml?'/':'').'>';
 			else $saved .= '>'.$header[2].'</'.$header[0].'>';
 		}
 		return $saved;
 	}
 	
 	/**
-	 * Convert to html string representation.
+	 * Convert to xhtml string representation. (Will default to xhtml representation)
 	 * @return string
 	 */
 	public function __toString(){

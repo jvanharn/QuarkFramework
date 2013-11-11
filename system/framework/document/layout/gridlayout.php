@@ -24,8 +24,9 @@
 
 // Define Namespace
 namespace Quark\Document\Layout;
-use \Quark\Document\Document as Document,
-	\Quark\Document\Element as Element;
+use \Quark\Document\Document,
+	\Quark\Document\Element,
+	\Quark\Document\Style;
 
 // Prevent individual file access
 if(!defined('DIR_BASE')) exit;
@@ -33,10 +34,10 @@ if(!defined('DIR_BASE')) exit;
 /**
  * Grid layout using columns to position the elements
  * 
- * This layout also sports a completly auto-generated grid system.
+ * This layout also sports a completely auto-generated grid system.
  * Based on the ideas of the brilliant mind Joni Korpi (http://framelessgrid.com/)
  */
-class GridLayout extends Layout implements \Quark\Document\Style{
+class GridLayout extends Layout implements Style{
 	// Predefined Breakpoints
 	/**
 	 * Phone View Sized Breakpoint Reference (Default size: 720, single column)
@@ -88,9 +89,10 @@ class GridLayout extends Layout implements \Quark\Document\Style{
 	
 	/**
 	 * Breakpoints.
+	 *
 	 * Breakpoints are points in the reflow of the documents that columns in the
 	 * document can be reordered (Using @media Queries). Maximum of 4 flow types
-	 * definable, minmal is one. Best to keep at the default settings.
+	 * definable, minimal is one. Best to keep at the default settings.
 	 * @var array
 	 */
 	protected $breakpoints = array(
@@ -105,15 +107,19 @@ class GridLayout extends Layout implements \Quark\Document\Style{
 	 * @var integer
 	 */
 	protected $rowspan = 0;
-	
-	protected $elements = array(0 => array());
-	
+
 	/**
-	 * 
+	 * All the elements in the grid grouped by row.
+	 * @var Element[][]
+	 */
+	protected $elements = array(0 => array());
+
+	/**
+	 *
 	 * @param int $columns Multiplicity of 2
-	 * @param float $gutter Size of the empty space between columns
+	 * @param float|int $gutter Size of the empty space between columns
 	 * @param boolean $fluid Whether or not to size the columns
-	 * @param array $breakpoints 
+	 * @param array $breakpoints
 	 */
 	public function __construct($columns=16, $gutter=10, $fluid=false, $breakpoints=null){
 		// Set the gutter and number of columns
@@ -167,7 +173,7 @@ class GridLayout extends Layout implements \Quark\Document\Style{
 	 * Saves the css needed for this document
 	 * @return string
 	 */
-	public function saveStyle(){
+	public function saveStyle() {
 		// Add CSS to the document
 		$css = "body { margin: 0; }\n";
 		$css .= ".grid { margin: 0 auto; clear: both; } \n";
@@ -212,19 +218,20 @@ class GridLayout extends Layout implements \Quark\Document\Style{
 		}
 		return $css;
 	}
-	
+
 	/**
-	 * Get the html representation of the grid.
-	 * @return string
+	 * Retrieve the HTML representation of the element
+	 * @param Document $context The context within which the Element gets saved. (Contains data like encoding, XHTML or not etc.)
+	 * @return String HTML Representation
 	 */
-	public function save() {
+	public function save(Document $context) {
 		// Save the elements
 		$saved = "\t<section class=\"grid\">\n";
 		foreach($this->elements as $row){
 			$saved .= "\t\t<section class=\"row\">\n";
 			foreach($row as $elem){
 				$saved .= "\t\t\t".'<section class="'.strtolower($elem[0]).'">'."\n";
-				$saved .= $elem[1]->save();
+				$saved .= $elem[1]->save($context);
 				$saved .= "\n\t\t\t</section>\n";
 			}
 			$saved .= "\t\t</section>\n";

@@ -24,20 +24,18 @@
 
 // Define Namespace
 namespace Quark\Document\Utils;
-use Quark\Document\Element,
-	Quark\Document\Document;
+use Quark\Document\Document;
+use Quark\Document\Element;
 
 // Prevent individual file access
 if(!defined('DIR_BASE')) exit;
 
 /**
- * Takes some text and wraps it so you can add it to Collection's etc.
+ * Takes some text and wraps it in a heading tag so you can add it to Collection's etc.
  * 
- * This class always return's text /only/. This means that all html tags will be
- * escaped. This is safe for user-input sanitation, and properly encoded text.
- * (Conform to the current Document's encoding)
+ * All $text given to this class will be properly encoded according to the encoding used within the document.
  */
-class Text implements Element {
+class Heading implements Element{
 	/**
 	 * The text to save.
 	 * @var string
@@ -45,14 +43,24 @@ class Text implements Element {
 	protected $text = '';
 
 	/**
-	 * Text Element Constructor
+	 * The heading level. (Eg. 1=h1, 2=h2, ..., 6=h6)
+	 * @var int
+	 */
+	protected $level;
+
+	/**
+	 * Heading Element
 	 * @param string $text Text to return.
+	 * @param int $level The heading level. (Eg. 1=h1, 2=h2, ..., 6=h6)
 	 * @throws \InvalidArgumentException
 	 */
-	public function __construct($text){
+	public function __construct($text, $level=1){
 		if(is_string($text))
 			$this->text = $text;
-		else throw new InvalidArgumentException('The $text given should be of type "string".');
+		else throw new \InvalidArgumentException('The $text given should be of type "string".');
+		if(is_integer($level))
+			$this->level = $level;
+		else throw new \InvalidArgumentException('The $level given should be of type "integer".');
 	}
 
 	/**
@@ -61,6 +69,6 @@ class Text implements Element {
 	 * @return String HTML Representation
 	 */
 	public function save(Document $context) {
-		return $context->encodeText($this->text);
+		return '<h'.$this->level.'>'.$context->encodeText($this->text).'</h'.$this->level.'>'; // @todo Use the correct document instance, not the default.
 	}
 }

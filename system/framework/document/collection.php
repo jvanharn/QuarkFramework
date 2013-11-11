@@ -38,30 +38,31 @@ if(!defined('DIR_BASE')) exit;
 interface Collection extends Element, \IteratorAggregate{
 	/**
 	 * Add a child to this element at the end of the element
-	 * @param SimpleUI_BaseElement $element The element to add
+	 * @param Element $element The element to add
 	 * @return Boolean
 	 */
 	public function appendChild(Element $element);
 	
 	/**
 	 * Add a child at the beginning of the element
-	 * @param SimpleUI_BaseElement $element
+	 * @param Element $element
 	 * @return Boolean
 	 */
 	public function prependChild(Element $element);
 	
 	/**
 	 * Removes the first added occurence of $element
-	 * @param SimpleUI_BaseElement $element The element to remove
+	 * @param Element $element The element to remove
 	 * @return Boolean
 	 */
 	public function removeChild(Element $element);
-	
+
 	/**
 	 * Gets the string representation of all the children in an element
+	 * @param Document $context The document in which this element gets saved.
 	 * @return String
 	 */
-	public function saveChildren();
+	public function saveChildren(Document $context);
 }
 
 /**
@@ -79,7 +80,7 @@ trait baseCollection{
 	
 	/**
 	 * Add a child to this element at the end of the element
-	 * @param SimpleUI_BaseElement $element The element to add
+	 * @param Element $element The element to add
 	 * @return Boolean
 	 */
 	public function appendChild(Element $element){
@@ -88,7 +89,7 @@ trait baseCollection{
 	
 	/**
 	 * Add a child at the beginning of the element
-	 * @param SimpleUI_BaseElement $element
+	 * @param Element $element
 	 * @return Boolean
 	 */
 	public function prependChild(Element $element){
@@ -96,8 +97,8 @@ trait baseCollection{
 	}
 	
 	/**
-	 * Removes the first added occurence of $element
-	 * @param SimpleUI_BaseElement $element The element to remove
+	 * Removes the first added occurrence of $element
+	 * @param Element $element The element to remove
 	 * @return Boolean
 	 */
 	public function removeChild(Element $element){
@@ -109,16 +110,17 @@ trait baseCollection{
 		}
 		return false;
 	}
-	
+
 	/**
 	 * Gets the string representation of all the children in an element
+	 * @param Document $context The Document in which this collection should be saved.
 	 * @return String
 	 */
-	public function saveChildren(){
+	public function saveChildren(Document $context){
 		$saved = '';
 		// Iterate over the children, getting their string representation
 		foreach($this->children as $child){
-			$saved .= PHP_EOL.$child->save();
+			$saved .= PHP_EOL.$child->save($context);
 		}
 		return $saved;
 	}

@@ -24,6 +24,7 @@
 
 // Define Namespace
 namespace Quark\System\Router;
+use Quark\Util\Multiton;
 
 // Prevent individual file access
 if(!defined('DIR_BASE')) exit;
@@ -60,8 +61,10 @@ interface RouteCollection {
 
 /**
  * Router Class
+ *
+ * Helps classes route the incoming requests to the appropriate actions and vice versa.
  */
-class Router implements RouteCollection, \IteratorAggregate, \Quark\Util\Multiton {
+class Router implements RouteCollection, \IteratorAggregate, Multiton {
 	/**
 	 * Registry of instances of this class.
 	 * @var array
@@ -73,20 +76,57 @@ class Router implements RouteCollection, \IteratorAggregate, \Quark\Util\Multito
 	 * @var \SplStack
 	 */
 	protected $routes;
-	
+
+	/**
+	 * @var string The application's base path relative to the host.
+	 */
+	protected $base = '/';
+
+	/**
+	 * @var string The application's base host, port and protocol URL; everything but the path, query and hash (E.g. http://www.example.com or https://example.com:443)
+	 */
+	protected $site;
+
 	/**
 	 * @param array $routes Array of routes.
+	 * @param string $site The application's base host, port and protocol URL.
+	 * @param string $base The application's base path relative to the host.
 	 */
-	protected function __construct(array $routes){
+	protected function __construct(array $routes, $site=null, $base=null){
 		$this->clearRoutes();
 		foreach($routes as $route)
 			$this->attachRoute($route);
+
+		if(!empty($site)) $this->setSite($site);
+		if(!empty($base)) $this->setBasePath($base);
+	}
+
+	/**
+	 * Set the application's base host, port and protocol URL.
+	 * @param string $url So everything but the path, query and hash (E.g. http://www.example.com or https://example.com:443)
+	 * @throws \InvalidArgumentException When url is improperly formatted.
+	 */
+	public function setSite($url){
+		if(is_string($url) && \Quark\Filter\validate_string($url, array('url' => null)))
+			$this->site = rtrim($url, '/');
+		else throw new \InvalidArgumentException('Invalid URL given.');
+	}
+
+	/**
+	 * Set the application's base path, relative to the domain/host.
+	 * @param string $path The application's base path relative to the host. (e.g. /Quark/)
+	 * @throws \InvalidArgumentException
+	 */
+	public function setBasePath($path){
+		if(is_string($path))
+			$this->base = '/'.trim($path, '/').'/';
+		else throw new \InvalidArgumentException('Invalid path given.');
 	}
 	
 	/**
 	 * Checks all the Route's and tries to load the requested resource.
-	 * @param \Quark\System\Router\URI $url URL to route, or null to use the current.
-	 * @return bool Whether or not the request was succesfully routed.
+	 * @param \Quark\System\Router\URL $url URL to route, or null to use the current.
+	 * @return bool Whether or not the request was successfully routed.
 	 */
 	public function route(URL $url=null){
 		// find a suitable route
@@ -96,22 +136,40 @@ class Router implements RouteCollection, \IteratorAggregate, \Quark\Util\Multito
 		}
 		return false;
 	}
-	
+
+	/**
+	 * Build a URI for the given route.
+	 * @param string $type Type of route this has URL has to point to.
+	 * @param array $params Any parameters for this route.
+	 * @return string|bool The resulting URI or false if it failed to build with the given parameters.
+	 */
+	public function build($type, array $params){
+		foreach($this->routes as $route){
+			if($route instanceof $type)
+				return $route->build($params);
+		}
+	}
+
 	/**
 	 * Build a URI for the given route.
 	 * @param \Quark\System\Router\Route $route Route to build the URI for.
+	 * @param array $params
+	 * @param bool $useQuery Whether or not to force Query String usage instead of possible url rewriting.
 	 * @return string|bool The resulting URI or false if it failed to build with the given parameters.
 	 */
-	public function build(Route $route, array $params){
-		return $route->route($params);
+	public function buildWithRoute(Route $route, array $params, $useQuery=false){
+		return $route->build($params, !$useQuery);
 	}
 	
 	/**
 	 * Attach a route to this router, so this router is aware of the given route.
+	 *
+	 * Also updates the route's base!
 	 * @param \Quark\System\Router\Route $route
 	 */
 	public function attachRoute(Route $route) {
 		$this->routes->push($route);
+		$route->setBase($this->base);
 	}
 	
 	/**
@@ -142,9 +200,11 @@ class Router implements RouteCollection, \IteratorAggregate, \Quark\Util\Multito
 				unset($this->routes[$index]);
 		}
 	}
-	
+
 	/**
 	 * Get a instance of the router class.
+	 * @param string $name Name of the router instance.
+	 * @throws \OutOfBoundsException
 	 * @return \Quark\System\Router\Router
 	 */
 	public static function getInstance($name=self::DEFAULT_NAME){
@@ -179,179 +239,6 @@ class Router implements RouteCollection, \IteratorAggregate, \Quark\Util\Multito
 	 */
 	public function getIterator() {
 		return new \ArrayIterator($this->routes);
-	}
-}
-
-class Routerz {
-	protected $uri;
-	protected $parsed;
-	protected $component;
-	protected $arguments;
-	
-	protected function __construct($uri=null){
-		// Find (correct) parseble uri
-		if(is_null($uri)) $uri = $this->guessCurrentURI();
-		
-		// Save the uri
-		$this->uri = $uri;
-		
-		// Parse it
-		$this->_parse();
-	}
-	
-	protected function guessCurrentURI(){
-		// Secure
-		if(isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on')
-			$uri = 'https://';
-		else $uri = 'http://';
-		
-		// Hostname
-		if(isset($_SERVER['SERVER_NAME']))
-			$uri .= $_SERVER['SERVER_NAME'];
-		else if(isset($_SERVER['HTTP_HOST']))
-			$uri .= $_SERVER['HTTP_HOST'];
-		
-		// Path and Query string
-		if(isset($_SERVER['REQUEST_URI']))
-			$uri .= '/'.ltrim($_SERVER['REQUEST_URI'], '/');
-		
-		return $uri;
-	}
-	
-	/**
-	 * Whether or not the URI is secured via HTTPS
-	 * @return bool
-	 */
-	public function isSecure(){
-		return ($this->parsed['scheme'] == 'https');
-	}
-	
-	/**
-	 * Get the URI's parsed version, thus broken down into it's separate parts as given in the RFCs
-	 * @return array 
-	 */
-	public function getParsedURI(){
-		return $this->parsed;
-	}
-	
-	/**
-	 * Get the URI given to parse
-	 * @return string
-	 */
-	public function getURI(){
-		return $this->uri;
-	}
-	
-	/**
-	 * Get the URI's component
-	 * @return string
-	 */
-	public function getComponent(){
-		return $this->component;
-	}
-	
-	/**
-	 * Get the URI's argument list
-	 * @return array The argument list
-	 */
-	public function getArguments(){
-		return $this->arguments;
-	}
-	
-	/**
-	 * Create a URI from a component and parameters
-	 * @param string $component A component to link to
-	 * @param array $arguments Params for the component
-	 * @return String The completed url
-	 */
-	public function buildURI($component, $arguments=array(), $secure=false){
-		// Check parameters
-		if(!is_string($component)) throw new InvalidArgumentException('Argument $string for Router::buildURI should be of type "String" but got "'.gettype($component).'"');
-		
-		// Protocol
-		if($secure)
-			$uri = 'https://';
-		else $uri = 'http://';
-		
-		// Domain
-		$uri .= $this->parsed['host'].(($this->parsed['port']==80)?'':':'.$this->parsed['port']).'/';
-		
-		// Component
-		if(Application::getInstance()->checkComponent($component)) $uri.= '?component='.$component;//$uri .= $component.'/';
-		else raiseError('Unexisting component name used for Router::createURI');
-		
-		// Params
-		/*if(!empty($arguments)){
-			$comp = importComponent($name);
-			if(is_object($comp) && $comp instanceof customRouterURI)
-				$uri .= (String) $comp->buildParams($arguments);
-			else{
-				foreach($arguments as $param){
-					$uri .= $param.'/';
-				}
-			}
-		}*/
-		if(!empty($arguments))
-			$uri .= '&'.http_build_query($arguments);
-		
-		return $uri;
-	}
-	
-	/**
-	 * Parses a url into the specific url components that can be used inside this framework
-	 * @param string $uri URI to parse
-	 * @return array Parsed array of components of the url.
-	 * @private
-	 */
-	private function _parse(){
-		// Parse
-		$url = parse_url($this->uri);
-		
-		// Save
-		$this->parsed = array();
-		if(isset($url['scheme'])) $this->parsed['scheme'] = $url['scheme'];
-		else $this->parsed['scheme'] = 'http';
-		if(isset($url['host'])) $this->parsed['host'] = $url['host'];
-		else $this->parsed['host'] = @$_SERVER['SERVER_NAME'];
-		if(isset($url['port'])) $this->parsed['port'] = $url['port'];
-		else $this->parsed['port'] = 80;
-		if(isset($url['path'])) $this->parsed['path'] = $url['path'];
-		else $this->parsed['path'] = '/';
-		if(isset($url['query'])) parse_str($url['query'], $this->parsed['query']);
-		else $this->parsed['query'] = array();
-		if(isset($url['fragment'])) $this->parsed['fragment'] = $url['fragment'];
-		else $this->parsed['fragment'] = '';
-		
-		// Components
-		if(isset($_GET['component'])){
-			// Default Component
-			$this->component = $_GET['component'];
-		
-			// Arguments
-			$this->arguments = $this->parsed['query'];
-		}else if(empty($this->parsed['path']) || $this->parsed['path'] == '/' || $this->parsed['path'] == '//'){
-			// Default Component
-			$this->component = 'pages';
-		
-			// Arguments
-			$this->arguments = $this->parsed['query'];
-		}else if(!empty($this->parsed['path'])){
-			// Component
-			$exp = explode('/', $this->parsed['path']);
-			$comp = filter_string(array_shift($exp), array('chars' => CONTAINS_ALPHA));
-			if(Application::getInstance()->checkComponent($comp))
-				$this->component = $comp;
-			else $this->component = 'notfound';
-			
-			// Arguments
-			$this->arguments = array_merge($exp, $this->parsed['query']);
-		}else{
-			// Default Component
-			$this->component = 'pages';
-		
-			// Arguments
-			$this->arguments = $this->parsed['query'];
-		}
 	}
 }
 

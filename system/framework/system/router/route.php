@@ -23,6 +23,12 @@ if(!defined('DIR_BASE')) exit;
  */
 interface Route {
 	/**
+	 * Get the routes Fully Qualified name (Class name with complete namespace information).
+	 * @return string
+	 */
+	public static function getName();
+
+	/**
 	 * Gives the base url of the Application to which this route was bound.
 	 * @param string $url URL to the base application.
 	 */
@@ -52,7 +58,7 @@ interface Route {
 	/**
 	 * Build a URI pointing to this resource/route with the given params.
 	 * @param array $params Parameters.
-	 * @param boolean $optimized Whether or not the builder should try to go for compatibble url's (E.g. index.php?name=controller&method=methodname or optimized urls like /controller/methodname/
+	 * @param boolean $optimized Whether or not the builder should try to go for compatible url's (E.g. index.php?name=controller&method=methodname or optimized urls like /controller/methodname/
 	 * @return string The URI that leads to the specified location.
 	 */
 	public function build(array $params, $optimized=false);

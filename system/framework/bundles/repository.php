@@ -53,7 +53,7 @@ class Repository {
 	 * @return array|bool List of the available bundles as keys with their Name, /Versions/ and Description as array values.
 	 */
 	public static function GetBundleList($url){
-		$request = new Request($url.self::REMOTE_BUNDLES_LIST);
+		$request = Request::create($url.self::REMOTE_BUNDLES_LIST);
 
 		try {
 			$response = $request->send(true);
@@ -62,7 +62,12 @@ class Repository {
 			return false;
 		}
 
-		return json_decode($response->getBody());
+		if(!$response->hasBody()){
+			Error::raiseWarning('Unable to retrieve the repository bundle index list for repo "'.$url.'". Received an empty response with status code "'.$response->getResponseCode().'".');
+			return false;
+		}
+
+		return json_decode($response->getBody(), true);
 	}
 
 	/**
@@ -79,7 +84,7 @@ class Repository {
 				return negative( Error::raiseWarning('Whilst trying to determine the latest version for bundle "'.$bundleId.'" in repo "'.$url.'" something went wrong. Try determining whether or not the repo is still in working order or if your connection is still working. If none of these is to blame, consider reporting the package to the repo\'s administrator.') );
 		}
 
-		$request = new Request($url.urlencode($bundleId).'/'.urlencode($version).'/bundle.json');
+		$request = Request::create($url.urlencode($bundleId).'/'.urlencode($version).'/bundle.json');
 
 		try {
 			$response = $request->send(true);
@@ -103,7 +108,7 @@ class Repository {
 		if($url == false)
 			return false;
 
-		$request = new Request($url);
+		$request = Request::create($url);
 		try {
 			$response = $request->send(true);
 		} catch(Exception $e) {
@@ -140,7 +145,7 @@ class Repository {
 	 * @return string The version string.
 	 */
 	public static function GetBundleLatestAvailableVersion($url, $bundleId){
-		$request = new Request($url.urlencode($bundleId).'/latest.version');
+		$request = Request::create($url.urlencode($bundleId).'/latest.version');
 
 		try {
 			$response = $request->send(true);

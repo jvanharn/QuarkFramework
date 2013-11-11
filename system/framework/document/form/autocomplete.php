@@ -39,13 +39,13 @@ class Autocomplete extends TextField implements ValidatableField, NormalizableFi
 	protected $uri;
 	
 	protected $static;
-	
+
 	/**
 	 * @param string $name Name of the element for referencing it's data etc.
 	 * @param string $label Label of the field in the form.
 	 * @param string $value Default value of the field if applicable.
 	 * @param string $placeholder A placeholder value for the field.
-	 * @param string $api_url URL to the autocomplete api interface (By default it uses POST requests) when null, it will only autocomplete with static posibilities.
+	 * @param string $api_uri URL to the autocomplete api interface (By default it uses POST requests) when null, it will only autocomplete with static possibilities.
 	 */
 	public function __construct($name, $label, $value=null, $placeholder=null, $api_uri=null){
 		parent::__construct($name, $label, $value, $placeholder);
@@ -77,9 +77,14 @@ class Autocomplete extends TextField implements ValidatableField, NormalizableFi
 			return true;
 		}else return false;
 	}
-	
-	public function save() {
-		
+
+	/**
+	 * Retrieve the HTML representation of the element
+	 * @param Document $context The context within which the Element gets saved. (Contains data like encoding, XHTML or not etc.)
+	 * @return String HTML Representation
+	 */
+	public function save(Document $context) {
+		// @todo Implement this STUB.
 	}
 	
 	/**

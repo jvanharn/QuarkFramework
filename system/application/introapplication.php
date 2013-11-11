@@ -23,93 +23,77 @@
  */
 
 // Define Namespace
-namespace QuarkSample;
+namespace QuarkSampleIntro;
 
 // Prevent individual file access
 if(!defined('DIR_BASE')) exit;
 
 // Dependencies
+/**
+ * Quark helps you manage dependencies for your application with Import functionality.
+ * If you have used Jooml! before, usage should be familiar.
+ */
 \Quark\import(
-	'Library.Bootstrap',
-
 	'Framework.System.Application.Application',
 	'Framework.System.Application.Base.Document',
-
-	'Framework.Document.Utils.Literal',
-	'Framework.Document.Resources',
-	
-	'Framework.System.Application.Base.Extensions',
-	'Framework.System.Application.Base.Database'
+	'Framework.Document.Utils.Literal'
 );
 
-use Quark\Bundles\Bundles;
-use Quark\Libraries\Bootstrap\BootstrapLayout,
-	Quark\Libraries\Bootstrap\Components as Components,
-	Quark\Libraries\Bootstrap\Elements as Elements;
+/**
+ * Quark uses namespaces to prevent class name duplication and box in dependencies. 'use' makes it easy to use the class without their FQN or namespaces.
+ */
+use Quark\Document\Layout\GridLayout;
+use	\Quark\Document\Utils\Text,
+	\Quark\Document\Utils\Literal,
+	\Quark\Document\Utils\Paragraph,
+	
+	\Quark\Document\Form\Form,
+	\Quark\Document\Form\TextField as Field,
+	\Quark\Document\Form\Action,
+	\Quark\Document\Form\Checkbox,
+	\Quark\Document\Form\Selectable;
 
-use Quark\System\Router\StaticRoute,
-	Quark\Document\BundleResourceRoute;
-
-use \Quark\System\Application\Base\Router as RouterAppBase,
-	\Quark\System\Application\Base\Document as DocumentAppBase,
-	\Quark\System\Application\Base\Extensions as ExtensionsAppBase,
-	\Quark\System\Application\Base\Database as DatabaseAppBase;
-use Quark\Util\baseSingleton;
+use Quark\System\Application\Application,
+	Quark\System\Application\Base\Document as BasicDocument,
+	Quark\Util\baseSingleton;
 
 /**
  * Default Quark Framework Homepage.
  */
-class Application extends \Quark\System\Application\Application{
+class IntroApplication extends Application{
 	use baseSingleton,
-		RouterAppBase,
-		DocumentAppBase,
-		ExtensionsAppBase,
-		DatabaseAppBase;
-	
+		BasicDocument;
+
+	/**
+	 * The application base traits help you build an application with easy by setting it up with common defaults.
+	 * In this example we only use the "Document" helpers, but there are helpers for setting up the Router, Database and Extension systems.
+	 */
 	public function __construct(){
-		$this->initRouter(array(
-			new BundleResourceRoute(),
-			new StaticRoute()
-		));
+		/**
+		 * This command initializes the document system with the most basic layout (layouts position your elements on your web-page/app)
+		 * If you would like to use any of the other available layouts, try one of the commented out variations. (use only one!)
+		 */
+		$this->initDocument();
+		//$this->initDocumentWithLayout(new GridLayout(16, 10)); // When using this layout, make sure you adjust the regions/positions of the elements in display, as this layout does not have the "header" and "footer" regions.
 
-		$this->initDocumentWithLayout(new BootstrapLayout());
-		$this->document->resources->reference('bootstrap.css');
-
-		$this->initExtensions();
-		$this->initDatabaseWithDriverName(
-			'mysql.driver',
-			array('hostname' => 'localhost', 'database' => 'quark', 'username' => 'quark', 'password' => 'quarktest'),
-			$this->extensions
-		);
-
-		date_default_timezone_set(@date_default_timezone_get()); // Fix timezone warnings.
-
-		// Update the bundles list AT LEAST ONCE before you run the application
-		//Bundles::updateList();
-		//Bundles::_resetInstalledList();
-		//Bundles::scan(false);
-		//var_dump(array_map(function($id){return Bundles::get($id)->resources['js'];}, Bundles::listInstalled()));
+		// Fix timezone warnings.
+		date_default_timezone_set(@date_default_timezone_get());
 	}
-	
+
+	/**
+	 * This function builds the display of the page in this super basic example.
+	 * @return bool
+	 */
 	public function display(){
-		/** @var BootstrapLayout $layout */
-		$layout = $this->document->layout;
-
 		// Header
-		$navigation = new Components\NavigationBar('Quark App Framework');
-		$menu = new Components\NavigationBarMenu();
-		$menu->addLink('test1');
-		$menu->addLink('test2');
-		$menu->addDropdown('test3', array('text' => 'link'));
-		$navigation->addContent($menu);
-		$layout->place($navigation, BootstrapLayout::POSITION_BEFORE_CONTAINER);
-
-		// Left Menu
-
-
-		// Content
-
-		/*
+		/**
+		 * When using Quark's Document system (Strongly recommended) you can easily place the provided or your own page or application parts onto the page with the place command.
+		 * This one places a "Text" element in the region "header".
+		 * The regions are defined per layout. This layout for example has "Header", 'Content' and 'Footer'. All layouts also contain an alias, "Main_Content". Which should always point to a element between the footer and header for the layout, in this layout's case it points to the "Content" region.
+		 * The GridLayout as defined above has the positions "Span1" until "Span%n", where %n is the number of columns the layout has. In the example line in the constructor this is 16.
+		 */
+		$this->document->place(new Text('Quark App Framework'), 'HEADER');
+		
 		// Content
 		$this->document->place(
 			new Literal(array('html' => 
@@ -119,7 +103,7 @@ class Application extends \Quark\System\Application\Application{
 					Quark is an Application Framework which for Quark basically means that it helps you to easily and quickly conceive simple websites,
 					web applications and even complete web services and matching <abbr title="Application Programming Interface">API\'s</abbr>.
 					Quark does this in a way that gives you as much control as possible, for almost everything you may possibly need we try to provide
-					multiple ways to do something with one being the preffered one. If you do not like to build your document using DocumentModels and
+					multiple ways to do something with one being the preferred one. If you do not like to build your document using DocumentModels and
 					Interface elements, you can use a templating system. If you just want to generate the HTML yourself? Go ahead.
 				</p>'.
 				'<p>
@@ -131,14 +115,14 @@ class Application extends \Quark\System\Application\Application{
 					all Trait\'s.
 				</p>'
 			))
-		, 'CONTENT');
+		, 'MAIN_CONTENT');
 		$this->document->place(
 			new Literal(array('html' => 
 				'<h2>History</h2>'.
 				'<p>
 					The Quark Application Framework was initially conceived for a <abbr title="Content Management System">CMS</abbr> named PageTree CMS.
 				</p>'))
-		, 'CONTENT');
+		, 'MAIN_CONTENT');
 		$this->document->place(
 			new Literal(array('html' => 
 				'<h2>Documentation</h2>'.
@@ -147,8 +131,9 @@ class Application extends \Quark\System\Application\Application{
 					The documentation consists of a considerable amount of <a href="http://quark.lessthanthree.nl/" title="Application Programming Interface">API Documentation</a>,
 					we also have some <a href="http://quark.lessthanthree.nl/">regular documentation</a> and off course some simple <a href="http://quark.lessthanthree.nl/">tutorials</a> to get you started!
 				</p>'))
-		, 'CONTENT');
-		
+		, 'MAIN_CONTENT');
+
+		// Form
 		$form = new Form($this->document, '/', Form::METHOD_POST, false);
 		$form->group(Form::DEFAULT_GROUP, 'Contact');
 		$form->place(new Field('name', 'Your name'));
@@ -169,9 +154,9 @@ class Application extends \Quark\System\Application\Application{
 		// Footer
 		$this->document->place(
 			new Text('Copyleft 2012 LessThanThree Design')
-		, 'FOOTER');*/
+		, 'FOOTER');
 
-		// Output the resulting document.
+		// Not necessary as in most cases the document will detect shutdowns and display automatically, but we do it just in case
 		$this->document->display();
 
 		return true;

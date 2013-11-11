@@ -26,6 +26,11 @@
 namespace Quark;
 
 // Prevent acces to this standalone file
+use Quark\Document\Document;
+use Quark\Document\ErrorBox;
+use Quark\Document\ErrorFrame;
+use Quark\Error\Debug;
+
 if(!defined('DIR_BASE')) exit;
 
 /**
@@ -119,22 +124,23 @@ class Error{
 			return self::$errorCodes[$code];
 		else return false;
 	}
-	
+
 	/**
 	 * Returns the user message that goes with the error code
-	 * @param  int $code The error code of wich you want the user message.
+	 * @param  int $code The error code of which you want the user message.
 	 * @return string
 	 */
 	public static function getUserMessage($code){
 		// Check the param
-		if(!is_int($code)) throw new InvalidArgumentException('The $code parameter has to be an "Integer" but found "'.gettype($code).'".');
+		if(!is_int($code))
+			return 'User-message codes have to be of type integer but got "'.gettype($code).'".';
 		
 		// Return the message
 		if(array_key_exists($code, self::$userMessages))
 			return self::$userMessages[$code];
 		else return self::$userMessages[0];
 	}
-	
+
 	/**
 	 * Raises or triggers an Error.
 	 *
@@ -142,7 +148,7 @@ class Error{
 	 * debug mode or none when the user shut error printing off) and logs/emails it.
 	 * @param string $debugMessage Debug message for logging and debugging
 	 * @param string $userMessage (Optional) Message that can be displayed to the user
-	 * @param string $debugCode (Optional) Error code in PHP format(See: {@link http://www.php.net/manual/en/errorfunc.constants.php List of PHP error codes})
+	 * @param int $debugCode (Optional) Error code in PHP format(See: {@link http://www.php.net/manual/en/errorfunc.constants.php List of PHP error codes} )
 	 * @return boolean
 	 */
 	public static function raiseError($debugMessage, $userMessage=null, $debugCode=E_USER_ERROR){
@@ -156,7 +162,7 @@ class Error{
 	 * debug mode or none when the user shut error printing off) and logs/emails it.
 	 * @param string $debugMessage Debug message for logging and debugging
 	 * @param string $userMessage (Optional) Message that can be displayed to the user
-	 * @param string $debugCode (Optional) Error code in PHP format(See: {@link http://www.php.net/manual/en/errorfunc.constants.php List of PHP error codes})
+	 * @param int $debugCode (Optional) Error code in PHP format(See: {@link http://www.php.net/manual/en/errorfunc.constants.php List of PHP error codes})
 	 * @return boolean
 	 */
 	public static function raiseWarning($debugMessage, $userMessage=null, $debugCode=E_USER_WARNING){
@@ -170,14 +176,14 @@ class Error{
 	 * debug mode or none when the user shut error printing off), logs/emails it and then it exits.
 	 * @param string $debugMessage Debug message for logging and debugging
 	 * @param string $userMessage (Optional) Message that can be displayed to the user
-	 * @param string $debugCode (Optional) Error code in PHP format(See: {@link http://www.php.net/manual/en/errorfunc.constants.php List of PHP error codes})
+	 * @param int $debugCode (Optional) Error code in PHP format(See: {@link http://www.php.net/manual/en/errorfunc.constants.php List of PHP error codes})
 	 * @return boolean
 	 */
 	public static function raiseFatalError($debugMessage, $userMessage=null, $debugCode=E_USER_ERROR){
 		self::raise($debugMessage, $userMessage, $debugCode);
-		exit('Fatal Error raised inside Application.');
+		exit('Fatal Error raised inside the Application.');
 	}
-	
+
 	/**
 	 * Raises or triggers an Error or Warning.
 	 *
@@ -185,38 +191,40 @@ class Error{
 	 * debug mode or none when the user shut error printing off) and logs/emails it.
 	 * @param string $debugMessage Debug message for logging and debugging
 	 * @param string $userMessage (Optional) Message that can be displayed to the user
-	 * @param string $debugCode (Optional) Error code in PHP format(See: {@link http://www.php.net/manual/en/errorfunc.constants.php List of PHP error codes})
+	 * @param int $debugCode (Optional) Error code in PHP format(See: {@link http://www.php.net/manual/en/errorfunc.constants.php List of PHP error codes} )
 	 * @return void
 	 */
 	public static function raise($debugMessage, $userMessage=null, $debugCode=E_USER_ERROR){
 		// Check if we don't exceed the MAX_ERRORS. If we do, exit. (Prevents error loops)
 		if(count(self::$errors) > MAX_ERRORS){
-			if(class_exists('\\Quark\\Document\\Document', false) && \Quark\Document\Document::hasInstance())
-				\Quark\Document\Document::getInstance()->display();
+			if(class_exists('\\Quark\\Document\\Document', false) && Document::hasInstance())
+				Document::getInstance()->display();
 			exit('More than '.MAX_ERRORS.' errors occurred, I therefore exited.');
 		}
 		
 		// Validate params (This spits out exceptions to prevent infinite loops :P)
 		if(!is_string($debugMessage))
-			throw new \InvalidArgumentException('The parameter $debugMessage should be of type "String" but got "'.gettype($debugMessage).'".');
+			exit('The parameter $debugMessage should be of type "String" but got "'.gettype($debugMessage).'".');
 		if(!is_null($userMessage) && !is_string($userMessage))
-			throw new \InvalidArgumentException('The parameter $userMessage should be null or of type "String" but got "'.gettype($userMessage).'".');
+			exit('The parameter $userMessage should be null or of type "String" but got "'.gettype($userMessage).'".');
 		if(!is_numeric($debugCode) || !self::getErrorCodeAsString($debugCode))
-			throw new \InvalidArgumentException('The $debugCode parameter is not an Integer as expected. Check the PHP Manual for what Error Constants(E_*) you can use for this parameter.');
+			exit('The $debugCode parameter is not an Integer as expected. Check the PHP Manual for what Error Constants(E_*) you can use for this parameter.');
 		
 		// Make sure the debug functions are loaded
 		require_once 'debug.php';
 		
 		// Get a reference to the configuration class, so we can read the user's configuration variables
-		if(class_exists('Config', false)){
-			$conf = Config::getInstance();
-			if(!is_object($conf)) throw new RuntimeException('Could not successfully get an instance of the System Configuration object. Therefore could not pass the error.', E_CORE_ERROR, new ErrorException('This is the usermessage, for the debugMessage, check the error log. "'.$userMessage.'"', $debugCode));
-		}
+		// @todo This object no longer exists...
+		//if(class_exists('Config', false)){
+		//	$conf = Config::getInstance();
+		//	if(!is_object($conf)) throw new RuntimeException('Could not successfully get an instance of the System Configuration object. Therefore could not pass the error.', E_CORE_ERROR, new ErrorException('This is the usermessage, for the debugMessage, check the error log. "'.$userMessage.'"', $debugCode));
+		//}
 		
 		// Get the traceroute
-		$trace = debug_backtrace(0);	// Traceroute
-		array_shift($trace);			// Remove this function from the stack
-		$trace = self::filterStackTrace($trace);	// Filter the $trace further
+		$trace = debug_backtrace(0);			 // Traceroute
+		array_shift($trace);					 // Remove this function from the stack
+		self::preventErrorCallLoop($trace);		 // Prevent looping by checking if the current method was called by raise itself.
+		$trace = self::filterStackTrace($trace); // Filter the $trace further
 		
 		// Get the human readable variants from things
 		$debugCodeString = self::getErrorCodeAsString($debugCode);
@@ -226,42 +234,46 @@ class Error{
 		$message = 'An <strong>'.$debugType.'</strong> of type <i>"'.$debugCodeString.'"</i> was raised inside the '.\Quark\Error\Debug::getLastFunctionAsString($trace).'.'.PHP_EOL;
 		
 		// Add the debugging information
-		if((isset($conf) && $conf->get('error', 'debug_mode')) || (defined('EXTENDED_DEBUG') && EXTENDED_DEBUG === true)){
+		if(true) // @todo check if we're in production
+			self::prettyPrintErrorMessage($message, $debugCode, $userMessage, $debugMessage, Error\Debug::traceToString($trace, EXTENDED_DEBUG));
+		else // We are in production!
+			self::prettyPrintErrorMessage($message, $debugCode, $userMessage);
+		/*if((isset($conf) && $conf->get('error', 'debug_mode')) || (defined('EXTENDED_DEBUG') && EXTENDED_DEBUG === true)){
 			// Use the Document Classes if already loaded
-			if(imported('Document', true) && \Quark\Document\Document::hasInstance()){
+			if(imported('Document', true) && Document::hasInstance()){
 				// Get the document
-				$doc = \Quark\Document\Document::getInstance();
+				$doc = Document::getInstance();
 				import('Document.Errors', true);
 				
 				// Create the error box for this error
-				$box = new \Quark\Document\ErrorBox(array('title'=>'Quark Debug Message'));
+				$box = new ErrorBox(array('title'=>'Quark Debug Message'));
 				$doc->place($box);
 				
 				// Add Sumary Message
-				$box->appendChild(new \Quark\Document\ErrorBox_Frame(array(
-					'type' => \Quark\Document\ErrorBox_Frame::Text,
+				$box->appendChild(new ErrorBox_Frame(array(
+					'type' => ErrorBox_Frame::Text,
 					'text' => $message,
 				)));
 				
 				// Add the overview/statistics
-				$box->appendChild(new \Quark\Document\ErrorBox_Frame(array(
-					'type' => \Quark\Document\ErrorBox_Frame::Category,
+				$box->appendChild(new ErrorBox_Frame(array(
+					'type' => ErrorBox_Frame::Category,
 					'hidable' => true,
 					'title' => '<!--img src="assets/images/icons/dashboard.png"/--> Simplified Summary (User Message)',
 					'text' => (empty($userMessage)? Error::getUserMessage($debugCode) : $userMessage)
 				)));
 				
 				// Add the actual debug message
-				$box->appendChild(new \Quark\Document\ErrorBox_Frame(array(
-					'type' => \Quark\Document\ErrorBox_Frame::Category,
+				$box->appendChild(new ErrorBox_Frame(array(
+					'type' => ErrorBox_Frame::Category,
 					'hidable' => true,
 					'title' => '<!--img src="assets/images/icons/bandaid.png"/--> Debug Message',
 					'text' => $debugMessage
 				)));
 				
 				// Add the traceroute
-				$box->appendChild(new \Quark\Document\ErrorBox_Frame(array(
-					'type' => \Quark\Document\ErrorBox_Frame::Category,
+				$box->appendChild(new ErrorBox_Frame(array(
+					'type' => ErrorBox_Frame::Category,
 					'hidable' => true,
 					'title' => '<!--img src="assets/images/icons/bug.png"/--> Traceroute',
 					'text' => '<pre style="margin:0;overflow-x:auto;">'.Error\Debug::traceToString($trace, EXTENDED_DEBUG).'</pre>'
@@ -285,12 +297,12 @@ class Error{
 		// Debug modes are all off, only show the user the basic info
 		else{
 			// Build the message
-			$errMessage = '<div style="border:#00ffff 1px solid; background:#77ffff;font: 11px Verdana, Tahoma, Geneva, sans-serif;"><h4>Quark did an Oops :o ('.$debugType.')</h4><p>'.$userMessage.'</p></div>';
+			$errMessage = '<div style="border:#00ffff 1px solid; background:#77ffff;font: 11px Verdana, Tahoma, Geneva, sans-serif;"><h4>An error occurred inside the Application :o ('.$debugType.')</h4><p>'.$userMessage.'</p></div>';
 			
 			// Use the Document Classes if already loaded
-			if(imported('Document', true) && \Quark\Document\Document::hasInstance()){
+			if(imported('Document', true) && Document::hasInstance()){
 				// Get the document
-				$doc = \Quark\Document\Document::getInstance();
+				$doc = Document::getInstance();
 				
 				// Add an HTML String
 				import('Document.Utils', true);
@@ -301,19 +313,113 @@ class Error{
 			
 			// or just echo it (:
 			else echo $errMessage;
-		}
+		}*/
 		
 		// Log the error
 		// @TODO Log the error
 		//\Quark\System\logMessage((int) $info['log_level'], essage);
 	}
+
+	/**
+	 * Prettifies an error message of any kind by adding some markup.
+	 *
+	 * Intended for INTERNAL use only. Hence the @ignore PHPDoc tag. It wont destroy the world though, if you do.
+	 * @param string $summary
+	 * @param int $debugCode
+	 * @param string $userMessage
+	 * @param string $debugMessage
+	 * @param string $trace
+	 * @access private
+	 * @ignore
+	 */
+	public static function prettyPrintErrorMessage($summary, $debugCode=E_USER_ERROR, $userMessage='', $debugMessage='', $trace=''){
+		// Use the Document Classes if already loaded
+		if(imported('Document', true)){
+			$result = Loader::importComponent('Document.Errors');
+
+			// Dirty, I know. Doing it anyway.
+			if(!$result) goto plainTextErrorMessage;
+
+			// Create the error box for this error
+			$box = new ErrorBox(array('title'=>'Quark Debug Message'));
+
+			// Add Summary Message
+			$box->addFrame(new ErrorFrame(array(
+				'type' => ErrorFrame::Text,
+				'text' => $summary,
+			)));
+
+			// Add the overview/statistics
+			$box->addFrame(new ErrorFrame(array(
+				'type' => ErrorFrame::Category,
+				'hidable' => true,
+				'title' => '<!--img src="assets/images/icons/dashboard.png"/--> Simplified Summary (User Message)',
+				'text' => (empty($userMessage)? Error::getUserMessage($debugCode) : $userMessage)
+			)));
+
+			// Add the actual debug message
+			if(!empty($debugMessage))
+				$box->addFrame(new ErrorFrame(array(
+					'type' => ErrorFrame::Category,
+					'hidable' => true,
+					'title' => '<!--img src="assets/images/icons/bandaid.png"/--> Debug Message',
+					'text' => $debugMessage
+				)));
+
+			// Add the traceroute
+			if(!empty($trace))
+				$box->addFrame(new ErrorFrame(array(
+					'type' => ErrorFrame::Category,
+					'hidable' => true,
+					'title' => '<!--img src="assets/images/icons/bug.png"/--> Traceroute',
+					'text' => '<pre style="margin:0;overflow-x:auto;">'.$trace.'</pre>'
+				)));
+
+			// Check if we can use the document
+			if(Document::hasInstance() && false){
+				// Check if the error occurred inside the document save method, because that would result in an empty page.
+				$trace = debug_backtrace(0);
+				foreach($trace as $method){
+					if($method['function'] == 'save' && $method['class'] == 'Quark\\Document\\Document'){
+						print($box->independentSave());
+						return;
+					}
+				}
+
+				// We can safely use the document
+				$doc = Document::getInstance();
+				$doc->place($box);
+
+			// ..or use print
+			}else print($box->independentSave());
+		}
+
+		// Use plain text
+		else{
+			// Label. See goto in prev if.
+			plainTextErrorMessage:
+
+			// Echo the message
+			echo '<div style="border:#999 1px solid; background:#ddd;font: 11px Verdana, Tahoma, Geneva, sans-serif;padding: 0px 5px 5px 8px;">'.PHP_EOL;
+			echo '<h3>Quark Debug Message</h3>'.PHP_EOL;
+			echo '<p>'.$summary.'<br/>This error occurred before the <u>Document</u> subsystem could be loaded or in an application that does not use the Document subsystem, therefore this simplified error message.</p>';
+
+			// Add the actual debug and user messages
+			echo '<h4>Simplified Summary (UserMessage)</h4><pre>'.(empty($userMessage)? self::getUserMessage($debugCode) : $userMessage).'</pre>'.PHP_EOL;
+			echo '<h4>Debug Message</h4><pre>'.$debugMessage.'</pre>'.PHP_EOL;
+
+			// Add the trace route
+			echo '<h4>Trace route</h4><pre>'.$trace.'</pre>'.PHP_EOL;
+			echo '</div>'.PHP_EOL;
+		}
+	}
 	
 	/**
-	 * Filters the stacktrace from any raise wrapper functions
+	 * Filters the stack trace from any raise wrapper functions
 	 * @param array $trace
 	 * @return array
 	 */
-	protected static function filterStackTrace(array $trace){
+	private static function filterStackTrace(array $trace){
 		$len = count($trace);
 		for($i=0; ($i<$len && $i<3); $i++){
 			if((isset($trace[$i]['class']) && stristr($trace[$i]['class'], 'error') !== false) ||
@@ -324,6 +430,20 @@ class Error{
 		}
 		return $trace;
 	}
+
+	/**
+	 * Exits when it detects a call to raise() in the given stack trace.
+	 * @param $trace
+	 */
+	private static function preventErrorCallLoop($trace) {
+		foreach($trace as $item){
+			if(isset($item['class']) && $item['class'] == __CLASS__ && $item['function'] == 'raise' && $item['type'] == '::')
+				exit(
+					'Error loop detected! An error probably occurred inside the error raising mechanism, and that started an error loop inside the Quark error reporting system. If you have EXTENDED_DEBUG turned on, this message will be followed by th stacktrace.'.
+					((defined('EXTENDED_DEBUG') && EXTENDED_DEBUG) ? '<pre>'.Debug::traceToString($trace, true).'</pre>':'')
+				);
+		}
+	}
 }
 
 class_alias('\\Quark\\Error', '\\Quark\\Error\\Error');
@@ -332,7 +452,7 @@ class_alias('\\Quark\\Error', '\\Quark\\Error\\Error');
  * Shortcut/alias for {@link Error::raiseError()}
  */
 function raiseError($debugMessage, $userMessage=null, $debugCode=E_USER_ERROR){
-	return \Quark\Error::raise($debugMessage, $userMessage, $debugCode);
+	Error::raise($debugMessage, $userMessage, $debugCode);
 }
 
 /**
@@ -342,7 +462,7 @@ function raiseError($debugMessage, $userMessage=null, $debugCode=E_USER_ERROR){
 function __err_handler($errno, $errstr, $errfile){
 	// Check if the error occured in this file, of so, dont handle
 	if($errfile != __FILE__)
-		return \Quark\Error::raise($errstr,null,$errno);
+		return Error::raise($errstr,null,$errno) || true;
 	else return false;
 }
 

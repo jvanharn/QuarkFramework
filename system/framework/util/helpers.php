@@ -41,6 +41,127 @@ function createInstance($type){
 
 #region Version Comparison
 /**
+ * Join/merge two version rules into one where the 1 version rule will satisfy both rules.
+ * @param string|array $rule1
+ * @param string|array $rule2
+ * @throws RuntimeException When the rules conflict with each other an exception will be thrown.
+ * @return array Valid version qualifier rule.
+ */
+function merge_version_rules($rule1, $rule2){
+	$rule1 = normalize_version_rule($rule1);
+	$rule2 = normalize_version_rule($rule2);
+
+	$rule_match = function($operator1, $operator2, $fixed=false) use (&$rule1, &$rule2){
+		if($rule1[0] == $operator1 && $rule2[0] == $operator2) return true;
+		else if($rule2[0] == $operator1 && $rule1[0] == $operator2 && $fixed == false){
+			$tmp = $rule1;
+			$rule1 = $rule2;
+			$rule2 = $tmp;
+			return true;
+		}
+		else return false;
+	};
+
+	// created ranges
+	if($rule_match('>', '<')){ // Natural range ><
+		if(uniform_version_compare($rule1[1], $rule2[1]) >= 0)
+			return array('><', array($rule1[1], $rule2[1]));
+		else
+			throw new RuntimeException('Version qualifier/rule exception; the given rules conflicted in an unresolvable way. The first requires more than version "'.$rule1[1].'" the second requires less than "'.$rule2[1].'".');
+	}else if($rule_match('>=', '<=', true)){ // Natural range [..]
+		$ranged = uniform_version_compare($rule1[1], $rule2[1]);
+		if($ranged == 0)
+			return array('==', $rule1[1]);
+		else if($ranged > 0)
+			return array('[..]', array($rule1[1], $rule2[1]));
+		else
+			throw new RuntimeException('Version qualifier/rule exception; the given rules conflicted in an unresolvable way. The first requires more than eq. version "'.$rule1[1].'" the second requires less than eq. "'.$rule2[1].'".');
+	}else if($rule_match('>=', '<') || $rule_match('<=', '>')){ // >(=) AND range [..], ><
+		throw new RuntimeException('Version qualifier/rule exception; Sorry, when it comes to combining >= and < or vice versa operators I have no way to intelligently and above all *consistently* solve this problem.');
+
+	// conflicting ranges
+	}else if($rule_match('[..]', '[..]')){
+		// check if $rule1 can be contained within $rule2
+		if(uniform_version_compare($rule1[1][0], $rule2[1][0]) >= 0 && uniform_version_compare($rule1[1][1], $rule2[1][1]) <= 0)
+			return $rule1;
+		// .. or vice versa
+		else if(uniform_version_compare($rule2[1][0], $rule1[1][0]) >= 0 && uniform_version_compare($rule2[1][1], $rule1[1][1]) <= 0)
+			return $rule2;
+		else
+			throw new RuntimeException('Version qualifier/rule exception; the given rules conflicted in an unresolvable way. The first rule cannot be contained in the second or vice versa thus I was unable to combine these two version rules.');
+	}else if($rule_match('><', '><')){
+		// check if $rule1 can be contained within $rule2
+		if(uniform_version_compare($rule1[1][0], $rule2[1][0]) > 0 && uniform_version_compare($rule1[1][1], $rule2[1][1]) < 0)
+			return $rule1;
+		// .. or vice versa
+		else if(uniform_version_compare($rule2[1][0], $rule1[1][0]) > 0 && uniform_version_compare($rule2[1][1], $rule1[1][1]) < 0)
+			return $rule2;
+		else
+			throw new RuntimeException('Version qualifier/rule exception; the given rules conflicted in an unresolvable way. The first rule cannot be contained in the second or vice versa thus I was unable to combine these two version rules.');
+
+	// possible conflicting with exact matches
+	}else if($rule_match('==', '==')){ // Conflicting exact versions
+		if(uniform_version_compare($rule1[1], $rule2[1]) == 0)
+			return array('==', $rule1[1]);
+		else
+			throw new RuntimeException('Version qualifier/rule exception; the given rules conflicted in an unresolvable way. The first requires version "'.$rule1[1].'" the second requires "'.$rule2[1].'".');
+	}else if($rule_match('>', '==')){
+		if(uniform_version_compare($rule1[1], $rule2[1]) > 0)
+			return array('==', $rule2[1]);
+		else
+			throw new RuntimeException('Version qualifier/rule exception; the given rules conflicted in an unresolvable way. The first requires more than version "'.$rule1[1].'" the second requires "'.$rule2[1].'".');
+	}else if($rule_match('>=', '==')){
+		if(uniform_version_compare($rule1[1], $rule2[1]) >= 0)
+			return array('==', $rule2[1]);
+		else
+			throw new RuntimeException('Version qualifier/rule exception; the given rules conflicted in an unresolvable way. The first requires at least version "'.$rule1[1].'" the second requires "'.$rule2[1].'".');
+	}else if($rule_match('<', '==')){
+		if(uniform_version_compare($rule1[1], $rule2[1]) < 0)
+			return array('==', $rule2[1]);
+		else
+			throw new RuntimeException('Version qualifier/rule exception; the given rules conflicted in an unresolvable way. The first requires less than version "'.$rule1[1].'" the second requires "'.$rule2[1].'".');
+	}else if($rule_match('<=', '==')){
+		if(uniform_version_compare($rule1[1], $rule2[1]) <= 0)
+			return array('==', $rule2[1]);
+		else
+			throw new RuntimeException('Version qualifier/rule exception; the given rules conflicted in an unresolvable way. The first requires maximally version "'.$rule1[1].'" the second requires "'.$rule2[1].'".');
+
+	// possible conflict between ranges and less thans/more than/equals
+	}else if($rule_match('[..]', '==')){
+		if(uniform_version_compare($rule2[1], $rule1[1][0]) >= 0 && uniform_version_compare($rule2[1], $rule1[1][1]) <= 0)
+			return array('==', $rule2[1]);
+		else
+			throw new RuntimeException('Version qualifier/rule exception; the given rules conflicted in an unresolvable way. The first defines a range of "'.$rule1[1][0].'" - "'.$rule1[1][1].'" the second requires "'.$rule2[1].'" so does not meet the requirements of the first.');
+	}else if($rule_match('[..]', '>=')){ // range is adjusted with a new minimum
+		if(uniform_version_compare($rule2[1], $rule1[1][0]) >= 0 && uniform_version_compare($rule2[1], $rule1[1][1]) <= 0)
+			return array('[..]', array($rule2[1], $rule1[1][1]));
+		else
+			throw new RuntimeException('Version qualifier/rule exception; the given rules conflicted in an unresolvable way. The first defines a range of "'.$rule1[1][0].'" - "'.$rule1[1][1].'" the second requires "'.$rule2[1].'" or more so does not meet the requirements of the first.');
+	}else if($rule_match('[..]', '<=')){ // range is adjusted with a new maximum
+		if(uniform_version_compare($rule2[1], $rule1[1][0]) >= 0 && uniform_version_compare($rule2[1], $rule1[1][1]) <= 0)
+			return array('[..]', array($rule1[1][0], $rule2[1]));
+		else
+			throw new RuntimeException('Version qualifier/rule exception; the given rules conflicted in an unresolvable way. The first defines a range of "'.$rule1[1][0].'" - "'.$rule1[1][1].'" the second requires "'.$rule2[1].'" or less so does not meet the requirements of the first.');
+	}else if($rule_match('><', '>')){ // range is adjusted with a new minimum
+		if(uniform_version_compare($rule2[1], $rule1[1][0]) > 0 && uniform_version_compare($rule2[1], $rule1[1][1]) < 0)
+			return array('><', array($rule2[1], $rule1[1][1]));
+		else
+			throw new RuntimeException('Version qualifier/rule exception; the given rules conflicted in an unresolvable way. The first defines a range of "'.$rule1[1][0].'" - "'.$rule1[1][1].'" the second requires "'.$rule2[1].'" or more so does not meet the requirements of the first.');
+	}else if($rule_match('><', '<')){ // range is adjusted with a new minimum
+		if(uniform_version_compare($rule2[1], $rule1[1][0]) > 0 && uniform_version_compare($rule2[1], $rule1[1][1]) < 0)
+			return array('><', array($rule1[1][0], $rule2[1]));
+		else
+			throw new RuntimeException('Version qualifier/rule exception; the given rules conflicted in an unresolvable way. The first defines a range of "'.$rule1[1][0].'" - "'.$rule1[1][1].'" the second requires "'.$rule2[1].'" or more so does not meet the requirements of the first.');
+	}else if($rule_match('><', '>=') || $rule_match('><', '<=') || $rule_match('[..]', '<') || $rule_match('[..]', '>')){
+		throw new RuntimeException('Version qualifier/rule exception; Sorry, when it comes to combining [..] and < or similar operators I have no way to intelligently and above all *consistently* solve this problem.');
+
+
+		// no logic for the given combination
+	}else
+		throw new RuntimeException('Tried to merge two versions with a combination of two operators that have no logic programmed for them, please file a bug report to resolve this!');
+}
+
+/**
  * Check if the given $rule applies to the versioning string $version.
  * @param string $version The versioning string to validate.
  * @param string|array $rule When a string is given check that $version is minimally $rule or higher. OR When array is given expects first array element to be comparison operator and the second element to be a versioning string.
@@ -48,32 +169,50 @@ function createInstance($type){
  * @return bool
  */
 function check_version_rule($version, $rule){
+	$rule = normalize_version_rule($rule);
+	switch($rule[0]){
+		case '*':
+			return true;
+		case '>':
+			return (uniform_version_compare($version, $rule[1]) > 0);
+		case '<':
+			return (uniform_version_compare($version, $rule[1]) < 0);
+		case '>=':
+			return (uniform_version_compare($version, $rule[1]) >= 0);
+		case '<=':
+			return (uniform_version_compare($version, $rule[1]) <= 0);
+		case '==':
+		//case '=':
+			return (uniform_version_compare($version, $rule[1]) == 0);
+		case '><':
+			if(!is_array($rule[1]) || count($rule[1]) != 2)
+				throw new InvalidArgumentException('Rule wasn\'t correctly formatted, expected second array element of $rule to be of type "array" for compare function *range* but got "'.gettype($rule[1]).'".');
+			return (uniform_version_compare($version, $rule[1][0]) > 0) && (uniform_version_compare($version, $rule[1][1]) < 0);
+		case '[..]':
+		//case '[...]':
+			if(!is_array($rule[1]) || count($rule[1]) != 2)
+				throw new InvalidArgumentException('Rule wasn\'t correctly formatted, expected second array element of $rule to be of type "array" for compare function *range* but got "'.gettype($rule[1]).'".');
+			return (uniform_version_compare($version, $rule[1][0]) >= 0) && (uniform_version_compare($version, $rule[1][1]) <= 0);
+		default:
+			throw new InvalidArgumentException('Argument $rule for check_version_rule is invalid; the first $rule element should be a valid operator. Expected one of >, <, >=, <=, ==, = but got "'.$rule[0].'".');
+	}
+}
+
+/**
+ * Normalize a versioning rule to the standard array form.
+ * @param string|array $rule
+ * @throws InvalidArgumentException When the rule is incorrectly formatted.
+ * @return array
+ */
+function normalize_version_rule($rule){
 	if(is_string($rule)){
-		return (uniform_version_compare($version, $rule) >= 0);
-	}else if(is_array($rule) && count($rule) == 2){
-		switch($rule[0]){
-			case '*':
-				return true;
-			case '>':
-				return (uniform_version_compare($version, $rule[1]) > 0);
-			case '<':
-				return (uniform_version_compare($version, $rule[1]) < 0);
-			case '>=':
-				return (uniform_version_compare($version, $rule[1]) >= 0);
-			case '<=':
-				return (uniform_version_compare($version, $rule[1]) <= 0);
-			case '==':
-			case '=':
-				return (uniform_version_compare($version, $rule[1]) == 0);
-			case '><':
-			case '[..]':
-			case '[...]':
-				if(!is_array($rule[1]) || count($rule[1]) != 2)
-					throw new InvalidArgumentException('Rule wasn\'t correctly formatted, expected second array element of $rule to be of type "array" for compare function *range* but got "'.gettype($rule[1]).'".');
-				return (uniform_version_compare($version, $rule[1][0]) >= 0) && (uniform_version_compare($version, $rule[1][1]) <= 0);
-			default:
-				throw new InvalidArgumentException('Argument $rule for check_version_rule is invalid; the first $rule element should be a valid operator. Expected one of >, <, >=, <=, ==, = but got "'.$rule[0].'".');
-		}
+		return array('>=', $rule);
+	}else if(is_array($rule) && count($rule) == 2 && in_array($rule[0], array('*', '>', '<', '>=', '<=', '==', '=', '><', '[..]', '[...]'))){
+		if($rule[0] == '=')
+			$rule[0] = '==';
+		else if($rule[0] == '[...]')
+			$rule[0] = '[..]';
+		return $rule;
 	}else
 		throw new InvalidArgumentException('Invalid $rule given to version checking function.');
 }
@@ -109,7 +248,7 @@ function uniform_version_compare($str1, $str2, $use_strcmp=false){
 		if(isset($ver1[0][$i]) && isset($ver2[0][$i])){
 			if($n1 > $n2) return 1;
 			if($n1 < $n2) return -1;
-		}else if(!isset($ver1[0][$i])){	// $ver1 doesnt have this one, assume 0 for ver2
+		}else if(isset($ver1[0][$i])){	// $ver1 doesnt have this one, assume 0 for ver2
 			if($n1 > 0) return 1;
 			//if($n1 < 0) return -1;
 		}else{							// $ver2 doesnt have this one, idem
@@ -238,7 +377,6 @@ function uniform_version_compare($str1, $str2, $use_strcmp=false){
 
 	}
 
-
 	// Use strcmp on the rest if requested
 	if(!!$use_strcmp){
 		for($i1=0;$i1<$ver1cnt;$i1++){
@@ -288,10 +426,13 @@ function str_split_version($str, $group=false){
 	$strlen = strlen($str);
 	for($c=0; $c<$strlen; $c++){
 		if($main){
-			if(is_numeric($str[$c]))
-				$mchunks[$cur] .= $str[$c];
-			else if($str[$c] == '.')
-				$c++;
+			if(is_numeric($str[$c])){
+				if(isset($mchunks[$cur]))
+					$mchunks[$cur] .= $str[$c];
+				else
+					$mchunks[$cur] = $str[$c];
+			}else if($str[$c] == '.')
+				$cur++;
 			else{
 				$main = false;
 				$cur = 0;
@@ -299,8 +440,12 @@ function str_split_version($str, $group=false){
 		}else{
 			if(stripos($sepchrs, $str[$c]) > -1)
 				$cur++;
-			else
-				$schunks[$cur] .= $str[$c];
+			else {
+				if(isset($schunks[$cur]))
+					$schunks[$cur] .= $str[$c];
+				else
+					$schunks[$cur] = $str[$c];
+			}
 		}
 	}
 	if($group)

@@ -24,6 +24,7 @@
 
 // Define Namespace
 namespace Quark\Document\Form;
+use \Quark\Document\Document;
 
 // Prevent individual file access
 if(!defined('DIR_BASE')) exit;
@@ -51,8 +52,10 @@ class Checkbox extends Field implements NormalizableField, NullableField {
 	
 	/**
 	 * Save the field to it's html representation.
+	 * @param Document $context The context within which the Element gets saved. (Contains data like encoding, XHTML or not etc.)
+	 * @return String HTML Representation
 	 */
-	public function save() {
+	public function save(Document $context) {
 		$checked = (is_null($this->last)?$this->default:$this->last);
 		return "\t\t\t\t<input type=\"checkbox\" name=\"".$this->name."\" id=\"".$this->name."\"".($checked?' checked="checked"':'')." />\n";
 	}

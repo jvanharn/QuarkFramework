@@ -25,6 +25,7 @@
 // Define Namespace
 namespace Quark\Document\Layout;
 use \Quark\Document\Document as Document;
+use Quark\Document\Headers;
 
 // Prevent individual file access
 if(!defined('DIR_BASE')) exit;
@@ -61,48 +62,47 @@ class BasicLayout extends Layout{
 	 * Save the layout content to HTML
 	 * @return string
 	 */
-	public function save(){
+	public function save(Document $context){
 		// Set the css
-		if(Document::hasInstance())
-			Document::getInstance()->headers->add(\Quark\Document\Headers::STYLE, array(),
-				"body { font-family: sans-serif; background-color: #fcfcfc; }".
-				"h1, h2, h3, h4, .header, legend { font-family: \"Segoe UI\", Frutiger, \"Frutiger Linotype\", \"Dejavu Sans\", \"Helvetica Neue\", Arial, sans-serif; color: #222; text-shadow: 0 0 1px rgba(0,0,0,0.3); } ".
-				"abbr { border-bottom: 1px dotted #555; padding-bottom: -1px; }".
-				"a { color: #0198E1; text-decoration: none; }".
-				
-				"form { max-width: 580px; margin: 10px auto; } fieldset { border: 0; background-color: rgb(240, 240, 240); border-radius: 2px; border: 1px solid #bbb; } legend { font-size: 105%; font-weight: bold; padding: 2px 9px; background-color: rgb(245, 245, 245); box-shadow: 0px 0px 1px rgba(200, 200, 200, 1.0); border-radius: 2px; }".
-				"label { padding: 0 0 0 4px; min-width: 30%; display: inline-block; line-height: 30px; }".
-				"input[type=text], input[type=text]:focus, input[type=password], input[type=password]:focus { padding: 5px 4px; outline: 0; box-shadow: 0px 0px 1px #888; border:0; border-bottom: 1px solid #ddd; width: 100%; } input[type=text]:focus, input[type=password]:focus { box-shadow: 0px 0px 2px black; }".
-				".control-group{ clear: both; height: 32px; margin-bottom: 2px; } label, .controls { width: 47.5%; float: left; }".
-				"select, select:focus { min-width: 180px; padding: 3px 3px; outline: 0; box-shadow: 0px 0px 1px #888; border:0; border-bottom: 1px solid #ddd;}".
-				"form div span { font-size: 10px; color: #888;}".
-				"input[type=submit] { margin-top: 5px; padding: 3px 8px; font-size: 105%; font-weight: bold; border: 1px solid #ccc; border-radius: 2px; background-color: #fefefe; color: #333; box-shadow: 0px 0px 1px rgba(150, 150, 150, 0.3); } input[type=submit]:active { background-color: #f5f5f5; box-shadow: 0px 0px 3px rgba(150, 150, 150, 0.4) inset; }".
-				
-				".container { min-width: 320px; max-width: 720px; margin: 20px auto; }".
-				".row { margin: 10px 0; } .row h1, .row h2, .row h3, .row h4 { margin: 0px; padding: 0px; } .row p { line-height: 20px; margin: 4px 3px 8px 6px; }".
-					
-				".header { font-size: 55px; font-weight: bolder; font-family: helvetica, arial, sans-serif; text-align: center; border-bottom: solid 1px #bbb; padding: 10px; min-width: 320px; max-width: 720px; margin: 20px auto; color: #111; }".
-				".footer { font-size: 11px; font-family: verdana, helvetica, ariel, sans-serif; text-align: center; border-top: solid 1px #bbb; padding: 10px; min-width: 320px; max-width: 720px; margin: 10px auto; color: #aaa; }"
-			);
+		$context->headers->add(Headers::STYLE, array(),
+			"body { font-family: sans-serif; background-color: #fcfcfc; }".
+			"h1, h2, h3, h4, .header, legend { font-family: \"Segoe UI\", Frutiger, \"Frutiger Linotype\", \"Dejavu Sans\", \"Helvetica Neue\", Arial, sans-serif; color: #222; text-shadow: 0 0 1px rgba(0,0,0,0.3); } ".
+			"abbr { border-bottom: 1px dotted #555; padding-bottom: -1px; }".
+			"a { color: #0198E1; text-decoration: none; }".
+
+			"form { max-width: 580px; margin: 10px auto; } fieldset { border: 0; background-color: rgb(240, 240, 240); border-radius: 2px; border: 1px solid #bbb; } legend { font-size: 105%; font-weight: bold; padding: 2px 9px; background-color: rgb(245, 245, 245); box-shadow: 0px 0px 1px rgba(200, 200, 200, 1.0); border-radius: 2px; }".
+			"label { padding: 0 0 0 4px; min-width: 30%; display: inline-block; line-height: 30px; }".
+			"input[type=text], input[type=text]:focus, input[type=password], input[type=password]:focus { padding: 5px 4px; outline: 0; box-shadow: 0px 0px 1px #888; border:0; border-bottom: 1px solid #ddd; width: 100%; } input[type=text]:focus, input[type=password]:focus { box-shadow: 0px 0px 2px black; }".
+			".control-group{ clear: both; height: 32px; margin-bottom: 2px; } label, .controls { width: 47.5%; float: left; }".
+			"select, select:focus { min-width: 180px; padding: 3px 3px; outline: 0; box-shadow: 0px 0px 1px #888; border:0; border-bottom: 1px solid #ddd;}".
+			"form div span { font-size: 10px; color: #888;}".
+			"input[type=submit] { margin-top: 5px; padding: 3px 8px; font-size: 105%; font-weight: bold; border: 1px solid #ccc; border-radius: 2px; background-color: #fefefe; color: #333; box-shadow: 0px 0px 1px rgba(150, 150, 150, 0.3); } input[type=submit]:active { background-color: #f5f5f5; box-shadow: 0px 0px 3px rgba(150, 150, 150, 0.4) inset; }".
+
+			".container { min-width: 320px; max-width: 720px; margin: 20px auto; }".
+			".row { margin: 10px 0; } .row h1, .row h2, .row h3, .row h4 { margin: 0px; padding: 0px; } .row p { line-height: 20px; margin: 4px 3px 8px 6px; }".
+
+			".header { font-size: 55px; font-weight: bolder; font-family: helvetica, arial, sans-serif; text-align: center; border-bottom: solid 1px #bbb; padding: 10px; min-width: 320px; max-width: 720px; margin: 20px auto; color: #111; }".
+			".footer { font-size: 11px; font-family: verdana, helvetica, ariel, sans-serif; text-align: center; border-top: solid 1px #bbb; padding: 10px; min-width: 320px; max-width: 720px; margin: 10px auto; color: #aaa; }"
+		);
 		
 		// Save the header
 		$saved = "<div class=\"header\">\n";
 		foreach($this->elements['HEADER'] as $elem)
-			$saved .= $elem->save()."\n";
+			$saved .= $elem->save($context)."\n";
 		
 		$saved .= "</div>\n";
 		
 		// Save the main content
 		$saved .= "<div class=\"container\">\n";
 		foreach($this->elements['CONTENT'] as $elem)
-			$saved .= "<div class=\"row\">\n".$elem->save()."\n</div>\n";
+			$saved .= "<div class=\"row\">\n".$elem->save($context)."\n</div>\n";
 		
 		$saved .= "\n</div>\n";
 		
 		// Save the footer
 		$saved .= "<div class=\"footer\">\n";
 		foreach($this->elements['FOOTER'] as $elem)
-			$saved .= $elem->save()."\n";
+			$saved .= $elem->save($context)."\n";
 		
 		$saved .= "</div>\n";
 		

@@ -187,7 +187,7 @@ class URL {
 	 * @param \Quark\System\Router\URLPathInfo $info
 	 */
 	public static function build($base, URLPathInfo $info){
-		return $base.$info->export('path').$this->export('query');
+		return $base.$info->export('path').$info->export('query');
 	}
 }
 

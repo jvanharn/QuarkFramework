@@ -24,6 +24,8 @@
 
 // Define Namespace
 namespace Quark\Document\Utils;
+use \Quark\Document\Document,
+	\Quark\Document\Element;
 
 // Prevent individual file access
 if(!defined('DIR_BASE')) exit;
@@ -31,7 +33,7 @@ if(!defined('DIR_BASE')) exit;
 /**
  * Takes some text and optionally a title, and wraps it with a paragraph and H* element.
  */
-class Paragraph implements \Quark\Document\Element{
+class Paragraph implements Element{
 	/**
 	 * The title to set.
 	 * @var string
@@ -57,36 +59,29 @@ class Paragraph implements \Quark\Document\Element{
 	 * @param integer $level Headline level to use (Between 1 and 6).
 	 */
 	public function __construct($content, $title=null, $level=3){
-		if(is_string($content))
-			$this->content = '<p>'.\Quark\Document\Document::getInstance()->encodeText($content).'</p>';
-		else if($content instanceof \Quark\Document\Element)
-			$this->content = $content->save();
+		if(is_string($content) || $content instanceof \Quark\Document\Element)
+			$this->content = $content;
 		else throw new \InvalidArgumentException('The $text given should be of type "string".');
-		if(empty($title))
-			$this->title = null;
-		else if(is_string($title))
-			$this->title = \Quark\Document\Document::getInstance()->encodeText($title);
+		if(is_string($title) || $title === null)
+			$this->title = $title;
 		else throw new \InvalidArgumentException('Parameter $title should be of type "string" or be null.');
 		if(is_int($level) && $level >= 1 && $level <= 6)
 			$this->level = $level;
 		else throw new \InvalidArgumentException('Parameter $level should be of type "integer" but got "'.gettype($level).'".');
 	}
-	
+
 	/**
-	 * Get the saved/sanitized and wrapped text input
-	 * @return string
+	 * Retrieve the HTML representation of the element
+	 * @param Document $context The context within which the Element gets saved. (Contains data like encoding, XHTML or not etc.)
+	 * @return String HTML Representation
 	 */
-	public function save() {
-		$saved = (is_null($this->title)?'':'<h'.$this->level.'>'.$this->title.'</h'.$this->level.'>'."\n");
-		$saved .= $this->content."\n";
+	public function save(Document $context) {
+		$saved = is_null($this->title) ? '':
+			'<h'.$this->level.'>'.$context->encodeText($this->title).'</h'.$this->level.'>'."\n";
+		$saved .=	(is_object($this->content) ?
+						$this->content->save($context) :
+						'<p>'.$context->encodeText($this->content).'</p>'
+					)."\n";
 		return $saved;
-	}
-	
-	/**
-	 * Converts to it's text representation
-	 * @return string
-	 */
-	public function __toString() {
-		return $this->save();
 	}
 }

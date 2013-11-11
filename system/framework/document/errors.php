@@ -26,6 +26,8 @@
 namespace Quark\Document;
 
 // Prevent individual file access
+use Traversable;
+
 if(!defined('DIR_BASE')) exit;
 
 // Make sure dependencies are loaded
@@ -37,16 +39,29 @@ if(!defined('DIR_BASE')) exit;
  * A simple marked up element
  * @subpackage Interface
  */
-class ErrorMessage implements Element{
-	use baseElement;
+class ErrorMessage implements IndependentElement {
+	use baseElement, baseIndependentElement;
 	
 	protected $defaults = array(
 		'title' => null,
 		'message' => '',
 	);
-	
-	public function save(){
-		
+
+	/**
+	 * Retrieve the HTML representation of the element
+	 * @param Document $context The context within which the Element gets saved. (Contains data like encoding, XHTML or not etc.)
+	 * @return String HTML Representation
+	 */
+	public function save(Document $context=null){
+		// @todo STUB
+		throw new \RuntimeException('Unimplemented stub.');
+	}
+
+	/**
+	 * @see save()
+	 */
+	public function __toString() {
+		return $this->save();
 	}
 }
 
@@ -56,9 +71,16 @@ class ErrorMessage implements Element{
  * Can contain multiple SimpleUI Elements.
  * @subpackage Interface
  */
-class ErrorBox implements Collection{
-	use baseCollection, baseElement;
-	
+class ErrorBox implements IndependentElement{
+	use baseElement, baseIndependentElement;
+
+	const BOX_CLASS = 'ErrorBox';
+
+	/**
+	 * @var ErrorFrame[] Frames in this box.
+	 */
+	private $frames = array();
+
 	/**
 	 * CSS-Styles for this element
 	 */
@@ -79,12 +101,20 @@ class ErrorBox implements Collection{
 		'style' => '', // Your own css to add to the element
 		'class' => ''
 	);
+
+	/**
+	 * Add an error frame to this box.
+	 * @param ErrorFrame $frame
+	 */
+	public function addFrame(ErrorFrame $frame){
+		$this->frames[] = $frame;
+	}
 	
 	/**
 	 * Generates the HTML
-	 * @return string The HTML
+	 * @return String HTML Representation
 	 */
-	public function save(){
+	public function independentSave() {
 		// Set the style of the box
 		$style = 'color: '.$this->options['text_color'].'; font: 11px Verdana, Tahoma, Geneva, sans-serif;'.
 		'margin: 4px; padding: 8px;'.
@@ -93,14 +123,20 @@ class ErrorBox implements Collection{
 		'background-position:'.$this->options['icon_pos'].';').' background-color:'.$this->options['background_color'].';';
 		
 		// Set the HTML
-		$html = '<div style="'.$style.$this->options['style'].'" class="'.$this->options['class'].' ptSimpleUIBox">'.
-		(empty($this->options['title'])?'':'<div style="padding:0;margin:0;height:20px;font-weight:bold;font-size:110%;'.(empty($this->options['icon'])?'':'padding-left:'.(is_numeric($sub = substr($this->options['icon_pos'], 0, 2))?($sub*3).'em':'21px')).';">'.$this->options['title'].'</div>');
+		$html = '<div style="'.$style.$this->options['style'].'" class="'.$this->options['class'].' '.self::BOX_CLASS.'">'.PHP_EOL;
+		if(!empty($this->options['title'])){
+			$titleStyle = 'padding:0;margin:0;height:20px;font-weight:bold;font-size:110%;';
+			if(!empty($this->options['icon']))
+				$titleStyle .= 'padding-left:'.(is_numeric($sub = substr($this->options['icon_pos'], 0, 2)) ? ($sub*3).'em' : '21px').';';
+			$html .= '<div style="'.$titleStyle.'">'.$this->options['title'].'</div>'.PHP_EOL;
+		}
 		
 		// Add the elements
-		$html .= $this->saveChildren();
+		foreach($this->frames as $frame)
+			$html .= $frame->independentSave();
 		
 		// End the stuff
-		$html .= '</div>';
+		$html .= '</div>'."\n".'<!-- -------------------------------------------------------- -->'."\n\n";
 		return $html;
 	}
 }
@@ -111,8 +147,8 @@ class ErrorBox implements Collection{
  * A element for use in a box. Can be just some text
  * @subpackage Interface
  */
-class ErrorBox_Frame implements Element{
-	use baseElement;
+class ErrorFrame implements IndependentElement {
+	use baseElement, baseIndependentElement;
 	
 	const Category		= 0;
 	const Text			= 1;
@@ -130,8 +166,14 @@ class ErrorBox_Frame implements Element{
 	);
 	
 	private static $boxid = 0;
-	
-	public function save(){
+
+	/**
+	 * Retrieve the HTML representation of the element
+	 * @param Document $context The context within which the Element gets saved. (Contains data like encoding, XHTML or not etc.)
+	 * @throws \RuntimeException
+	 * @return String HTML Representation
+	 */
+	public function independentSave(Document $context=null) {
 		if($this->options['type'] == self::Text)
 			return '<div style="padding:0;margin:0;margin-left:3px;'.$this->options['style'].'">'.$this->options['text'].'</div>';
 		elseif($this->options['type'] == self::NoWrap)

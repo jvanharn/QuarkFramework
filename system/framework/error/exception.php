@@ -16,7 +16,7 @@ namespace Quark;
 // Prevent individual file access
 if(!defined('DIR_BASE')) exit;
 
-// Dependancies
+// Dependencies
 \Quark\import('Error', 'Error.Debug', true);
 
 /**

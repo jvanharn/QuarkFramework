@@ -24,6 +24,9 @@
 
 // Define Namespace
 namespace Quark\Document\Utils;
+use Quark\Document\baseCollection,
+	Quark\Document\Document,
+	Quark\Document\Element;
 
 // Prevent individual file access
 if(!defined('DIR_BASE')) exit;
@@ -32,7 +35,7 @@ if(!defined('DIR_BASE')) exit;
  * Simple implementation of the Collection Interface.
  */
 class Collection implements \Quark\Document\Collection {
-	use \Quark\Document\baseCollection;
+	use baseCollection;
 	
 	/**
 	 * The tagname of the collection wrapper (Or null)
@@ -60,34 +63,30 @@ class Collection implements \Quark\Document\Collection {
 		else throw new \InvalidArgumentException('Param $attributes should be of type array.');
 		
 	}
-	
+
 	/**
-	 * Save the collection to it's html representation.
-	 * @return 
+	 * Save the collection to its HTML representation.
+	 * @param Document $context The context within which the Element gets saved. (Contains data like encoding, XHTML or not etc.)
+	 * @return String HTML Representation
 	 */
-	public function save() {
+	public function save(Document $context) {
 		if(!empty($this->tagname)){
 			$attr = '';
-			foreach($this->attributes as $name => $val) $attr .= $name.'="'.$val.'"';
-			return '<'.$this->tagname.$attr.'>'.($this->element->save()).'</'.$this->tagname.'>';
-		}else return $this->saveChildren();
+			foreach($this->attributes as $name => $val)
+				$attr .= $name.'="'.$val.'"';
+
+			return '<'.$this->tagname.$attr.'>'.$this->saveChildren($context).'</'.$this->tagname.'>';
+		}else return $this->saveChildren($context);
 	}
 	
 	/**
 	 * Invoke the collection to simplify adding elements to the collection
-	 * @param \Quark\Document\Element $element Element to append to the collection.
+	 * @param Element $element Element to append to the collection.
 	 * @return \Quark\Document\Utils\Collection The current object for chaining.
 	 * @see \Quark\Document\Collection::appendChild()
 	 */
-	public function __invoke(\Quark\Document\Element $element) {
+	public function __invoke(Element $element) {
 		$this->appendChild($element);
 		return $this;
-	}
-	
-	/**
-	 * @see \Quark\Document\Utils\Collection::save()
-	 */
-	public function __toString(){
-		return $this->save();
 	}
 }

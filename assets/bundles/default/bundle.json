@@ -1,0 +1,20 @@
+{
+	"id": "default",
+	"type": "many",
+	"repository": "http://libs.quarkframework.org/repo/",
+	"version": "0.0.1alpha",
+
+	"name": "Default Quark Resources",
+	"description": "Default Quark bundle with assets that other bundles can depend on.",
+
+	"resources": {
+		"image": {
+			"images/icon.ico": {},
+			"images/logo.png": {}
+		}
+	},
+
+	"dependencies": [],
+	"installation-conflicts": [],
+	"runtime-conflicts": []
+}

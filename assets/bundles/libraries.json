@@ -1,6 +1,7 @@
 {
 	"last-update": "2937845297",
 	"libraries": {
-		"normalize": "20130602"
+		"normalize": "20130602",
+		"bootstrap": "3.0"
 	}
 }
