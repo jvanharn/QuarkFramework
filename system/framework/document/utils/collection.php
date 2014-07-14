@@ -26,7 +26,7 @@
 namespace Quark\Document\Utils;
 use Quark\Document\baseCollection,
 	Quark\Document\Document,
-	Quark\Document\Element;
+	Quark\Document\IElement;
 
 // Prevent individual file access
 if(!defined('DIR_BASE')) exit;
@@ -81,11 +81,11 @@ class Collection implements \Quark\Document\Collection {
 	
 	/**
 	 * Invoke the collection to simplify adding elements to the collection
-	 * @param Element $element Element to append to the collection.
+	 * @param IElement $element Element to append to the collection.
 	 * @return \Quark\Document\Utils\Collection The current object for chaining.
 	 * @see \Quark\Document\Collection::appendChild()
 	 */
-	public function __invoke(Element $element) {
+	public function __invoke(IElement $element) {
 		$this->appendChild($element);
 		return $this;
 	}

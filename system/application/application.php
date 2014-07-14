@@ -76,11 +76,11 @@ class Application extends \Quark\System\Application\Application{
 		$this->document->resources->reference('bootstrap.css');
 
 		$this->initExtensions();
-		$this->initDatabaseWithDriverName(
+		/*$this->initDatabaseWithDriverName( // Database no longer available on Debug VM
 			'mysql.driver',
 			array('hostname' => 'localhost', 'database' => 'quark', 'username' => 'quark', 'password' => 'quarktest'),
 			$this->extensions
-		);
+		);*/
 
 		date_default_timezone_set(@date_default_timezone_get()); // Fix timezone warnings.
 
@@ -102,7 +102,46 @@ class Application extends \Quark\System\Application\Application{
 		$menu->addLink('test2');
 		$menu->addDropdown('test3', array('text' => 'link'));
 		$navigation->addContent($menu);
-		$layout->place($navigation, BootstrapLayout::POSITION_BEFORE_CONTAINER);
+		$layout->place($navigation);
+
+		// Breadcrumbs
+		$breadcrumbs = new Components\Breadcrumbs();
+		$breadcrumbs->append(new Components\BreadcrumbPart('Home', '/'));
+		$breadcrumbs->append(new Components\BreadcrumbPart('News'), true);
+		$layout->place($breadcrumbs);
+
+		// Dropdown Button inside a Button group (The same as the shorthand, with the exception that this is a small button)
+		$buttongroup = new Components\ButtonGroup(Components\ButtonGroup::BTN_GROUP_XS);
+		$activator =
+			(new Components\Button('Locking menu!'))
+				->setIcon('lock');
+		$activator->setActivatable($dropdown = new Components\Dropdown());
+		$dropdown
+			->addLink('test', '#lol')
+			->addDivider()
+			->addLink('test2', '#lol');
+		$buttongroup->addButton($activator);
+		$buttongroup->addDropdown($dropdown);
+		$layout->place($buttongroup);
+
+		// Button and dropdown with the short syntaxis
+		/** @var Components\Dropdown $secondMenu */
+		$secondMenu = null;
+		$layout->place(Components\Dropdown::create($secondMenu, 'Shorthand Dropdown', 'ok'));
+		$secondMenu
+			->addHeader('Real menu')
+			->addLink('second', '#lol')
+			->addLink('test!', '#lol');
+
+		// Pager
+		$layout->place(new Components\Pager($dropdown, '#next'));// The dropdown won't work as in bootstrap it doesn't work with Pager elements.
+
+		// Pagination
+		$layout->place(
+			(new Components\Pagination(Components\Pagination::PAGINATION_SM))
+				->addCluster(1, 3, 10, '#pages/{{page}}', false));
+
+
 
 		// Left Menu
 

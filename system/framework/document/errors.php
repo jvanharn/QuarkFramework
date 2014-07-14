@@ -39,7 +39,7 @@ if(!defined('DIR_BASE')) exit;
  * A simple marked up element
  * @subpackage Interface
  */
-class ErrorMessage implements IndependentElement {
+class ErrorMessage implements IIndependentElement {
 	use baseElement, baseIndependentElement;
 	
 	protected $defaults = array(
@@ -50,9 +50,11 @@ class ErrorMessage implements IndependentElement {
 	/**
 	 * Retrieve the HTML representation of the element
 	 * @param Document $context The context within which the Element gets saved. (Contains data like encoding, XHTML or not etc.)
+	 * @param int $depth
+	 * @throws \RuntimeException
 	 * @return String HTML Representation
 	 */
-	public function save(Document $context=null){
+	public function save(Document $context=null, $depth=0){
 		// @todo STUB
 		throw new \RuntimeException('Unimplemented stub.');
 	}
@@ -71,7 +73,7 @@ class ErrorMessage implements IndependentElement {
  * Can contain multiple SimpleUI Elements.
  * @subpackage Interface
  */
-class ErrorBox implements IndependentElement{
+class ErrorBox implements IIndependentElement{
 	use baseElement, baseIndependentElement;
 
 	const BOX_CLASS = 'ErrorBox';
@@ -147,7 +149,7 @@ class ErrorBox implements IndependentElement{
  * A element for use in a box. Can be just some text
  * @subpackage Interface
  */
-class ErrorFrame implements IndependentElement {
+class ErrorFrame implements IIndependentElement {
 	use baseElement, baseIndependentElement;
 	
 	const Category		= 0;
@@ -169,11 +171,10 @@ class ErrorFrame implements IndependentElement {
 
 	/**
 	 * Retrieve the HTML representation of the element
-	 * @param Document $context The context within which the Element gets saved. (Contains data like encoding, XHTML or not etc.)
 	 * @throws \RuntimeException
 	 * @return String HTML Representation
 	 */
-	public function independentSave(Document $context=null) {
+	public function independentSave() {
 		if($this->options['type'] == self::Text)
 			return '<div style="padding:0;margin:0;margin-left:3px;'.$this->options['style'].'">'.$this->options['text'].'</div>';
 		elseif($this->options['type'] == self::NoWrap)

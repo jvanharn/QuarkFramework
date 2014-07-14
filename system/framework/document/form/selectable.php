@@ -32,7 +32,7 @@ if(!defined('DIR_BASE')) exit;
 /**
  * Select form-field.
  */
-class Selectable extends Field implements ValidatableField, NullableField {
+class Selectable extends Field implements IValidatableField, INullableField {
 	/**
 	 * Whether or not multiple fields can be selected
 	 * @var boolean|integer

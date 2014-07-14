@@ -34,7 +34,7 @@ if(!defined('DIR_BASE')) exit;
  * 
  * Enables you to add submit and/or reset buttons to your form.
  */
-class Action extends Field implements ValidatableField {
+class Action extends Field implements IValidatableField {
 	use baseRegisterableValidators;
 	
 	/**

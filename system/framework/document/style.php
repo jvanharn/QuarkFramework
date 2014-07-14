@@ -39,7 +39,7 @@ interface Style {
 	public function saveStyle();
 }
 
-interface StyledElement extends Style, Element {}
+interface StyledElement extends Style, IElement {}
 
 /**
  * Dynamicly modifiable style object that can be added to and can minify css

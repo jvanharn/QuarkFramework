@@ -25,13 +25,17 @@
 // Define Namespace
 namespace Quark\Document\Form;
 
+// Import namespaces
+use Quark\Document\IElement;
+use Quark\Document\IIndependentElement;
+
 // Prevent individual file access
 if(!defined('DIR_BASE')) exit;
 
 /**
  * Form Field.
  */
-abstract class Field implements \Quark\Document\Element {
+abstract class Field implements IIndependentElement {
 	/**
 	 * Name of the field in the form.
 	 * @var string
@@ -55,7 +59,7 @@ abstract class Field implements \Quark\Document\Element {
 	 * @return string
 	 */
 	public function __toString(){
-		return $this->save();
+		return $this->independentSave();
 	}
 	
 	/**
@@ -88,7 +92,7 @@ abstract class Field implements \Quark\Document\Element {
 /**
  * When implemented defines that there are possible form return values where the result of a field can be not set in the request.
  */
-interface NullableField {
+interface INullableField {
 	/**
 	 * Whether or not the current field can be undefined in the request data.
 	 * 
@@ -101,7 +105,7 @@ interface NullableField {
 /**
  * When implemented implicates that a field needs to transform the submitted data before it can be used.
  */
-interface NormalizableField {
+interface INormalizableField {
 	/**
 	 * Normalize the value given by the browser to a php value or corrects it's content.
 	 * 
@@ -115,7 +119,7 @@ interface NormalizableField {
 /**
  * Represents a form field that can validate the data that was submitted.
  */
-interface ValidatableField {
+interface IValidatableField {
 	/**
 	 * Validates if the value was correctly submitted.
 	 * 
@@ -173,7 +177,7 @@ trait baseRegisterableNormalizers {
 }
 
 /**
- * Trait that implements ValidatableField with rigisterable validators.
+ * Trait that implements IValidatableField with rigisterable validators.
  */
 trait baseRegisterableValidators {
 	/**

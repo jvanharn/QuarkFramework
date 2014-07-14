@@ -24,7 +24,7 @@
 
 // Define Namespace
 namespace Quark\Document\Layout;
-use \Quark\Document\Element as Element;
+use \Quark\Document\IElement as IElement;
 
 // Prevent individual file access
 if(!defined('DIR_BASE')) exit;
@@ -50,7 +50,7 @@ if(!defined('DIR_BASE')) exit;
  *
  * @property-read Positions $positions Object that manages and exposes all available positions where UI elements can be placed in this layout.
  */
-abstract class Layout implements Element, \IteratorAggregate{
+abstract class Layout implements IElement, \IteratorAggregate{
 	/**
 	 * Registry managing the available position references.
 	 * @var Positions
@@ -59,7 +59,7 @@ abstract class Layout implements Element, \IteratorAggregate{
 	
 	/**
 	 * Dictionary of all the positions and the elements they contain
-	 * @var Element[]
+	 * @var IElement[]
 	 */
 	protected $elements = array();
 	
@@ -74,11 +74,11 @@ abstract class Layout implements Element, \IteratorAggregate{
 	
 	/**
 	 * Place an element on the given position in the layout
-	 * @param \Quark\Document\Element $elem Savable element object.
+	 * @param \Quark\Document\IElement $elem Savable element object.
 	 * @param string $position Valid position reference.
 	 * @return boolean
 	 */
-	public function place(Element $elem, $position){
+	public function place(IElement $elem, $position){
 		if(!$this->positions->exists($position)) return false;
 		else $position = $this->positions->resolve($position);
 		
@@ -91,10 +91,10 @@ abstract class Layout implements Element, \IteratorAggregate{
 	
 	/**
 	 * Remove the given element reference from the layout
-	 * @param \Quark\Document\Element $elem
+	 * @param \Quark\Document\IElement $elem
 	 * @return boolean
 	 */
-	public function remove(Element $elem){
+	public function remove(IElement $elem){
 		foreach($this->elements as $pos => $elems){
 			foreach($elems as $index => $current){
 				if($current == $elem){
@@ -123,6 +123,7 @@ abstract class Layout implements Element, \IteratorAggregate{
 		if($name == 'positions' || $name == 'pos')
 			return $this->positions;
 		else if($this->positions->exists($name))
+			/** @noinspection PhpParamsInspection */
 			return new \ArrayIterator($this->elements[$name]);
 	}
 		
@@ -130,7 +131,7 @@ abstract class Layout implements Element, \IteratorAggregate{
 	 * When the class is called directly, it adds the given element to the given or otherwise default position on the layout.
 	 * @see Layout::place
 	 */
-	final public function __invoke(Element $elem, $position=null){
+	final public function __invoke(IElement $elem, $position=null){
 		$this->place($elem, $position);
 	}
 }

@@ -25,31 +25,22 @@
 // Define Namespace
 namespace Quark\Libraries\Bootstrap\Components;
 use Quark\Document\baseCollection,
-	Quark\Document\Document,
-	Quark\Document\Element;
-use Quark\Libraries\Bootstrap\baseBootstrapElement;
+	Quark\Document\Document;
 use Quark\Libraries\Bootstrap\BootstrapElement;
-use Quark\Libraries\Bootstrap\BootstrapLayout;
+use Quark\Libraries\Bootstrap\Component;
 
 // Prevent individual file access
 if(!defined('DIR_BASE')) exit;
 
+// Load dependencies
+\Quark\import(
+	'Libraries.Bootstrap.Component',
+true);
+
 /**
- * Simple implementation of the Collection Interface.
+ * Bootstrap Navigation-bar IComponent
  */
-class NavigationBar implements BootstrapElement {
-	use baseBootstrapElement;
-
-	/**
-	 * @var int Number of initiated navbar objects this session.
-	 */
-	private static $instances = 0;
-
-	/**
-	 * @var string Identifier of the navigation bar.
-	 */
-	protected $id;
-
+class NavigationBar extends Component {
 	/**
 	 * @var string The title or brand of the nav-bar.
 	 */
@@ -68,22 +59,18 @@ class NavigationBar implements BootstrapElement {
 	/**
 	 * @param string $brand
 	 * @param string $id
-	 * @param array $classes Extra classes for the row.
+	 * @param array $classes Extra classes for the bar wrapper.
 	 * @throws \InvalidArgumentException When a parameter's type is invalid.
 	 */
 	public function __construct($brand=null, $id=null, array $classes=array()){
 		if(!empty($brand))
 			$this->setBrand($brand);
 
-		if(empty($id))
-			$this->id = 'page-navbar-'.mt_rand(0, 255).'-'.self::$instances;
-		else $this->id = $id;
+		$this->setId($id);
 
 		if(is_array($classes))
 			$this->classes = $classes;
 		else throw new \InvalidArgumentException('Param $classes should be of type array.');
-
-		self::$instances++;
 	}
 
 	/**
@@ -109,7 +96,7 @@ class NavigationBar implements BootstrapElement {
 	 * @return String HTML Representation
 	 */
 	public function save(Document $context, $depth=1) {
-		$navigation  = self::line($depth, '<nav class="navbar navbar-default" role="navigation" id="'.$this->id.'">');
+		$navigation  = self::line($depth, '<nav class="navbar navbar-default '.implode($this->classes, ' ').'" role="navigation" id="'.$this->id.'">');
 		$navigation .= $this->saveHeader($context, $depth+1);
 		$navigation .= $this->saveContent($context, $depth+1);
 		$navigation .= self::line($depth, '</nav>');
@@ -145,6 +132,7 @@ class NavigationBar implements BootstrapElement {
 	 * Saves the collapsible content of the bar.
 	 * @param Document $context
 	 * @param int $depth
+	 * @return string
 	 */
 	protected function saveContent(Document $context, $depth=1){
 		$content  = self::line($depth, '<div class="collapse navbar-collapse" id="'.$this->id.'-collapse">');
@@ -160,16 +148,16 @@ class NavigationBar implements BootstrapElement {
 	 * @param string $text text on line.
 	 * @return string
 	 */
-	private static function line($depth, $text){ return str_repeat("\t", $depth).$text."\n"; }
+	protected static function line($depth, $text){ return str_repeat("\t", $depth).$text."\n"; }
 
 	/**
 	 * Invoke the collection to simplify adding elements to the collection
-	 * @param Element $element Element to append to the collection.
+	 * @param NavigationBarElement $element Element to append to the collection.
 	 * @return \Quark\Document\Utils\Collection The current object for chaining.
 	 * @see \Quark\Document\Collection::appendChild()
 	 */
-	public function __invoke(Element $element) {
-		$this->appendChild($element);
+	public function __invoke(NavigationBarElement $element) {
+		$this->addContent($element);
 		return $this;
 	}
 }
@@ -178,13 +166,20 @@ class NavigationBar implements BootstrapElement {
  * Navigation Bar Element
  * @package Quark\Libraries\Bootstrap\Elements
  */
-interface NavigationBarElement extends BootstrapElement {}
+abstract class NavigationBarElement extends BootstrapElement {
+	/**
+	 * @param int $depth Number of tabs.
+	 * @param string $text text on line.
+	 * @return string
+	 */
+	protected static function line($depth, $text){ return str_repeat("\t", $depth).$text."\n"; }
+}
 
 /**
  * Literal for the navigation bar.
  * @package Quark\Libraries\Bootstrap\Elements
  */
-class NavigationBarLiteral implements NavigationBarElement {
+class NavigationBarLiteral extends NavigationBarElement {
 	/**
 	 * @var string Contents of the literal.
 	 */
@@ -208,7 +203,11 @@ class NavigationBarLiteral implements NavigationBarElement {
 	}
 }
 
-class NavigationBarMenu implements NavigationBarElement {
+/**
+ * Class NavigationBarMenu
+ * @package Quark\Libraries\Bootstrap\Components
+ */
+class NavigationBarMenu extends NavigationBarElement {
 	/**
 	 * @var array[]
 	 */

@@ -25,7 +25,7 @@
 // Define Namespace
 namespace Quark\Document\Layout;
 use \Quark\Document\Document,
-	\Quark\Document\Element,
+	\Quark\Document\IElement,
 	\Quark\Document\Style;
 
 // Prevent individual file access
@@ -110,7 +110,7 @@ class GridLayout extends Layout implements Style{
 
 	/**
 	 * All the elements in the grid grouped by row.
-	 * @var Element[][]
+	 * @var IElement[][]
 	 */
 	protected $elements = array(0 => array());
 
@@ -151,11 +151,11 @@ class GridLayout extends Layout implements Style{
 	
 	/**
 	 * Place a element on the grid.
-	 * @param \Quark\Document\Element $element Element to place.
+	 * @param \Quark\Document\IElement $element Element to place.
 	 * @param string $position Position of the element on the grid.
 	 * @return boolean
 	 */
-	public function place(Element $element, $position){
+	public function place(IElement $element, $position){
 		if(!$this->positions->exists($position)) return false;
 		else $position = $this->positions->resolve($position);
 		

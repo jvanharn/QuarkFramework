@@ -42,7 +42,8 @@ if(!defined('DIR_BASE')) exit;
 	'Framework.Document.Style',
 	'Framework.Document.Headers',
 	'Framework.Document.Resources',
-	'Framework.Document.Layout.Layout'
+	'Framework.Document.Layout.Layout',
+	'Framework.Document.Utils.Underscore'
 );
 
 /**
@@ -60,7 +61,7 @@ if(!defined('DIR_BASE')) exit;
  * @property-read string $encoding The character encoding for this document.
  * @property-read bool $xhtml Whether or not this document uses XHTML style unclosed tags.
  *
- * @method boolean place() place(Element $elem, string $position='') Place an element onto the current {@link \Quark\Document\Layout\Layout::place() layout}.
+ * @method boolean place() place(IElement $elem, string $position='') Place an element onto the current {@link \Quark\Document\Layout\Layout::place() layout}.
  */
 class Document implements Singleton, Observable {
 	use	baseObservable;
@@ -449,6 +450,9 @@ DOCUMENT;
 	// Utility functions
 	/**
 	 * Prepare text to be included in the current document.
+	 * @param string $text The text to encode as per the document's current settings.
+	 * @param bool $double_encode See the {@see \htmlspecialchars} documentation on the double encode parameter.
+	 * @return string
 	 */
 	public function encodeText($text, $double_encode=true){
 		$htmlType = ENT_HTML401;
@@ -458,6 +462,29 @@ DOCUMENT;
 			$htmlType = ENT_XHTML;
 		
 		return htmlentities($text, ENT_QUOTES | ENT_SUBSTITUTE | $htmlType, $this->encoding, $double_encode);
+	}
+
+	/**
+	 * Prepare text to be included as an name > value pair as an element's attribute in the current document.
+	 * @param string $name The attribute name.
+	 * @param string $value The attribute value.
+	 * @param bool $double_encode See the {@see \htmlspecialchars} documentation on the double encode parameter.
+	 * @return string The attribute ready to be applied to an element, in the form of '{$name}="{$value}"'.
+	 */
+	public function encodeAttribute($name, $value, $double_encode=true){
+		$htmlType = ENT_HTML401;
+		if($this->type == self::TYPE_HTML5)
+			$htmlType = ENT_HTML5;
+		else if($this->type == self::TYPE_XHTML_STRICT || $this->type == self::TYPE_XHTML_TRANSITIONAL || $this->type == self::TYPE_XHTML_FRAME)
+			$htmlType = ENT_XHTML;
+
+		if($value === null)
+			return false;
+
+		if(function_exists('\Quark\Filter\filter_string'))
+			return \Quark\Filter\filter_string($name, ['chars' => CONTAINS_ALPHANUMERIC.'-']).'="'.htmlspecialchars($value, ENT_COMPAT | ENT_SUBSTITUTE | $htmlType, $this->encoding, $double_encode).'"';
+		else
+			return trim($name).'="'.htmlspecialchars($value, ENT_COMPAT | ENT_SUBSTITUTE | $htmlType, $this->encoding, $double_encode).'"';
 	}
 	
 	/**

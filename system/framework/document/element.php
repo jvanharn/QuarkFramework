@@ -35,13 +35,14 @@ if(!defined('DIR_BASE')) exit;
  * 
  * Makes sure the element class has the right method(s) for getting it's HTML.
  */
-interface Element {
+interface IElement {
 	/**
 	 * Retrieve the HTML representation of the element
 	 * @param Document $context The context within which the Element gets saved. (Contains data like encoding, XHTML or not etc.)
+	 * @param int $depth The current indentation depth, not required.
 	 * @return String HTML Representation
 	 */
-	public function save(Document $context);
+	public function save(Document $context, $depth=0);
 }
 
 /**
@@ -49,7 +50,15 @@ interface Element {
  *
  * An loose or unbound element is an element that does not (Necessarily) need to know about the document it is in to render itself.
  */
-interface IndependentElement extends Element {
+interface IIndependentElement extends IElement {
+	/**
+	 * Retrieve the HTML representation of the element
+	 * @param Document $context The context within which the Element gets saved. (Contains data like encoding, XHTML or not etc.)
+	 * @param int $depth The current indentation depth, not required.
+	 * @return String HTML Representation
+	 */
+	public function save(Document $context=null, $depth=0);
+
 	/**
 	 * Retrieve the HTML representation of the element without requiring a document as context.
 	 * @return String HTML Representation
@@ -115,7 +124,7 @@ trait baseElement{
 	
 	/**
 	 * Set options on this box
-	 * @param string $options The options to set in key => value pairs.
+	 * @param array $options The options to set in key => value pairs.
 	 * @return void
 	 */
 	public function setOptions($options){
@@ -141,19 +150,21 @@ trait baseIndependentElement {
 	/**
 	 * Retrieve the HTML representation of the element
 	 * @param Document $context The context within which the Element gets saved. (Contains data like encoding, XHTML or not etc.)
+	 * @param int $depth
 	 * @return String HTML Representation
 	 */
-	public function save(Document $context){
+	public function save(Document $context=null, $depth=0){
 		return $this->independentSave();
 	}
 
 	/**
 	 * Placeholder to satisfy the error checkers.
-	 * @return string
+	 * @throws \RuntimeException
+	 * @return string|void
 	 * @ignore
 	 */
 	public function independentSave(){
-		return '';
+		throw new \RuntimeException('This method has to be overwritten.');
 	}
 
 	/**

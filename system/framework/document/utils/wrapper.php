@@ -25,7 +25,7 @@
 // Define Namespace
 namespace Quark\Document\Utils;
 use Quark\Document\Document;
-use Quark\Document\Element;
+use Quark\Document\IElement;
 
 // Prevent individual file access
 if(!defined('DIR_BASE')) exit;
@@ -33,10 +33,10 @@ if(!defined('DIR_BASE')) exit;
 /**
  * Wraps existing elements with a HTML Tag.
  */
-class Wrapper implements Element {
+class Wrapper implements IElement {
 	/**
 	 * The element to wrap.
-	 * @var \Quark\Document\Element
+	 * @var \Quark\Document\IElement
 	 */
 	protected $element;
 	
@@ -54,12 +54,12 @@ class Wrapper implements Element {
 
 	/**
 	 * Construct a new wrapper object.
-	 * @param \Quark\Document\Element|\Quark\Document\Element $element The element to wrap.
+	 * @param \Quark\Document\IElement|\Quark\Document\IElement $element The element to wrap.
 	 * @param string $tagname Name/Type of tag to wrap with.
 	 * @param array $attributes Attributes and it's values for the wrapper element.
 	 * @throws \InvalidArgumentException
 	 */
-	public function __construct(Element $element, $tagname='div', $attributes=array()){
+	public function __construct(IElement $element, $tagname='div', $attributes=array()){
 		// Set the element
 		$this->element = $element;
 		
@@ -77,9 +77,10 @@ class Wrapper implements Element {
 	/**
 	 * Retrieve the HTML representation of the wrapper.
 	 * @param Document $context The context within which the Element gets saved. (Contains data like encoding, XHTML or not etc.)
+	 * @param int $depth
 	 * @return String HTML Representation
 	 */
-	public function save(Document $context) {
+	public function save(Document $context, $depth=0) {
 		$attr = '';
 		foreach($this->attributes as $name => $val) $attr .= $name.'="'.$val.'"';
 		return '<'.$this->tagname.$attr.'>'.($this->element->save($context)).'</'.$this->tagname.'>';

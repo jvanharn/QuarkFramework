@@ -35,27 +35,27 @@ if(!defined('DIR_BASE')) exit;
  * 
  * Ensures a element can have children and that those are traversable.
  */
-interface Collection extends Element, \IteratorAggregate{
+interface Collection extends IElement, \IteratorAggregate{
 	/**
 	 * Add a child to this element at the end of the element
-	 * @param Element $element The element to add
+	 * @param IElement $element The element to add
 	 * @return Boolean
 	 */
-	public function appendChild(Element $element);
+	public function appendChild(IElement $element);
 	
 	/**
 	 * Add a child at the beginning of the element
-	 * @param Element $element
+	 * @param IElement $element
 	 * @return Boolean
 	 */
-	public function prependChild(Element $element);
+	public function prependChild(IElement $element);
 	
 	/**
 	 * Removes the first added occurence of $element
-	 * @param Element $element The element to remove
+	 * @param IElement $element The element to remove
 	 * @return Boolean
 	 */
-	public function removeChild(Element $element);
+	public function removeChild(IElement $element);
 
 	/**
 	 * Gets the string representation of all the children in an element
@@ -80,28 +80,28 @@ trait baseCollection{
 	
 	/**
 	 * Add a child to this element at the end of the element
-	 * @param Element $element The element to add
+	 * @param IElement $element The element to add
 	 * @return Boolean
 	 */
-	public function appendChild(Element $element){
+	public function appendChild(IElement $element){
 		return (@array_push($this->children, $element) == 1);
 	}
 	
 	/**
 	 * Add a child at the beginning of the element
-	 * @param Element $element
+	 * @param IElement $element
 	 * @return Boolean
 	 */
-	public function prependChild(Element $element){
+	public function prependChild(IElement $element){
 		return (@array_unshift($this->children, $element) == 1);
 	}
 	
 	/**
 	 * Removes the first added occurrence of $element
-	 * @param Element $element The element to remove
+	 * @param IElement $element The element to remove
 	 * @return Boolean
 	 */
-	public function removeChild(Element $element){
+	public function removeChild(IElement $element){
 		foreach($this->children as $key => $child){
 			if($child == $element){
 				unset($this->children);

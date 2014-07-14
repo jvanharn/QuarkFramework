@@ -28,6 +28,9 @@
 namespace Quark;
 
 // Prevent individual file access
+use Quark\Error;
+use Quark\System\Log;
+
 if(!defined('DIR_BASE'))
 	exit('DIR_BASE Constant has to be defined o load the system.');
 
@@ -134,14 +137,15 @@ class Loader{
 			'Framework.Util.Singleton'		// Is needed by a lot of classes, just include it here.
 		);
 	}
-	
+
 	/**
 	 * Simple way to start your default application.
-	 * 
+	 *
 	 * Searches the DIR_APPLICATION directory for a file like 'application.php'
 	 * and then tries to load, and display that application.
 	 * @param string $name (Optional) RootNamespace for the application, e.g. 'QuarkHS', or 'MyAppName'
 	 * @param string $controller (Optional) The name of the controller to load. Defaults to "Application".
+	 * @throws \RuntimeException
 	 */
 	public static function startApplication($name=null, $controller='Application'){
 		// Check if we have to guess the namespace or not
@@ -255,19 +259,22 @@ class Loader{
 	public static function componentLoaded($classPath){
 		return array_key_exists(strtolower($classPath), self::$loaded);
 	}
-	
+
 	/**
 	 * Loads a Class by Component Path
-	 * 
+	 *
 	 * Use the structure: Package.Classname
 	 * Example component paths:
 	 * - System.Extension
 	 * - System.*
 	 * Will all load the same class
 	 * @param string $classPath Component/class path
+	 * @throws \InvalidArgumentException
 	 * @return bool Whether or not the loading was successful
 	 */
 	public static function importComponent($classPath){
+		//error_log("-> Loading component: ".$classPath, 0); // @todo Check for DEBUG constants
+
 		// Check param
 		if(!is_string($classPath)) throw new \InvalidArgumentException('Parameter $classPath has to be of type "string", "'.gettype($classPath).'" given.');
 		
@@ -293,14 +300,91 @@ class Loader{
 			
 			// Try to load the class itself
 			$loaded = self::_loadComponent($path);
-			
+
+			// When it did not succeed, check for alternative spellings and raise a warning to make it clear that the user should import the package correctly before using it.
+			if(!$loaded){
+				$alt = self::_suggestClassFileNames(
+					$path,
+					self::_extractOriginalClassname($classPath)
+				);
+				foreach($alt as $alternative){
+					$loaded = self::_loadComponent($alternative);
+					if($loaded){
+						self::_raiseWarning('The class component "'.implode('.',array_slice($path, 2)).'" of package "'.$path[1].'" in the '.$path[0].' loaded by error correcting the component path name to "'.implode('.', $alternative).'". Please make sure you correct the spelling of this component to the corrected name if the suggestion is correct, or when this was the result of class loading, that you import the correct module using \Quark\import(\''.implode('.',$alternative).'\') as importing it this way can affect load-times!');
+						break;
+					}
+				}
+			}
+
+			// Still not found
 			if(!$loaded) self::_raiseWarning('The class component "'.implode('.',array_slice($path, 2)).'" of package "'.$path[1].'" in the '.$path[0].' failed to load. Have you checked that the whole framework was uploaded, and that all directory and file names are lowercased?');
 		}else if($path[0] == self::TYPE_LIBRARY){
+			// Try to include the main component first (Not all packages have main includes so ignore a fail)
 			$loaded = self::_loadLibrary($path);
+
+			// When it did not succeed, check for alternative spellings and raise a warning to make it clear that the user should import the package correctly before using it.
+			if(!$loaded){
+				$alt = self::_suggestClassFileNames(
+					$path,
+					self::_extractOriginalClassname($classPath)
+				);
+				foreach($alt as $alternative){
+					$loaded = self::_loadComponent($alternative);
+					if($loaded){
+						self::_raiseWarning('The class component "'.implode('.',array_slice($path, 2)).'" of package "'.$path[1].'" in the '.$path[0].' loaded by error correcting the component path name to "'.implode('.', $alternative).'". Please make sure you correct the spelling of this component to the corrected name if the suggestion is correct, or when this was the result of class loading, that you import the correct module using \Quark\import(\''.implode('.',$alternative).'\') as importing it this way can affect load-times!');
+						break;
+					}
+				}
+			}
+
+			// Still not found
 			if(!$loaded) self::_raiseWarning('The Application Utility Library "'.$path[0].'" failed to load. Are you sure you spelled the name correctly, and the library has been uploaded?');
 		}
 		
 		return $loaded;
+	}
+
+	/**
+	 * Tries to suggest the file in which the file could be located.
+	 * @param string[] $path The parsed classpath.
+	 * @param string $className Original camel-cased class name.
+	 * @return string[][]
+	 */
+	private static function _suggestClassFileNames($path, $className){
+		$result = array();
+		$classPath = array_splice($path, 0, count($path)-1);
+		$lowerClassName = end($path);
+
+		// Helper func
+		$possibility = function($class) use ($classPath, &$result, $lowerClassName){
+			$class = strtolower($class);
+			if($class != $lowerClassName)
+				array_push($result, array_merge($classPath, array($class)));
+		};
+
+		// Interface Check - Check for an I in the name
+		//if($className[0] == 'I' && strtoupper($className[1]) == $className[1])
+		//	$possibility(substr($className, 1));
+
+		// Camel-case Check - Check for multiple uppercase letters indicating separated words and add those.
+		$camels = preg_split('/(?=[A-Z])/', $className);
+		$camelParts = count($camels);
+		if($camelParts > 1){
+			for($i=(empty($camels[0]) ? 1 : 0); $i<$camelParts; $i++){
+				$possibility(implode('', array_slice($camels, $i)));
+			}
+		}
+
+		// Replace characters with their name equivalents
+		$chars = array(
+			'_' => 'underscore',
+			'-' => 'dash'
+		);
+		foreach($chars as $char => $name)
+			$className = str_replace($char, $name, $className);
+		$possibility($className);
+
+		return $result;
 	}
 
 	/**
@@ -346,7 +430,7 @@ class Loader{
 	/**
 	 * Filter untrusted PHP Class-Paths
 	 * 
-	 * Sanitize input to only allow a-z, 0-9, underscores and \
+	 * Sanitize input to only allow A-Z, a-z, 0-9, underscores and \
 	 * @param string $classpath The php-classpath to sanitize
 	 * @return string
 	 * @access private
@@ -355,10 +439,10 @@ class Loader{
 		$name = '';
 		
 		// Split the string into separate characters
-		$chars = str_split(strtolower($classpath));
+		$chars = str_split($classpath);
 		
 		// Examine every character
-		$allowed = array_merge(range('a','z'), range('0','9'), array('\\','_'));
+		$allowed = array_merge(range('A', 'Z'), range('a','z'), range('0','9'), array('\\','_'));
 		foreach($chars as $char){
 			if(in_array($char, $allowed)){
 				$name .= $char;
@@ -379,12 +463,26 @@ class Loader{
 	 * @access private
 	 */
 	public static function convertClassPath($classpath){
-		return trim(str_replace('\\', '.', strtolower($classpath)), '.');
+		return trim(str_replace('\\', '.', $classpath), '.');
 	}
-	
+
+	/**
+	 * Extract the class name from the given classpath with the original casing.
+	 * @param string $classPath
+	 * @return string
+	 */
+	private static function _extractOriginalClassname($classPath){
+		$lastPos = strrpos($classPath, '.');
+		if($lastPos === false)
+			return $classPath;
+		else
+			return substr($classPath, $lastPos+1);
+		//return end(explode('.', $classPath));
+	}
+
 	/**
 	 * Parses and normalizes an ClassPath string
-	 * @param string $classPath
+	 * @param string $classPath Class-/Component- path string to parse.
 	 * @return array
 	 */
 	private static function _parseClassPath($classPath){
@@ -428,7 +526,12 @@ class Loader{
 			return $exp;
 		}
 	}
-	
+
+	/**
+	 * @param string $packagePath
+	 * @return array
+	 * @throws \DomainException
+	 */
 	private static function _parsePackagePath($packagePath){
 		$exp = explode('.', strtolower($packagePath), self::MAX_DEPTH);
 		$cnt = count($exp);
@@ -452,7 +555,7 @@ class Loader{
 			if($type == 'framework' || $type == 'quark'){
 				array_unshift($exp, self::TYPE_FRAMEWORK);
 			}else if($type == 'library' || $type == 'libraries'){
-				if(class_exists('\\Quark\\Error', false)) \Quark\Error::raiseWarning('I found a class path that I can accept, but there probably is one or more dot(s) too many in the path: "'.$packagePath.'". You can fix this by using only one dot when importing Utility Classes/Packages', 'If you are the developper, please check if your component paths match with the coding guidelines, or enable debugmode.');
+				if(class_exists('\\Quark\\Error', false)) Error::raiseWarning('I found a class path that I can accept, but there probably is one or more dot(s) too many in the path: "'.$packagePath.'". You can fix this by using only one dot when importing Utility Classes/Packages', 'If you are the developper, please check if your component paths match with the coding guidelines, or enable debugmode.');
 				array_unshift($exp, self::TYPE_LIBRARY);
 			}else if($type == 'application' || in_array($type, self::$aliases)){
 				array_unshift($exp, self::TYPE_APPLICATION);
@@ -460,16 +563,24 @@ class Loader{
 			return $exp;
 		}
 	}
-	
+
 	/**
 	 * Load a framework component (Tries to automatically fix case with {@see self::_fixCase})
 	 * @param array $classPath Parsed classpath to load.
 	 * @param string $basePath The directory to search in.
-	 * @return boolean 
+	 * @throws \RuntimeException
+	 * @return boolean
 	 */
 	private static function _loadComponent($classPath, $basePath=null){
 		// @TODO Log load component call
-		
+
+		// Lowercase path
+		array_walk($classPath, function($value){
+			return strtolower($value);
+		});
+
+		error_log('!!!!!! '.implode('.', $classPath));
+
 		// Check $basePath param
 		if(empty($basePath))
 			$basePath = self::_rootPath($classPath[0]);
@@ -496,29 +607,35 @@ class Loader{
 			return false;
 		}
 	}
-	
+
 	/**
 	 * Loads a complete core-package
-	 * 
+	 *
 	 * Loads all the recognizable classes in a package(Core only).
 	 * If you want to load more packages in one call use {@see Loader::importPackage()}
-	 * @param array $classpath The parsed class path.
+	 * @param array $packagePath The parsed class path.
 	 * @param string $type Type of package, and thus where to look for it.
+	 * @throws \RuntimeException
 	 * @return bool
 	 */
-	private static function _loadPackage($packagepath, $type=self::TYPE_FRAMEWORK){
+	private static function _loadPackage($packagePath, $type=self::TYPE_FRAMEWORK){
+		// Lowercase path
+		array_walk($packagePath, function($value){
+			return strtolower($value);
+		});
+
 		// Guess the path
 		$rpath = self::_rootPath($type);
 		if($rpath === false)
 			throw new \RuntimeException('Could not find the root path for inclusion type "'.$type.'".');
 		
-		$pathBuild = array_slice($packagepath, 1);
+		$pathBuild = array_slice($packagePath, 1);
 		$path = $rpath;
 		foreach($pathBuild as $subdir){
 			if(!is_dir($path.DS.strtolower($subdir))){
 				$fixed = self::_fixCase($path, $subdir);
 				if(!$fixed){
-					self::_raiseWarning('Package "'.implode('.', $packagepath).'" does not seem to exist, are you absolutely sure? Maybe the framework wasn\'t uploaded correctly, or is still being uploaded.');
+					self::_raiseWarning('Package "'.implode('.', $packagePath).'" does not seem to exist, are you absolutely sure? Maybe the framework wasn\'t uploaded correctly, or is still being uploaded.');
 					return false;
 				}else $path = $path.DS.$fixed;
 			}else $path = $path.DS.$subdir;
@@ -528,13 +645,13 @@ class Loader{
 		$files = scandir($path);
 		
 		// Make sure the main package file get's loaded first(If it exists)
-		self::_loadComponent(array_merge($packagepath, [end($packagepath)]), $rpath);
+		self::_loadComponent(array_merge($packagePath, [end($packagePath)]), $rpath);
 		
 		// Loop through the files
 		foreach($files as $file){
 			if(is_file($path.$file) && pathinfo($file, PATHINFO_EXTENSION) == 'php'){
 				// Build file classpath
-				$cpath = implode($packagepath, '.').strtolower(substr($file, 0, -4));
+				$cpath = implode($packagePath, '.').strtolower(substr($file, 0, -4));
 				
 				// Try to Include
 				$inc = include_once($path.$file);
@@ -551,10 +668,11 @@ class Loader{
 		// All went well
 		return true;
 	}
-	
+
 	/**
 	 * Loads a quark basic application library.
 	 * @param array $classPath The class path to load.
+	 * @throws \LogicException
 	 * @return bool
 	 */
 	private static function _loadLibrary($classPath){
@@ -650,14 +768,15 @@ class Loader{
 		}
 		return false;
 	}
-	
+
 	/**
 	 * Tries to fix the case of the class name in such a way that it can be loaded, or fail
-	 * 
-	 * Note: Only nescesery for Case-Sensitive file-systems. (Like most Unix based systems)
+	 *
+	 * Note: Only necessary for Case-Sensitive file-systems. (Like most Unix based systems)
 	 * @param string $path The directory where the file should be. (Should end with an slash)
 	 * @param string $name The name of the file that we should try to correct.
-	 * @param bool   $file Whether or not a file has to be fixed, or a directory name
+	 * @param bool $file Whether or not a file has to be fixed, or a directory name
+	 * @return bool
 	 */
 	private static function _fixCase($path, $name, $file=false){
 		if(is_dir($path)){
@@ -682,14 +801,15 @@ class Loader{
 			return constant($root);
 		else return false;
 	}
-	
+
 	/**
 	 * Checks if the error reporting classes were already loaded otherwise just throws an runtime exception
 	 * @param string $debugMessage The debug message for the error.
+	 * @throws \RuntimeException
 	 */
 	private static function _raiseWarning($debugMessage){
 		if(class_exists('\Quark\Error', false))
-			\Quark\Error::raise($debugMessage, 'There was a problem with an include for this script.', E_WARNING);
+			Error::raise($debugMessage, 'There was a problem with an include for this script.', E_WARNING);
 		else throw new \RuntimeException($debugMessage);
 	}
 }
@@ -698,10 +818,11 @@ class Loader{
  * Shortcut function for {@see Loader::importComponent}
  * @param string $component Component path(s) to load/import
  * @param bool $required Whether or not to exit the application if the component could not be loaded
+ * @throws \Exception
  * @return bool
  */
 function import($component, $required=true){
-	// Distile components to load from arguments
+	// Distill components to load from arguments
 	if(is_array($component))		// Multiple components were given in an array
 		$comps = $component;
 	else if(!is_bool($required)){	// Multiple components were given
@@ -725,7 +846,7 @@ function import($component, $required=true){
 /**
  * Check if a component was imported (And optionally import it)
  * @see class_exists
- * @param string $component The component to check
+ * @param string $classPath The component to check
  * @param bool $import Whether or not to try and import the component if it was not loaded yet
  * @return bool
  */
@@ -740,8 +861,8 @@ function imported($classPath, $import=false){
  * Auto Namespace-aware Loader function
  * 
  * This function loads Framework classes only.
- * It also sanatizes the input, not recommended that you call this function directly(Since it is slower)
- * @param string $classname
+ * It also sanitizes the input, not recommended that you call this function directly(Since it is slower)
+ * @param string $classname Fully Qualified Classname to try and load.
  * @return bool
  * @access private
  */
@@ -749,14 +870,14 @@ function _ClassLoader($classname){
 	// Sanitize input
 	$path = Loader::sanitizeClassPath(Loader::convertClassPath($classname));
 	
-	// Notify the developper that he's doing something wrong
+	// Notify the developer that he's doing something wrong (If logging is turned on/is available)
 	if(class_exists('\\Quark\\System\\Log', false))
-		\Quark\System\logMessage(\Quark\System\Log::WARNING, 'A class is dynamically loaded, you can probably improve performance if you pre-load the class "'.$classname.'" before using it.');
+		\Quark\System\logMessage(Log::WARNING, 'A class is dynamically loaded, you can probably improve performance if you pre-load the class "'.$classname.'" before using it.');
 	
 	// Try to load the class
 	try{
 		$import = Loader::importComponent($path);
-		if(!$import) \Quark\Error::raiseWarning ('Tried to autoload the class '.$classname.', but failed. Make sure all classes you try to use exist, and are imported using the Quark Loader before trying to use them.', 'Something went wrong whilst trying to autoload a class. Please inform the website admin, if you can.');
+		if(!$import) Error::raiseWarning ('Tried to autoload the class '.$classname.', but failed. Make sure all classes you try to use exist, and are imported using the Quark Loader before trying to use them.', 'Something went wrong whilst trying to autoload a class. Please inform the website admin, if you can.');
 		return $import;
 	}catch(\Exception $e){
 		return false;

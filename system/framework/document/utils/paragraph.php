@@ -25,7 +25,7 @@
 // Define Namespace
 namespace Quark\Document\Utils;
 use \Quark\Document\Document,
-	\Quark\Document\Element;
+	\Quark\Document\IElement;
 
 // Prevent individual file access
 if(!defined('DIR_BASE')) exit;
@@ -33,7 +33,7 @@ if(!defined('DIR_BASE')) exit;
 /**
  * Takes some text and optionally a title, and wraps it with a paragraph and H* element.
  */
-class Paragraph implements Element{
+class Paragraph implements IElement{
 	/**
 	 * The title to set.
 	 * @var string
@@ -51,15 +51,16 @@ class Paragraph implements Element{
 	 * @var string
 	 */
 	protected $content = '';
-	
+
 	/**
 	 * Paragraph Element Constructor
 	 * @param string $content Text or element to wrap in a paragraph element.
 	 * @param string $title Headline for the text (May be null, then only the paragraph is returned.)
 	 * @param integer $level Headline level to use (Between 1 and 6).
+	 * @throws \InvalidArgumentException
 	 */
 	public function __construct($content, $title=null, $level=3){
-		if(is_string($content) || $content instanceof \Quark\Document\Element)
+		if(is_string($content) || $content instanceof \Quark\Document\IElement)
 			$this->content = $content;
 		else throw new \InvalidArgumentException('The $text given should be of type "string".');
 		if(is_string($title) || $title === null)
@@ -73,15 +74,17 @@ class Paragraph implements Element{
 	/**
 	 * Retrieve the HTML representation of the element
 	 * @param Document $context The context within which the Element gets saved. (Contains data like encoding, XHTML or not etc.)
+	 * @param int $depth
 	 * @return String HTML Representation
 	 */
-	public function save(Document $context) {
-		$saved = is_null($this->title) ? '':
-			'<h'.$this->level.'>'.$context->encodeText($this->title).'</h'.$this->level.'>'."\n";
-		$saved .=	(is_object($this->content) ?
-						$this->content->save($context) :
+	public function save(Document $context, $depth=0) {
+		if(!is_null($this->title))
+			$saved = _::line($depth, '<h'.$this->level.'>'.$context->encodeText($this->title).'</h'.$this->level.'>');
+		else $saved = '';
+		$saved .=	_::line($depth, is_object($this->content) ?
+						$this->content->save($context, $depth+1) :
 						'<p>'.$context->encodeText($this->content).'</p>'
-					)."\n";
+					);
 		return $saved;
 	}
 }

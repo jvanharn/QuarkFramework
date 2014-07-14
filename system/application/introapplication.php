@@ -48,7 +48,7 @@ use	\Quark\Document\Utils\Text,
 	\Quark\Document\Utils\Paragraph,
 	
 	\Quark\Document\Form\Form,
-	\Quark\Document\Form\TextField as Field,
+	\Quark\Document\Form\TextFieldI as Field,
 	\Quark\Document\Form\Action,
 	\Quark\Document\Form\Checkbox,
 	\Quark\Document\Form\Selectable;

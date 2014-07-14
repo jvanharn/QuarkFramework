@@ -115,7 +115,6 @@ class Log{
 					(is_file(DIR_LOGS.$category.'.log')? FILE_APPEND : 0)
 				)){
 					throw new \RuntimeException('An error occured while trying to write to the file "'.DIR_LOGS.$category.'.log".');
-					return false;
 				}
 			}
 		}
@@ -123,10 +122,13 @@ class Log{
 		// And return
 		return true;
 	}
-	
+
 	/**
 	 * Export the contents of a log, or all logs
 	 * @param string $category Optional category to export
+	 * @param int $format
+	 * @throws \InvalidArgumentException
+	 * @throws \Exception
 	 * @return array|string|bool
 	 */
 	public static function export($category=null, $format=self::EXPORT_ARRAY){
@@ -208,12 +210,13 @@ class Log{
 		if($bitmask) return self::$categories;
 		else return array_keys(self::$categories);
 	}
-	
+
 	/**
 	 * Add a category, and the levels to log to it
 	 * @param string $name Category name
 	 * @param int $levels The levels to log to the category
 	 * @param bool $overwrite Whether or not to overwrite a category if it already exists
+	 * @throws \InvalidArgumentException
 	 * @return bool
 	 */
 	public static function addCategory($name, $levels, $overwrite=false){

@@ -1,9 +1,8 @@
 <?php
 /**
- * Bootstrap Column Collection
+ * Bootstrap Dropdown IComponent
  *
  * @package		Quark-Framework
- * @version		$Id: collection.php 69 2013-01-24 15:14:45Z Jeffrey $
  * @author		Jeffrey van Harn <Jeffrey at lessthanthree.nl>
  * @since		December 15, 2012
  * @copyright	Copyright (C) 2012-2013 Jeffrey van Harn. All rights reserved.
@@ -25,11 +24,15 @@
 // Define Namespace
 namespace Quark\Libraries\Bootstrap\Components;
 use Quark\Document\baseCollection,
-	Quark\Document\Document,
-	Quark\Document\Element;
-use Quark\Libraries\Bootstrap\baseBootstrapElement;
-use Quark\Libraries\Bootstrap\BootstrapElement;
-use Quark\Libraries\Bootstrap\BootstrapLayout;
+	Quark\Document\Document;
+use Quark\Document\Utils\_;
+use Quark\Libraries\Bootstrap\baseActivatable;
+use Quark\Libraries\Bootstrap\baseElementMarkupClasses;
+use Quark\Libraries\Bootstrap\BootstrapLayoutException;
+use Quark\Libraries\Bootstrap\Component;
+use Quark\Libraries\Bootstrap\IActivatable;
+use Quark\Libraries\Bootstrap\IActivator;
+use Quark\Libraries\Bootstrap\IElementMarkupClasses;
 
 // Prevent individual file access
 if(!defined('DIR_BASE')) exit;
@@ -37,121 +40,127 @@ if(!defined('DIR_BASE')) exit;
 /**
  * Simple implementation of the Collection Interface.
  */
-class Dropdown implements BootstrapElement {
-	use baseBootstrapElement;
+class Dropdown extends Component implements IActivatable, IElementMarkupClasses {
+	use baseActivatable, baseElementMarkupClasses;
 
 	/**
-	 * @var int Number of initiated navbar objects this session.
+	 * @var array Array of arrays with the first always being the display text, and the second being the href and/or dropdown.
 	 */
-	private static $instances = 0;
+	protected $items = array();
 
 	/**
-	 * @var string Identifier of the navigation bar.
 	 */
-	protected $id;
-
-	/**
-	 * @var string The title or brand of the nav-bar.
-	 */
-	protected $brand;
-
-	/**
-	 * @var array The (extra) classes of the element.
-	 */
-	protected $classes;
-
-	/**
-	 * @var NavigationBarElement[] Contains the elements that will reside in the collapsible area.
-	 */
-	protected $elements = array();
-
-	/**
-	 * @param string $brand
-	 * @param string $id
-	 * @param array $classes Extra classes for the row.
-	 * @throws \InvalidArgumentException When a parameter's type is invalid.
-	 */
-	public function __construct($brand=null, $id=null, array $classes=array()){
-		if(!empty($brand))
-			$this->setBrand($brand);
-
-		if(empty($id))
-			$this->id = 'page-navbar-'.mt_rand(0, 255).'-'.self::$instances;
-		else $this->id = $id;
-
-		if(is_array($classes))
-			$this->classes = $classes;
-		else throw new \InvalidArgumentException('Param $classes should be of type array.');
-
-		self::$instances++;
+	public function __construct(){
+		$this->cssClasses = array('dropdown-menu');
 	}
 
 	/**
-	 * Set the bars brand-name/title.
-	 * @param string|int $text
+	 * Sets the data-toggle string needed for the dropdowns to be activated.
+	 * @param IActivator $object
+	 * @return void
 	 */
-	public function setBrand($text){
-		$this->brand = (string) $text;
+	public function configureActivator(IActivator $object){
+		$initial = $object->getDataAttribute('data-toggle');
+		if($initial === false || stripos($initial, 'dropdown') === false)
+			$object->setDataAttribute('data-toggle', 'dropdown');
+		else
+			$object->setDataAttribute('data-toggle', $initial.' dropdown');
 	}
 
 	/**
-	 * Adds a navigation bar element to the collapsible area of the bar.
-	 * @param NavigationBarElement $element
+	 * Adds an (unclickable) header item to the menu.
+	 * @param string $text The text for this menu header.
+	 * @return Dropdown The current object, so you can chain calls.
 	 */
-	public function addContent(NavigationBarElement $element){
-		$this->elements[] = $element;
+	public function addHeader($text){
+		$this->items[] = (string) $text;
+		return $this;
 	}
 
 	/**
-	 * Save the navigation bar to its HTML representation.
-	 * @param Document $context The context within which the Element gets saved. (Contains data like encoding, XHTML or not etc.)
-	 * @param int $depth Depth in the document. Used for the number of tabs before each element.
-	 * @return String HTML Representation
+	 * Add a link to the dropdown menu.
+	 * @param string $text Display text.
+	 * @param string $link URL to link to, defaults to '#'.
+	 * @param bool $disabled Whether or not this item is disabled (The $link wont be used as href attr. but as data-disabled-href).
+	 * @return Dropdown The current object, so you can chain calls.
+	 * @throws \Quark\Libraries\Bootstrap\BootstrapLayoutException When any of the parameters are malformed or incorrectly typed.
 	 */
-	public function save(Document $context, $depth=1) {
-		$navigation  = self::line($depth, '<nav class="navbar navbar-default" role="navigation" id="'.$this->id.'">');
-		$navigation .= $this->saveHeader($context, $depth+1);
-		$navigation .= $this->saveContent($context, $depth+1);
-		$navigation .= self::line($depth, '</nav>');
-		return $navigation;
+	public function addLink($text, $link='#', $disabled=false){
+		if(!empty($text) && is_string($text) && is_string($link))
+			$this->items[] = array($text, $link, $disabled);
+		else throw new BootstrapLayoutException('Malformed parameters for bootstrap Dropdown::addLink function.');
+		return $this;
 	}
 
 	/**
-	 * Saves the header part of the bar.
+	 * Add a menu item divider.
+	 * @return Dropdown The current object, so you can chain calls.
+	 */
+	public function addDivider(){
+		$this->items[] = null;
+		return $this;
+	}
+
+	// Bootstrap doesn't natively allow this, so we will only be adding this in later versions.
+	///**
+	// * Add a submenu to this dropdown.
+	// * @param $text
+	// * @param Dropdown $object
+	// */
+	//public function addDropdown($text, Dropdown $object){
+	//	if(!empty($text) && is_string($text) && !empty($object))
+	//		$this->items[] = array($text, $object);
+	//	else throw new BootstrapLayoutException('Malformed parameters for bootstrap Dropdown::addDropdown function.');
+	//}
+
+	/**
+	 * Saves the drop down component.
 	 * @param Document $context
 	 * @param int $depth
-	 * @return string
+	 * @throws \Quark\Libraries\Bootstrap\BootstrapLayoutException When there are multiple activators present.
+	 * @return String
 	 */
-	protected function saveHeader(Document $context, $depth=1){
-		$header = self::line($depth, '<div class="navbar-header">');
-
-		// Mobile dev. toggle button
-		$header .= self::line($depth+1, '<button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#'.$this->id.'-collapse">');
-		$header .= self::line($depth+2, '<span class="sr-only">Toggle navigation</span>');
-		$header .= self::line($depth+2, '<span class="icon-bar"></span>');
-		$header .= self::line($depth+2, '<span class="icon-bar"></span>');
-		$header .= self::line($depth+2, '<span class="icon-bar"></span>');
-		$header .= self::line($depth+1, '</button>');
-
-		// Brand-name/title
-		if(!empty($this->brand))
-			$header .= self::line($depth+1, '<a class="navbar-brand" href="#">'.$context->encodeText($this->brand).'</a>');
-
-		$header .= self::line($depth, '</div>');
-		return $header;
-	}
-
-	/**
-	 * Saves the collapsible content of the bar.
-	 * @param Document $context
-	 * @param int $depth
-	 */
-	protected function saveContent(Document $context, $depth=1){
-		$content  = self::line($depth, '<div class="collapse navbar-collapse" id="'.$this->id.'-collapse">');
-		foreach($this->elements as $element){
-			$content .= $element->save($context, $depth+1);
+	public function save(Document $context, $depth = 0) {
+		$id = ($this->getId() !==null ? ' '.$context->encodeAttribute('id', $this->getId()) : '').' ';
+		$dropdown = _::line($depth, '<ul'.$id.$this->saveClassAttribute($context).' role="menu">');
+		foreach($this->items as $item){
+			if(is_null($item))
+				$dropdown .= _::line($depth+1, '<li role="presentation" class="divider"></li>');
+			else if(is_string($item))
+				$dropdown .= _::line($depth+1, '<li role="presentation" class="dropdown-header">'.$context->encodeText($item).'</li>');
+			else if(is_object($item[1]))
+				$dropdown .= ''; // Not yet implemented.
+			else if($item[2] == true)
+				$dropdown .= _::line($depth+1, '<li role="presentation" class="disabled"><a role="menuitem" tabindex="-1" '.$context->encodeAttribute('data-disabled-href', $item[1]).'>'.$context->encodeText($item[0]).'</a></li>');
+			else
+				$dropdown .= _::line($depth+1, '<li role="presentation"><a role="menuitem" tabindex="-1" '.$context->encodeAttribute('href', $item[1]).'>'.$context->encodeText($item[0]).'</a></li>');
 		}
-		$content .= self::line($depth, '</div>');
-		return $content;
+		$dropdown .= _::line($depth, '</ul>');
+		return $dropdown;
+	}
+
+	/**
+	 * Helper to create a working dropdown button inside a button group with activator et-al.
+	 * @param Dropdown &$menu Variable that will be populated with the Dropdown menu object, so you can add links etc.
+	 * @param string $label Label of the activating button.
+	 * @param string $icon Name of the optional icon to include.
+	 * @param string $size Size of the button.
+	 * @param bool $unfoldUpwards Makes the menu drop upwards instead of down.
+	 * @return ButtonGroup
+	 */
+	public static function create(&$menu, $label, $icon=null, $size=ButtonGroup::BTN_GROUP_MD, $unfoldUpwards=false){
+		$activator = new Button($label);
+		if(!empty($icon))
+			$activator->setIcon($icon);
+
+		$menu = new Dropdown();
+		$activator->setActivatable($menu);
+
+		$group = new ButtonGroup($size);
+		if($unfoldUpwards === true)
+			$group->addMarkupClass('dropup');
+		$group->addButton($activator);
+		$group->addDropdown($menu);
+		return $group;
 	}
 }

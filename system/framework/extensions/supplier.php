@@ -38,13 +38,14 @@ if(!defined('DIR_BASE')) exit;
 interface Supplier {
 	/**
 	 * Fills the given Extension Registry with the available extensions.
-	 * 
+	 *
 	 * This function should fill the extension registry with extensions that are
 	 * currently available. This means that it should also contain enabled,
 	 * disabled, new etc. statussed extensions.
-	 * @param \Quark\Extensions\ExtensionRegistry $registry Current (empty) registry to fill.
+	 * @param \Quark\Extensions\Extensions $registry Current (empty) registry to fill.
+	 * @return
 	 */
-	public function fill(\Quark\Extensions\Extensions $registry);
+	public function fill(Extensions $registry);
 	
 	/**
 	 * Current availibility of the supplier.
@@ -70,9 +71,9 @@ interface CachingSupplier extends Supplier {
 	 * 
 	 * Caches the registry currently in memory for faster data access in future
 	 * page requests.
-	 * @param \Quark\Extensions\Extensions $registry The registry to cache.
+	 * @param Extensions $registry The registry to cache.
 	 */
-	public function cache(\Quark\Extensions\Extensions $registry);
+	public function cache(Extensions $registry);
 	
 	/**
 	 * Whether or not this supplier can cache on this moment.
@@ -93,5 +94,9 @@ interface CachingSupplier extends Supplier {
  * extensions as new, as they do not remember the states.
  */
 interface BuildingSupplier extends Supplier {
-	public function update(\Quark\Extensions\Extensions $registry);
+	/**
+	 * @param Extensions $registry
+	 * @return mixed
+	 */
+	public function update(Extensions $registry);
 }

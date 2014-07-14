@@ -24,7 +24,7 @@
 
 // Define Namespace
 namespace Quark\Document\Utils;
-use \Quark\Document\Element,
+use \Quark\Document\IElement,
 	\Quark\Document\Document;
 
 // Prevent individual file access
@@ -33,7 +33,7 @@ if(!defined('DIR_BASE')) exit;
 /**
  * A Simple Element that will just return the HTML given, or will call a given callback when saved.
  */
-class Literal implements Element{
+class Literal implements IElement{
 	use \Quark\Document\baseElement;
 	
 	/**
@@ -85,7 +85,7 @@ class Literal implements Element{
 	/**
 	 * Saves this element to it's html representation
 	 */
-	public function save(Document $context){
+	public function save(Document $context, $depth=0){
 		if(!empty($this->options['callback']) && ($this->options['cache'] == true || ($this->options['cache'] == false && empty($this->result))))
 			$this->result = call_user_func($this->options['callback']);
 		

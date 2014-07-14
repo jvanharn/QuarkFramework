@@ -118,4 +118,4 @@ function __exc_handler($exception){
 }
 
 // Catch exceptions
-set_exception_handler('\\Quark\\__exc_handler'); // Exceptions are always handled by PageTree
+//set_exception_handler('\\Quark\\__exc_handler'); // Exceptions are always handled by PageTree

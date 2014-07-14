@@ -32,6 +32,11 @@ if(!defined('DIR_BASE')) exit;
  * Invalid Argument Type Exception
  */
 class InvalidArgumentTypeException extends \RuntimeException {
+	/**
+	 * @param string $name
+	 * @param string $expectedType
+	 * @param mixed $value
+	 */
 	public function __construct($name, $expectedType, $value){
 		parent::__construct('The argument $'.$name.' was of type "'.$expectedType.'" but found '.(empty($value)?'(empty) ':'').'"'.gettype($value).'"', E_ERROR);
 		

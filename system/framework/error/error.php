@@ -3,29 +3,16 @@
  * Handles errors and logs them, gives appropriate messages to users
  * 
  * @package		Quark-Framework
- * @version		$Id: error.php 68 2013-01-13 17:46:16Z Jeffrey $
  * @author		Jeffrey van Harn
  * @since		June 23, 2011
- * @copyright	Copyright (C) 2011 Jeffrey van Harn. All rights reserved.
+ * @copyright	Copyright (C) 2014 Jeffrey van Harn. All rights reserved.
  * @license		http://opensource.org/licenses/gpl-3.0.html GNU Public License Version 3
- * 
- * Copyright (C) 2011 Jeffrey van Harn
- * 
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License (License.txt) for more details.
  */
 
 // Set the namespace
 namespace Quark;
 
-// Prevent acces to this standalone file
+// Prevent access to this standalone file
 use Quark\Document\Document;
 use Quark\Document\ErrorBox;
 use Quark\Document\ErrorFrame;
@@ -45,8 +32,8 @@ if(!defined('MAX_ERRORS')) define('MAX_ERRORS', 10);
 if(!defined('EXTENDED_DEBUG')) define('EXTENDED_DEBUG', true); 
 
 /**
- * A PageTree specific errorcode that is thrown if the code reaches a point where normal logic would not go :)
- * So mostly because of a faul user extension, editing the code, or change in php syntax, function return values, etc., etc.
+ * A PageTree specific error code that is thrown if the code reaches a point where normal logic would not go :)
+ * So mostly because of a foul user extension, editing the code, or change in php syntax, function return values, etc., etc.
  * Nice to know: In Dutch a 'Boom' is actually a tree. Where in English it mostly describes something exploding.
  */
 define('E_BOOM', 32768);
@@ -335,6 +322,12 @@ class Error{
 	public static function prettyPrintErrorMessage($summary, $debugCode=E_USER_ERROR, $userMessage='', $debugMessage='', $trace=''){
 		// Use the Document Classes if already loaded
 		if(imported('Document', true)){
+			// Double check for Document class or do plain text.
+			if(!class_exists('\\Quark\\Document\\Document', false)){
+				print(PHP_EOL.'!!!! Incorrect @imported result; imported said Document was imported yet class_exists said otherwise. Please report this to the developers of Quark!!'.PHP_EOL);
+				goto plainTextErrorMessage;
+			}
+
 			$result = Loader::importComponent('Document.Errors');
 
 			// Dirty, I know. Doing it anyway.
@@ -376,7 +369,7 @@ class Error{
 				)));
 
 			// Check if we can use the document
-			if(Document::hasInstance() && false){
+			if(Document::hasInstance() && false){ // @todo
 				// Check if the error occurred inside the document save method, because that would result in an empty page.
 				$trace = debug_backtrace(0);
 				foreach($trace as $method){

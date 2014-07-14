@@ -32,7 +32,7 @@ if(!defined('DIR_BASE')) exit;
 /**
  * Checkbox form-field.
  */
-class Checkbox extends Field implements NormalizableField, NullableField {
+class Checkbox extends Field implements INormalizableField, INullableField {
 	/**
 	 * Default state of the checkbox.
 	 * @var boolean

@@ -3,7 +3,6 @@
  * Advanced Web Application Layout.
  * 
  * @package		Quark-Framework
- * @version		$Id$
  * @author		Jeffrey van Harn <Jeffrey at lessthanthree.nl>
  * @since		February 23, 2013
  * @copyright	Copyright (C) 2013 Jeffrey van Harn. All rights reserved.
@@ -15,10 +14,9 @@ namespace Quark\Libraries\Bootstrap;
 use Quark\Bundles\Bundles;
 use Quark\Document\baseCollection,
 	Quark\Document\Document,
-	Quark\Document\Collection,
 	Quark\Document\Layout\Layout,
 	Quark\Document\Layout\Positions,
-	Quark\Document\Element;
+	Quark\Document\IElement;
 use Quark\Libraries\Bootstrap\Elements\Row;
 
 // Prevent individual file access
@@ -28,6 +26,7 @@ if(!defined('DIR_BASE')) exit;
  * Bootstrap Document Layout
  *
  * This class provides all the benefits of the Twitter Bootstrap (3.0) project, tightly integrated with the Quark document model.
+ * @package Quark\Libraries\Bootstrap
  */
 class BootstrapLayout extends Layout {
 	// Predefined Breakpoints
@@ -106,6 +105,16 @@ class BootstrapLayout extends Layout {
 	}
 
 	/**
+	 * Place an element on the given position in the bootstrap layout.
+	 * @param \Quark\Document\IElement $elem Savable element object.
+	 * @param string $position Valid position reference.
+	 * @return boolean
+	 */
+	public function place(IElement $elem, $position=self::POSITION_CONTAINER){
+		parent::place($elem, $position);
+	}
+
+	/**
 	 * Creates a new Row bootstrap element and places it inside the container, it then returns it's reference.
 	 * @param array $classes Extra CSS classes to add.
 	 * @return \Quark\Libraries\Bootstrap\Elements\Row
@@ -118,11 +127,14 @@ class BootstrapLayout extends Layout {
 
 	/**
 	 * Get the html representation of the bootstrap layout.
-	 * @param \Quark\Document\Document $context
+	 * @param \Quark\Document\Document $context The context document in which the layout gets rendered.
+	 * @param int $depth
 	 * @throws \UnexpectedValueException
 	 * @return string
 	 */
-	public function save(Document $context) {
+	public function save(Document $context, $depth=1) {
+		/** @var $element IElement */ // Fixes IDE type inference.
+
 		// Check doc layout
 		if($context->layout != $this)
 			throw new \UnexpectedValueException('Tried to save a BootstrapLayout in a document in which it is not the layout. I got confused.');
@@ -138,10 +150,7 @@ class BootstrapLayout extends Layout {
 		// Save the body elements
 		if(isset($this->elements[self::POSITION_BEFORE_CONTAINER])){
 			foreach($this->elements[self::POSITION_BEFORE_CONTAINER] as $element){
-				if($element instanceof BootstrapElement)
-					$saved .= $element->save($context, 1);
-				else
-					$saved .= $element->save($context);
+				$saved .= $element->save($context, $depth);
 			}
 		}
 
@@ -149,10 +158,7 @@ class BootstrapLayout extends Layout {
 		if(isset($this->elements[self::POSITION_CONTAINER])){
 			$saved .= "\t<div class=\"container\">\n";
 			foreach($this->elements[self::POSITION_CONTAINER] as $element){
-				if($element instanceof BootstrapElement)
-					$saved .= $element->save($context, 2);
-				else
-					$saved .= $element->save($context);
+				$saved .= $element->save($context, $depth+1);
 			}
 			$saved .= "\n\t</div>\n";
 		}
@@ -160,10 +166,7 @@ class BootstrapLayout extends Layout {
 		// Save the footer
 		if(isset($this->elements[self::POSITION_AFTER_CONTAINER])){
 			foreach($this->elements[self::POSITION_AFTER_CONTAINER] as $element){
-				if($element instanceof BootstrapElement)
-					$saved .= $element->save($context, 1);
-				else
-					$saved .= $element->save($context);
+				$saved .= $element->save($context, $depth);
 			}
 		}
 
@@ -193,65 +196,7 @@ class BootstrapLayout extends Layout {
 }
 
 /**
- * Interface BootstrapElement
+ * Class BootstrapLayoutException
  * @package Quark\Libraries\Bootstrap
  */
-interface BootstrapElement extends Element {
-	/**
-	 * Saves the element.
-	 * @param Document $context
-	 * @param int $depth
-	 * @return String
-	 */
-	public function save(Document $context, $depth=0);
-}
-
-/**
- * Class baseBootstrapElement
- * Provides helper function to nicely print tabs/depth.
- * @package Quark\Libraries\Bootstrap
- */
-trait baseBootstrapElement {
-	/**
-	 * @param int $depth Number of tabs.
-	 * @param string $text text on line.
-	 * @return string
-	 */
-	private static function line($depth, $text){ return str_repeat("\t", $depth).$text."\n"; }
-}
-
-/**
- * Trait BootstrapCollection, basic collection implementation for bootstrap layouts.
- * @package Quark\Libraries\Bootstrap
- */
-trait baseBootstrapCollection {
-	use baseCollection, baseBootstrapElement;
-
-	/**
-	 * The (extra) classes of the element.
-	 * @var array
-	 */
-	protected $classes;
-
-	/**
-	 * Creates a new instance of this bootstrap element
-	 * @param array $classes Extra CSS Classes to assign tot this element.
-	 * @throws \InvalidArgumentException
-	 */
-	public function __construct($classes=array()){
-		if(is_array($classes)){
-			$this->classes = $classes;
-		}else throw new \InvalidArgumentException('Param $classes should be of type array.');
-	}
-
-	/**
-	 * Invoke the collection to simplify adding elements to the collection
-	 * @param Element $element Element to append to the collection.
-	 * @return \Quark\Document\Utils\Collection The current object for chaining.
-	 * @see \Quark\Document\Collection::appendChild()
-	 */
-	public function __invoke(Element $element) {
-		$this->appendChild($element);
-		return $this;
-	}
-}
+class BootstrapLayoutException extends \Exception { }

@@ -188,19 +188,25 @@ class Debug{
 	public static function exportVariable($var, $code=false){
 		if(is_object($var)){
 			if($code === true){
+				$highlighted = '';
+				try { // lets prevented nested errors, as that really /is/ deadly.
+					// @todo Replace with class reflection to prevent Infinite Recursion depth Fatals caused by var_export.
+					//$highlighted = @highlight_string('<?php'.PHP_EOL.@var_export($var, true), true);
+					$highlighted = \Reflection::export(new \ReflectionClass($var), true);
+				}catch(\Exception $e){}
 				$content = '<a style="text-decoration: none" href="#" title="Click to see the complete object." onclick="var w = window.open(\'\', \'\', \'width=600,height=400,resizeable,scrollbars\');w.document.body.appendChild(this.children[1].children[0]);w.document.close();return false;">';
-				$content .= '<span style="color: #007700">(Object) ['.get_class($var).']</span><span style="display:none"><pre>'.highlight_string('<?php'.PHP_EOL.var_export($var, true), true).'</pre></span></a>';
+				$content .= '<span style="color: #007700">(Object) ['.get_class($var).']</span><span style="display:none"><pre>'.$highlighted.'</pre></span></a>';
 				return $content;
 			}else return '(Object) ['.get_class($var).']';
 		}else if(is_string($var) && strlen($var) > 30){
 			if($code === true){
 				$content = '<a style="text-decoration: none" href="#" title="Click to see the complete string." onclick="var w = window.open(\'\', \'\', \'width=600,height=400,resizeable,scrollbars\');w.document.body.appendChild(this.children[1].children[0]);w.document.close();return false;">';
-				$content .= '<span style="color: #DD0000">[String('.strlen($var).')]</span><span style="display:none"><pre>'.var_export($var, true).'</pre></span></a>';
+				$content .= '<span style="color: #DD0000">[String('.strlen($var).')]</span><span style="display:none"><pre>'.@var_export($var, true).'</pre></span></a>';
 				return $content;
 			}else return '[String('.strlen($var).')]';
 		}else{
 			if($code === true)
-				return var_export($var, true);
+				return @var_export($var, true);
 			else
 				return '['.ucfirst(gettype($var)).']';
 		}

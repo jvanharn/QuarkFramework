@@ -25,7 +25,7 @@
 // Define Namespace
 namespace Quark\Document\Utils;
 use Quark\Document\Document;
-use Quark\Document\Element;
+use Quark\Document\IElement;
 
 // Prevent individual file access
 if(!defined('DIR_BASE')) exit;
@@ -35,7 +35,7 @@ if(!defined('DIR_BASE')) exit;
  * 
  * All $text given to this class will be properly encoded according to the encoding used within the document.
  */
-class Heading implements Element{
+class Heading implements IElement{
 	/**
 	 * The text to save.
 	 * @var string
@@ -66,9 +66,10 @@ class Heading implements Element{
 	/**
 	 * Retrieve the HTML representation of the element
 	 * @param Document $context The context within which the Element gets saved. (Contains data like encoding, XHTML or not etc.)
+	 * @param int $depth
 	 * @return String HTML Representation
 	 */
-	public function save(Document $context) {
-		return '<h'.$this->level.'>'.$context->encodeText($this->text).'</h'.$this->level.'>'; // @todo Use the correct document instance, not the default.
+	public function save(Document $context, $depth=0) {
+		return _::line($depth, '<h'.$this->level.'>'.$context->encodeText($this->text).'</h'.$this->level.'>');
 	}
 }

@@ -24,7 +24,7 @@
 
 // Define Namespace
 namespace Quark\Document\Utils;
-use Quark\Document\Element,
+use Quark\Document\IElement,
 	Quark\Document\Document;
 
 // Prevent individual file access
@@ -37,7 +37,7 @@ if(!defined('DIR_BASE')) exit;
  * escaped. This is safe for user-input sanitation, and properly encoded text.
  * (Conform to the current Document's encoding)
  */
-class Text implements Element {
+class Text implements IElement {
 	/**
 	 * The text to save.
 	 * @var string
@@ -58,9 +58,10 @@ class Text implements Element {
 	/**
 	 * Retrieve the HTML representation of the element
 	 * @param Document $context The context within which the Element gets saved. (Contains data like encoding, XHTML or not etc.)
+	 * @param int $depth
 	 * @return String HTML Representation
 	 */
-	public function save(Document $context) {
+	public function save(Document $context, $depth=0) {
 		return $context->encodeText($this->text);
 	}
 }

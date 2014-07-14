@@ -38,6 +38,9 @@
 namespace Quark\Extensions;
 
 // Import Namespaces
+use Quark\Error;
+use Quark\Util\baseSingleton;
+use Quark\Util\Singleton;
 use \Quark\Util\Type\InvalidArgumentTypeException;
 
 // Prevent individual file access
@@ -60,8 +63,8 @@ true);
  * This class communicates and uses the Handler objects to load all kinds of
  * different Quark Framework extensions for the application.
  */
-class Extensions implements \Quark\Util\Singleton{
-	use \Quark\Util\baseSingleton;
+class Extensions implements Singleton{
+	use baseSingleton;
 	
 	// Extension States
 	/**
@@ -189,11 +192,11 @@ class Extensions implements \Quark\Util\Singleton{
 	/**
 	 * Set the Extension List suppliers to their default values.
 	 * 
-	 * The default suppliers are the INICachedSupplier and the DiskBuildingSupplier.
+	 * The default suppliers are the JSONCachedSupplier and the DiskBuildingSupplier.
 	 */
 	public function setDefaultSuppliers(){
 		$this->suppliers = array(
-			new Suppliers\INICachingSupplier(),
+			new Suppliers\JSONCachingSupplier(),
 			new Suppliers\DiskBuildingSupplier()
 		);
 	}
@@ -224,7 +227,9 @@ class Extensions implements \Quark\Util\Singleton{
 	/**
 	 * Scan for loadable/enabled extensions using the extension suppliers
 	 * @param integer $mode A POPULATE_* constant from this class.
+	 * @return boolean
 	 * @throws \UnexpectedValueException When the suppliers array was not initialized yet
+	 * @throws \DomainException Invalid $mode value.
 	 */
 	public function populate($mode=self::POPULATE_AUTO){
 		if(is_null($this->suppliers))
@@ -244,7 +249,7 @@ class Extensions implements \Quark\Util\Singleton{
 			}
 			
 			// We did not find anything
-			\Quark\Error::raiseWarning('Could not populate the ExtensionRegistry, I could not find an (available) BuildingSupplier for the extension refill.');
+			Error::raiseWarning('Could not populate the ExtensionRegistry, I could not find an (available) BuildingSupplier for the extension refill.');
 			return false;
 		}else if($mode == self::POPULATE_CACHED){
 			foreach($this->suppliers as $supplier){
@@ -257,7 +262,7 @@ class Extensions implements \Quark\Util\Singleton{
 			}
 			
 			// We did not find anything
-			\Quark\Error::raiseWarning('Could not populate the ExtensionRegistry, I could not find an (available) CachingSupplier for the extension list population.');
+			Error::raiseWarning('Could not populate the ExtensionRegistry, I could not find an (available) CachingSupplier for the extension list population.');
 			return false;
 		}else if($mode == self::POPULATE_AUTO){
 			foreach($this->suppliers as $supplier){
@@ -279,7 +284,7 @@ class Extensions implements \Quark\Util\Singleton{
 			}
 			
 			// We did not find anything
-			\Quark\Error::raiseWarning('Could not populate the ExtensionRegistry, I could not find an (available) Caching/BuildingSupplier for the extension list population.');
+			Error::raiseWarning('Could not populate the ExtensionRegistry, I could not find an (available) Caching/BuildingSupplier for the extension list population.');
 			return false;
 		}else throw new \DomainException('Parameter $mode defined did not adhere to the defined mode domain. Please use a POPULATE_* constant for consistency.');
 	}
@@ -347,7 +352,7 @@ class Extensions implements \Quark\Util\Singleton{
 			if($entry['state'] == self::STATE_ENABLED && $entry['handler'] == $handlername){
 				if(!$handler->load($name, $entry['path'])){
 					$return = false;
-					\Quark\Error::raiseWarning('Failed to load extension "'.$name.'" while trying to load all extensions with handler "'.$handlername.'".');
+					Error::raiseWarning('Failed to load extension "'.$name.'" while trying to load all extensions with handler "'.$handlername.'".');
 				}else $this->loaded[] = $name;
 			}
 		}
@@ -372,12 +377,12 @@ class Extensions implements \Quark\Util\Singleton{
 			$name = $this->enabled->current();
 			$entry = $this->extensions->get($name);
 			if(!$this->handlers->exists($entry['handler']))
-				\Quark\Error::raiseWarning('Failed to load handler "'.$entry['handler'].'" for extension "'.$name.'".');
+				Error::raiseWarning('Failed to load handler "'.$entry['handler'].'" for extension "'.$name.'".');
 			$handler = $this->handlers->getObject($entry['handler']);
 
 			if(!$handler->load($name, $entry['path'])){
 				$return = false;
-				\Quark\Error::raiseWarning('Failed to load extension "'.$name.'" while trying to load all extensions.');
+				Error::raiseWarning('Failed to load extension "'.$name.'" while trying to load all extensions.');
 			}else $this->loaded[] = $name;
 		}
 		return $return;
@@ -400,10 +405,11 @@ class Extensions implements \Quark\Util\Singleton{
 	// Extension management methods
 	/**
 	 * Add/register new extension.
-	 * 
+	 *
 	 * Registers a new extension in the registry, and automatically tries to find a suitable handler.
 	 * @param string $path Path of the extension to try and load.
 	 * @param string $name (Optional) Name to give, otherwise the name is distilled from the path.
+	 * @throws \Quark\Util\Type\InvalidArgumentTypeException
 	 * @return boolean
 	 */
 	public function register($path, $name=null){
@@ -456,11 +462,12 @@ class Extensions implements \Quark\Util\Singleton{
 			));
 		}
 	}
-	
+
 	/**
 	 * Remove an extension.
 	 * @param string $name Name of the extension to remove.
 	 * @param boolean $physically Whether or not to also try to remove the directory and all it's contents.
+	 * @throws \Quark\Util\Type\InvalidArgumentTypeException
 	 */
 	public function remove($name, $physically=false){
 		if(!is_string($name))
@@ -481,20 +488,22 @@ class Extensions implements \Quark\Util\Singleton{
 		// Un-Register
 		$this->extensions->unregister($name);
 	}
-	
+
 	/**
 	 * Modify the info.
 	 * @param string $name Name of the extension.
 	 * @param string $key Info key to modify.
 	 * @param mixed $value Value for the key.
+	 * @throws \InvalidArgumentException
+	 * @throws \Quark\Util\Type\InvalidArgumentTypeException
 	 */
 	public function modify($name, $key, $value){
 		if(!is_string($name))
 			throw new InvalidArgumentTypeException('name', 'non-empty string', $name);
 		if(!$this->extensions->exists($name))
-			throw new InvalidArgumentException('The given extension name doesn\'t exist.');
-		if(!is_null($info))
-			throw new InvalidArgumentTypeException('info', 'null', $info);
+			throw new \InvalidArgumentException('The given extension name doesn\'t exist.');
+		if(!is_null($value))
+			throw new InvalidArgumentTypeException('value', 'null', $value);
 		
 		// Get the old value
 		$old = $this->extensions->get($name);
@@ -617,10 +626,12 @@ class Extensions implements \Quark\Util\Singleton{
 				$this->enabled->insert($name, $entry['priority']);
 		}
 	}
-	
+
 	/**
 	 * Registers a extension with the unknown properties filled with defaults.
+	 * @param string $name Extension name
 	 * @param array $known Array with at least "path" and "type" props set.
+	 * @return bool
 	 * @ignore
 	 */
 	protected function registerWithUnknownHandler($name, $known){

@@ -25,7 +25,7 @@
 // Define Namespace
 namespace Quark\Document\Form;
 use Quark\Document\Document,
-	Quark\Document\Element;
+	Quark\Document\IElement;
 
 // Prevent individual file access
 if(!defined('DIR_BASE')) exit;
@@ -37,7 +37,7 @@ if(!defined('DIR_BASE')) exit;
  * Simplifies the construction and the easy (and safe) extraction of data from
  * the resulting submit.
  */
-class Form implements Element {
+class Form implements IElement {
 	/**
 	 * The hash algorithm to use to hash the "unique" form identifiers.
 	 * Should be as fast as possible. (Most platforms MD4 performs slightly faster)
@@ -241,7 +241,7 @@ class Form implements Element {
 			// Check fields
 			foreach($this->fields as $fields){
 				foreach($fields as $field){
-					if(($field instanceof NullableField && !$field->nullable()) && !isset($data[$field->getName()])){
+					if(($field instanceof INullableField && !$field->nullable()) && !isset($data[$field->getName()])){
 						$this->submitted = false;
 						return false;
 					}
@@ -274,10 +274,10 @@ class Form implements Element {
 			$this->validated = array();
 			foreach($this->fields as $fields){
 				foreach($fields as $field){
-					if($field instanceof ValidatableField){
+					if($field instanceof IValidatableField){
 						$name = $field->getName();
 						$value = (isset($data[$name])? $data[$name] : null);
-						if($field instanceof NormalizableField)
+						if($field instanceof INormalizableField)
 							$error = $field->validate($field->normalize($value));
 						else
 							$error = $field->validate($value);
@@ -294,17 +294,19 @@ class Form implements Element {
 		
 		return ($this->validated === true);
 	}
-	
+
 	/**
 	 * Save the form to HTML.
-	 * 
+	 *
 	 * If validated was called earlier, the resulting errors will be displayed
 	 * in the form.
 	 *
 	 * @param Document $context The context within which the Element gets saved. (Contains data like encoding, XHTML or not etc.)
+	 * @param int $depth
+	 * @throws \RuntimeException
 	 * @return string The HTML form representation.
 	 */
-	public function save(Document $context) {
+	public function save(Document $context, $depth=0) {
 		if($this->context != $context)
 			throw new \RuntimeException('It appears this form has been saved/added to an document where it was not created for, this might result in unexpected errors or incompatible encodings.');
 		$this->context = $context;
@@ -372,7 +374,7 @@ class Form implements Element {
 				foreach($fields as $field){
 					$name = $field->getName();
 					$raw = (isset($source[$name])?$source[$name]:null);
-					if($field instanceof NormalizableField)
+					if($field instanceof INormalizableField)
 						$value = $field->normalize($raw);
 					else
 						$value = $raw;

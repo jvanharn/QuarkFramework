@@ -1,8 +1,8 @@
 <?php
 /**
- * Title
+ * Extensions Directory Scanner (Extension Supplier)
  * 
- * Description of the file.
+ * Scans the extension directory and notifies the system of the existence of these extensions.
  * 
  * @package		Quark-Framework
  * @version		$Id: diskbuildingsupplier.php 69 2013-01-24 15:14:45Z Jeffrey $
@@ -29,14 +29,12 @@ namespace Quark\Extensions\Suppliers;
 
 // Import namespace
 use	\Quark\Extensions\Extensions;
-	//\Quark\Extensions\ExtensionRegistry,
-	//\Quark\Extensions\HandlerRegistry;
 
 // Prevent individual file access
 if(!defined('DIR_BASE')) exit;
 
 /**
- * Description of diskbuildingsupplier
+ * Get available extensions by scanning the extensions directory.
  *
  * @author Jeffrey van Harn <Jeffrey at lessthanthree.nl>
  */

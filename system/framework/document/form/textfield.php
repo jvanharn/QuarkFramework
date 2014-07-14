@@ -32,7 +32,7 @@ if(!defined('DIR_BASE')) exit;
 /**
  * Text field class for use with the Form class.
  */
-class TextField extends Field implements ValidatableField, NormalizableField {
+class TextFieldI extends Field implements IValidatableField, INormalizableField {
 	use baseRegisterableValidators, baseRegisterableNormalizers;
 	
 	/**
