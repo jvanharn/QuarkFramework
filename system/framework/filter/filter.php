@@ -232,7 +232,7 @@ class Filter{
 	public static function getCallback($name, $type){
 		$name = strtoupper($name);
 		if(array_key_exists($name, self::$filters[$type]))
-			return self::$fitlers[$type][$name];
+			return self::$filters[$type][$name];
 		else return false;
 	}
 }

@@ -1,0 +1,19 @@
+{
+	"title": "SQLite Database Driver",
+	"description": "This driver uses the PHP PDO MySQL driver to connect to a SQLite Database, and provides the basic query builder and DBO interfaces needed by the framework to work with this database.",
+	"version": "M1",
+	"author": "Quark Framework Team",
+	"copyright": "(c) 2014 Jeffrey vH",
+	
+	"database": "sqlite",
+	"classname": "\\Quark\\Database\\Driver\\SQLiteDriver",
+	
+	"dependencies": [],
+	
+	"settings": [
+		{
+			"index": "database",
+			"description": "The SQLite 3 database file to load. (E.g. E:/path/to/database/db.sq3 or ./database.sq3)"
+		}
+	]
+}

@@ -18,6 +18,7 @@ use Quark\Document\baseCollection,
 	Quark\Document\Layout\Positions,
 	Quark\Document\IElement;
 use Quark\Libraries\Bootstrap\Elements\Row;
+use Quark\Libraries\Bootstrap\Grid\Container;
 
 // Prevent individual file access
 if(!defined('DIR_BASE')) exit;
@@ -84,10 +85,16 @@ class BootstrapLayout extends Layout {
 	);
 
 	/**
+	 * @var Container Grid container.
+	 */
+	protected $container;
+
+	/**
 	 * Create a new Bootstrap layout.
 	 */
 	public function __construct(){
 		$this->_populatePositionsObject();
+		$this->container = new Container();
 	}
 
 	/**
@@ -105,24 +112,32 @@ class BootstrapLayout extends Layout {
 	}
 
 	/**
-	 * Place an element on the given position in the bootstrap layout.
+	 * Place a single element on the given position in the (generic) layout.
 	 * @param \Quark\Document\IElement $elem Savable element object.
 	 * @param string $position Valid position reference.
 	 * @return boolean
 	 */
 	public function place(IElement $elem, $position=self::POSITION_CONTAINER){
+		if($position == self::POSITION_CONTAINER)
+			$this->placeRow($elem);
 		parent::place($elem, $position);
 	}
 
 	/**
 	 * Creates a new Row bootstrap element and places it inside the container, it then returns it's reference.
-	 * @param array $classes Extra CSS classes to add.
-	 * @return \Quark\Libraries\Bootstrap\Elements\Row
+	 * @param IElement|IElement[] $elements Elements to place on the same row.
+	 * @return \Quark\Libraries\Bootstrap\Grid\Row
 	 */
-	public function row($classes=array()){
-		$row = new Row($classes);
-		$this->place($row, self::POSITION_CONTAINER);
-		return $row;
+	public function placeRow($elements){
+		return $this->container->place($elements);
+	}
+
+	/**
+	 * Retrieve the main container object, so you can manually manipulate it.
+	 * @return Container
+	 */
+	public function getContainer(){
+		return $this->container;
 	}
 
 	/**
@@ -155,13 +170,14 @@ class BootstrapLayout extends Layout {
 		}
 
 		// Save the elements
-		if(isset($this->elements[self::POSITION_CONTAINER])){
+		/*if(isset($this->elements[self::POSITION_CONTAINER])){
 			$saved .= "\t<div class=\"container\">\n";
 			foreach($this->elements[self::POSITION_CONTAINER] as $element){
 				$saved .= $element->save($context, $depth+1);
 			}
 			$saved .= "\n\t</div>\n";
-		}
+		}*/
+		$saved .= $this->container->save($context, $depth+1);
 
 		// Save the footer
 		if(isset($this->elements[self::POSITION_AFTER_CONTAINER])){

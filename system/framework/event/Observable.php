@@ -48,17 +48,17 @@ interface Observable{
 	 * @param int $event The bitmask of the events to listen for. (0 or Observable::EVENT_ALL means it will listen for every event)
 	 * @return bool
 	 */
-	public function attachObserver(\Quark\Event\Observer &$observer, $event=self::EVENT_ALL);
+	public function attachObserver(Observer &$observer, $event=self::EVENT_ALL);
 	
 	/**
 	 * Detach an Observer from an Observable object
-	 * @param Observer $observer An observer to detach (It will remove all the registred Observers for this object)
+	 * @param Observer $observer An observer to detach (It will remove all the registered Observers for this object)
 	 * @return bool
 	 */
-	public function detachObserver(\Quark\Event\Observer &$observer);
+	public function detachObserver(Observer &$observer);
 	
 	/**
-	 * Notify the observers about an event that occured
+	 * Notify the observers about an event that occurred
 	 * @param int $event The event to fire(One event at a time)
 	 * @param array $arguments Arguments to pass to the Observers
 	 * @return bool If one of the observers returns false, returns false. Otherwise always true.

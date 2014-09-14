@@ -35,12 +35,16 @@ if(!defined('CONTAINS_ALPHA'))			define('CONTAINS_ALPHA',		CONTAINS_ALPHA_UPPER.
 if(!defined('CONTAINS_DECIMAL'))		define('CONTAINS_DECIMAL',		'0123456789');
 if(!defined('CONTAINS_ALPHANUMERIC'))	define('CONTAINS_ALPHANUMERIC',	CONTAINS_ALPHA.CONTAINS_DECIMAL); // Can contain only alpha and decimal characters like abcABC0123 etc.
 if(!defined('CONTAINS_HEXADECIMAL'))	define('CONTAINS_HEXADECIMAL',	CONTAINS_DECIMAL.'abcdefABCDEF');
+if(!defined('CONTAINS_URL_PATH_PART'))	define('CONTAINS_URL_PATH_PART',	CONTAINS_ALPHANUMERIC.'$-_.+!*\'(),%');
+if(!defined('CONTAINS_URL_PATH'))		define('CONTAINS_URL_PATH',		CONTAINS_URL_PATH_PART.'/');
+if(!defined('CONTAINS_URL'))			define('CONTAINS_URL',			CONTAINS_URL_PATH.':');
 
 class Filters{
 	/**
 	 * Filters out all characters but the given character set(Based on the whitelist principe)
 	 * @param string $string Input string
-	 * @param string $options Options array('What chars to allow', 'Whether to stop when non allowed char is found')
+	 * @param array|string $options Options array('What chars to allow', 'Whether to stop when non allowed char is found')
+	 * @return string
 	 * @subpackage Filters
 	 * @access private
 	 */
@@ -64,11 +68,12 @@ class Filters{
 		}
 		return $return;
 	}
-	
+
 	/**
 	 * Filters out all unwanted chars(Based on the Blacklist principle)
 	 * @param string $string Input string
-	 * @param string $options Options array('What chars to rem(Defaults to: array()(Nothing will be filtered))')
+	 * @param array|string $options Options array('What chars to rem(Defaults to: array()(Nothing will be filtered))')
+	 * @return string
 	 * @subpackage Filters
 	 * @access private
 	 */
@@ -92,11 +97,12 @@ class Filters{
 		}
 		return $return;
 	}
-	
+
 	/**
 	 * Encodes an email adress to it's hex equivalent numbers
 	 * @param string $string Input email-adress
-	 * @param string $options Options array('Whether or not to wrap it in an anchor tag(Defaults to: false)')
+	 * @param array|string $options Options array('Whether or not to wrap it in an anchor tag(Defaults to: false)')
+	 * @return string
 	 * @subpackage Filters
 	 * @access private
 	 */

@@ -35,7 +35,7 @@ if(!defined('DIR_BASE')) exit;
  * 
  * Ensures a element can have children and that those are traversable.
  */
-interface Collection extends IElement, \IteratorAggregate{
+interface ICollection extends IElement, \IteratorAggregate{
 	/**
 	 * Add a child to this element at the end of the element
 	 * @param IElement $element The element to add

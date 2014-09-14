@@ -1,63 +1,22 @@
 <?php
 /**
  * Routes all Requests
- * 
+ *
  * @package		Quark-Framework
- * @version		$Id: router.php 75 2013-04-17 20:53:45Z Jeffrey $
  * @author		Jeffrey van Harn <support@pagetreecms.org>
  * @since		July 2, 2011
- * @copyright	Copyright (C) 2011-2013 Jeffrey van Harn. All rights reserved.
+ * @copyright	Copyright (C) 2011-2014 Jeffrey van Harn. All rights reserved.
  * @license		http://opensource.org/licenses/gpl-3.0.html GNU Public License Version 3
- * 
- * Copyright (C) 2011-2013 Jeffrey van Harn
- * 
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License (License.txt) for more details.
  */
 
 // Define Namespace
 namespace Quark\System\Router;
+use Quark\Loader;
+use Quark\Protocols\HTTP\Request;
 use Quark\Util\Multiton;
 
 // Prevent individual file access
 if(!defined('DIR_BASE')) exit;
-
-/**
- * Route Collection Interface
- * 
- * This defines that an object can collect Route's.
- */
-interface RouteCollection {
-	/**
-	 * Attach a route to the collection.
-	 * @param \Quark\System\Router\Route $route
-	 */
-	public function attachRoute(Route $route);
-	
-	/**
-	 * Detach a route from this collection.
-	 * @param \Quark\System\Router\Route $route
-	 */
-	public function detachRoute(Route $route);
-	
-	/**
-	 * Filter routes from the collection.
-	 * @param callable $filter Filter that takes the route as argument and returns a boolean where true is it stays, and false removes the route.
-	 */
-	public function filterRoutes(callable $filter);
-	
-	/**
-	 * Clear all routes from the collection.
-	 */
-	public function clearRoutes();
-}
 
 /**
  * Router Class
@@ -73,7 +32,7 @@ class Router implements RouteCollection, \IteratorAggregate, Multiton {
 	
 	/**
 	 * Registered routes for this router.
-	 * @var \SplStack
+	 * @var \SplStack<Route>
 	 */
 	protected $routes;
 
@@ -122,19 +81,39 @@ class Router implements RouteCollection, \IteratorAggregate, Multiton {
 			$this->base = '/'.trim($path, '/').'/';
 		else throw new \InvalidArgumentException('Invalid path given.');
 	}
-	
+
 	/**
 	 * Checks all the Route's and tries to load the requested resource.
-	 * @param \Quark\System\Router\URL $url URL to route, or null to use the current.
+	 * @param \Quark\Protocols\HTTP\Request $request Request to route, or null to use the current.
 	 * @return bool Whether or not the request was successfully routed.
 	 */
-	public function route(URL $url=null){
-		// find a suitable route
+	public function route(Request $request=null){
+		// Convert if necessary
+		if(!($request instanceof RoutableRequest))
+			$request = RoutableRequest::fromRequest($request);
+
+		// Find a suitable route
+		/** @var $route Route */
 		foreach($this->routes as $route){
-			if($route->routable($url))
-				return $route->route($url);
+			if($route->routable($request) && ($return = $route->route($request)) !== false)
+				return $return;
 		}
 		return false;
+	}
+
+	/**
+	 * Checks all the Route's and returns the first route that can route the given url.
+	 * @param \Quark\System\Router\URL $url URL to route, or null to use the current.
+	 * @return Route|null Route that can route the given URL or null.
+	 */
+	public function findRoute(URL $url=null){
+		// find a suitable route
+		/** @var $route Route */
+		foreach($this->routes as $route){
+			if($route->routable($url))
+				return $route;
+		}
+		return null;
 	}
 
 	/**
@@ -148,6 +127,7 @@ class Router implements RouteCollection, \IteratorAggregate, Multiton {
 			if($route instanceof $type)
 				return $route->build($params);
 		}
+		return false;
 	}
 
 	/**
@@ -223,11 +203,12 @@ class Router implements RouteCollection, \IteratorAggregate, Multiton {
 	public static function hasInstance($name=self::DEFAULT_NAME){
 		return isset(self::$_instances[$name]);
 	}
-	
+
 	/**
 	 * Create a new instance of this class.
 	 * @param string $name Instance name.
-	 * @return \Quark\System\Router\Router
+	 * @param array $routes
+	 * @return Router
 	 */
 	public static function createInstance($name=self::DEFAULT_NAME, array $routes=array()){
 		self::$_instances[$name] = new Router($routes);
@@ -236,17 +217,20 @@ class Router implements RouteCollection, \IteratorAggregate, Multiton {
 	
 	/**
 	 * @access private
+	 * @return \Iterator
 	 */
 	public function getIterator() {
-		return new \ArrayIterator($this->routes);
+		return $this->routes;
 	}
 }
 
 /**
- * Shorcut to the Router's buildURI method
+ * Shortcut to the Router's buildURI method
  * @see Router::buildURI
  */
 function _uri($component, $params=array(), $secure=false){
-	$app = Application::getInstance();
-	return $app->getRouter()->buildURI($component, $params, $secure);
+	$app = Loader::getApplication();
+	if(method_exists($app, 'getRouter'))
+		return $app->getRouter()->buildURI($component, $params, $secure);
+	else throw new \RuntimeException('Application does not have a getRouter method, so the _uri method cannot be used in this application.');
 }

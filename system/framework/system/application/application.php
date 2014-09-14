@@ -48,7 +48,7 @@ abstract class Application implements \Quark\Util\Singleton{
 	/**
 	 * Should display the application
 	 */
-	abstract public function display();
+	abstract public function run();
 	
 	/**
 	 * Stop the Application (Application Exit Point)

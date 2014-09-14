@@ -27,6 +27,9 @@ namespace Quark\Document;
 use Quark\Document\Layout\Layout;
 use Quark\Event\baseObservable;
 use Quark\Event\Observable;
+use Quark\Protocols\HTTP\IResponse;
+use Quark\Protocols\HTTP\Request;
+use Quark\Protocols\HTTP\Response;
 use Quark\Util\Singleton;
 
 // Prevent individual file access
@@ -39,6 +42,7 @@ if(!defined('DIR_BASE')) exit;
 	
 	'Framework.Document.Element',
 	'Framework.Document.Collection',
+	//'Framework.Document.ICollection', // Gets loaded by the above rule.
 	'Framework.Document.Style',
 	'Framework.Document.Headers',
 	'Framework.Document.Resources',
@@ -396,7 +400,17 @@ class Document implements Singleton, Observable {
 			$self->encodeText($arguments[0]);
 		}else throw new \RuntimeException('Invalid method name given to __call: Could not resolve call.');
 	}
-	
+
+	/**
+	 * Check if the document (layout) has any content.
+	 * @return bool
+	 */
+	public function hasContent(){
+		$iterator = $this->layout->getIterator();
+		$iterator->rewind();
+		return $iterator->valid(); // If this returns true it has at least one child.
+	}
+
 	/**
 	 * Get the saved document
 	 * @return string The HTML Document
@@ -537,7 +551,7 @@ DOCUMENT;
 	 * Create the default document instance
 	 * @param \Quark\Document\Layout\Layout $layout Layout manager to use.
 	 * @param string $type A TYPE_* constant, defines what type of document this will be. For example; HTML4.01 Strict, HTML5 doc etc. Affects the rules used to generate the document.
-	 * @return boolean
+	 * @return Document|boolean
 	 */
 	public static function createInstance(Layout $layout, $type=self::TYPE_HTML){
 		if(is_string($type) && isset(self::$documentProperties[$type])){
@@ -568,7 +582,26 @@ DOCUMENT;
 			return self::$_instance;
 		}else return false;
 	}
-	
+
+	/**
+	 * Write the document to the given response
+	 *
+	 * The added bonus of creating a response object this way is that many http-headers are automatically set correctly.
+	 * @param IResponse $response The response to set this document as te body as. Whn the $response object is empty, it will create an empty {@link \Quark\Protocols\HTTPS\Response} object with a 200 OK status.
+	 * @return void
+	 */
+	public function toResponse(IResponse &$response){
+		// Create the response
+		if($response == null)
+			$response = new Response(200, 'OK');
+
+		// Set the encoding
+		$response->setHeader('Content-Type', ($this->getXHTML() ? 'application/xml+xhtml' : 'text/html').'; charset='.$this->getEncoding()); // @todo HTML5 doesn't require xhtml mime-type, maybe drop alltogether?
+
+		// Set the saved body
+		$response->setBody($this->save());
+	}
+
 	// These methods allow for custom document extending classes registering themselves as the active Document classes.
 	// For debugging purposes, not for production use, if you do, use at your own risk and inform the user(If it is an extension, component, etc via description)
 	/**

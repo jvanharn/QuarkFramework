@@ -32,13 +32,15 @@ use Quark\Error;
 use Quark\System\Log;
 
 if(!defined('DIR_BASE'))
-	exit('DIR_BASE Constant has to be defined o load the system.');
+	exit('DIR_BASE Constant has to be defined to load the system.');
 
 /**
  * Class/Component Loader
  * 
- * This class loads Core Classes, Helpers or Components that come standard with PageTree.
- * You can either load by component name(Separated with dots) or by filename.
+ * This class loads Core Components and those provided by third party Libraries by their Component Paths.
+ * Component paths are mostly the same as their namespaces and classnames and are dot-seperated strings.
+ * E.g.	Loader::importComponent('Quark.System.Log') would load the logging subsystem.
+ *		\Quark\import('Quark.Event.*') would load all the components relevant to the event subsystem.
  *
  * Note: All these functions are case-insensitive
  * 
@@ -205,7 +207,7 @@ class Loader{
 			self::$application = new $classname();
 
 			// Display the application
-			self::$application->display();
+			self::$application->run();
 		}catch(\Exception $exception){
 			// Handle any thrown exceptions
 			if(class_exists('\\Quark\\Error', false))
@@ -273,7 +275,7 @@ class Loader{
 	 * @return bool Whether or not the loading was successful
 	 */
 	public static function importComponent($classPath){
-		//error_log("-> Loading component: ".$classPath, 0); // @todo Check for DEBUG constants
+		//error_log("\t-> Loading component: ".$classPath, 0); // @todo Check for DEBUG constants
 
 		// Check param
 		if(!is_string($classPath)) throw new \InvalidArgumentException('Parameter $classPath has to be of type "string", "'.gettype($classPath).'" given.');
@@ -573,13 +575,7 @@ class Loader{
 	 */
 	private static function _loadComponent($classPath, $basePath=null){
 		// @TODO Log load component call
-
-		// Lowercase path
-		array_walk($classPath, function($value){
-			return strtolower($value);
-		});
-
-		error_log('!!!!!! '.implode('.', $classPath));
+		//error_log("\t\t!!!!!! ".implode('.', $classPath)); // @todo Check for DEBUG constants
 
 		// Check $basePath param
 		if(empty($basePath))
@@ -619,11 +615,6 @@ class Loader{
 	 * @return bool
 	 */
 	private static function _loadPackage($packagePath, $type=self::TYPE_FRAMEWORK){
-		// Lowercase path
-		array_walk($packagePath, function($value){
-			return strtolower($value);
-		});
-
 		// Guess the path
 		$rpath = self::_rootPath($type);
 		if($rpath === false)

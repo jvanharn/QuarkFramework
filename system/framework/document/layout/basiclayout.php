@@ -49,7 +49,10 @@ class BasicLayout extends Layout{
 		'CONTENT' => array(),
 		'FOOTER' => array()
 	); // Pre-initialized the array to prevent errors with empty layout's
-	
+
+	/**
+	 * Create a new Basic Layout.
+	 */
 	public function __construct(){
 		$this->positions = new Positions(array(
 			'HEADER' => ['Header', 'Put some simple text here, or your logo.'],
@@ -57,12 +60,14 @@ class BasicLayout extends Layout{
 			'FOOTER' => ['Footer', 'This is the place to say your thank-you\'s and put your copyright messages.']
 		), array('MAIN_CONTENT' => 'CONTENT'));
 	}
-	
+
 	/**
 	 * Save the layout content to HTML
+	 * @param \Quark\Document\Document $context
+	 * @param int $depth
 	 * @return string
 	 */
-	public function save(Document $context){
+	public function save(Document $context, $depth=0){
 		// Set the css
 		$context->headers->add(Headers::STYLE, array(),
 			"body { font-family: sans-serif; background-color: #fcfcfc; }".

@@ -34,7 +34,7 @@ if(!defined('DIR_BASE')) exit;
 /**
  * Simple implementation of the Collection Interface.
  */
-class Collection implements \Quark\Document\Collection {
+class Collection implements \Quark\Document\ICollection {
 	use baseCollection;
 	
 	/**

@@ -23,12 +23,11 @@
  */
 
 // Define Namespace
-namespace Quark\Libraries\Bootstrap\Elements;
+namespace Quark\Libraries\Bootstrap\Grid;
 use Quark\Document\baseCollection,
-	Quark\Document\Document,
-	Quark\Document\Collection;
-use Quark\Libraries\Bootstrap\BootstrapElement;
-use Quark\Libraries\Bootstrap\baseBootstrapCollection;
+	Quark\Document\Document;
+use Quark\Document\Utils\_;
+use Quark\Libraries\Bootstrap\BootstrapCollection;
 use Quark\Libraries\Bootstrap\BootstrapLayout;
 
 // Prevent individual file access
@@ -37,11 +36,7 @@ if(!defined('DIR_BASE')) exit;
 /**
  * Simple implementation of the Collection Interface.
  */
-class Column implements Collection, BootstrapElement {
-	use baseBootstrapCollection {
-		baseBootstrapCollection::__construct as baseConstruct;
-	};
-
+class Column extends BootstrapCollection {
 	const ORDER_PUSH = 0;
 	const ORDER_PULL = 1;
 
@@ -53,22 +48,18 @@ class Column implements Collection, BootstrapElement {
 	/**
 	 * @var array Describes the offsetting of the column on various breakpoints.
 	 */
-	protected $offsets;
+	protected $offsets = array();
 
 	/**
 	 * @var array Describes the pushing and pulling of the column on various breakpoints.
 	 */
-	protected $ordering;
+	protected $ordering = array();
 
 	/**
-	 * @param array $classes Extra CSS classes for this column.
 	 * @param array $spans The spans on every device breakpoint for this column.
 	 * @throws \InvalidArgumentException
 	 */
-	public function __construct(array $classes = array(), array $spans = array(BootstrapLayout::BP_MEDIUM_DEVICES => 12)){
-		// Set additional classes
-		$this->baseConstruct($classes);
-
+	public function __construct(array $spans=array(BootstrapLayout::BP_MEDIUM_DEVICES => 12)){
 		// Set the spans
 		if(empty($spans))
 			throw new \InvalidArgumentException('You need to set the span of this column for at least one breakpoint!');
@@ -83,9 +74,12 @@ class Column implements Collection, BootstrapElement {
 	 * @throws \InvalidArgumentException
 	 */
 	public function spans($columns, $breakpoint=BootstrapLayout::BP_MEDIUM_DEVICES){
-		if(BootstrapLayout::isBreakpoint($breakpoint) && is_int($columns) && $columns <= BootstrapLayout::GRID_COLUMNS)
-			$this->spans[$breakpoint] = $columns;
-		else throw new \InvalidArgumentException('Expected $columns to be integer and be less than or equals 12. Expected breakpoint to be valid BootstrapLayout::BP_* constant.');
+		if(!BootstrapLayout::isBreakpoint($breakpoint))
+			throw new \InvalidArgumentException('Expected $breakpoint to be valid BootstrapLayout::BP_* constant.');
+		if(!is_int($columns) || $columns > BootstrapLayout::GRID_COLUMNS)
+			throw new \InvalidArgumentException('Expected $columns to be integer and be less than or equal the amount of defined grid columns (12 by default).');
+
+		$this->spans[$breakpoint] = $columns;
 	}
 
 	/**
@@ -144,17 +138,17 @@ class Column implements Collection, BootstrapElement {
 	 * @return String HTML Representation
 	 */
 	public function save(Document $context, $depth=1) {
-		$classes = '';
 		foreach($this->spans as $bp => $span)
-			$classes .= ' '.BootstrapLayout::getBreakpointClassPrefix($bp).$span;
+			$this->addMarkupClass(BootstrapLayout::getBreakpointClassPrefix($bp).$span);
 		foreach($this->offsets as $bp => $cols)
-			$classes .= ' '.BootstrapLayout::getBreakpointClassPrefix($bp).'offset-'.$cols;
+			$this->addMarkupClass(BootstrapLayout::getBreakpointClassPrefix($bp).'offset-'.$cols);
 		foreach($this->ordering as $bp => $info)
-			$classes .= ' '.BootstrapLayout::getBreakpointClassPrefix($bp).($info[0] == self::ORDER_PULL ? 'pull-' : 'push-').$info[1];
-		foreach($this->classes as $class)
-			$classes .= ' '.$class;
+			$this->addMarkupClass(BootstrapLayout::getBreakpointClassPrefix($bp).($info[0] == self::ORDER_PULL ? 'pull-' : 'push-').$info[1]);
 
-		return str_repeat("\t",$depth).'<div class="'.$classes.'">'.$this->saveChildren($context).str_repeat("\t",$depth).'</div>';
+		return
+			_::line($depth, '<div '.$this->saveClassAttribute($context).'>').
+				$this->saveChildren($context).
+			_::line($depth, '</div>');
 	}
 
 	/**
@@ -162,7 +156,7 @@ class Column implements Collection, BootstrapElement {
 	 * @param int $columns Number of columns it spans on device $on.
 	 * @param int $on Breakpoint to set the $columns for.
 	 * @param array $classes Extra CSS classes if necessary.
-	 * @return \Quark\Libraries\Bootstrap\Elements\Column
+	 * @return \Quark\Libraries\Bootstrap\Grid\Column
 	 */
 	public static function spanning($columns=BootstrapLayout::GRID_COLUMNS, $on=BootstrapLayout::BP_MEDIUM_DEVICES, $classes=array()){
 		if(is_int($columns) && $columns <= BootstrapLayout::GRID_COLUMNS)

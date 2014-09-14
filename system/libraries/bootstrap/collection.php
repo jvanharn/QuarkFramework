@@ -13,6 +13,7 @@
 namespace Quark\Libraries\Bootstrap;
 use Quark\Document\baseCollection,
 	Quark\Document\IElement;
+use Quark\Document\ICollection;
 
 // Prevent individual file access
 if(!defined('DIR_BASE')) exit;
@@ -21,7 +22,7 @@ if(!defined('DIR_BASE')) exit;
  * Trait BootstrapCollection, basic collection implementation for bootstrap layouts.
  * @package Quark\Libraries\Bootstrap
  */
-abstract class BootstrapCollection extends BootstrapElement implements IElementMarkupClasses {
+abstract class BootstrapCollection extends BootstrapElement implements ICollection, IElementMarkupClasses {
 	use baseCollection, baseElementMarkupClasses;
 
 	/**

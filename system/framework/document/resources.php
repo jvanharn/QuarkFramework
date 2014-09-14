@@ -14,6 +14,8 @@
 namespace Quark\Document;
 use \Quark\Bundles\Bundles;
 use Quark\Error;
+use Quark\Protocols\HTTP\Server\IServerResponse;
+use Quark\System\Router\IRoutableRequest;
 use Quark\System\Router\Router;
 use Quark\System\Router\Route;
 use Quark\System\Router\URL;
@@ -148,7 +150,8 @@ class ResourceManager {
 				$this->headers->add(Headers::SCRIPT, array('src' => $url));
 				return true;
 			case Bundles::RESOURCE_TYPE_FONT:
-				\Quark\Error::raiseFatalError('Font\'s cannot be auto included (yet), failed to reference the asset "'.$asset.'" to the linked Document instance.');
+				Error::raiseFatalError('Font\'s cannot be auto included (yet), failed to reference the asset "'.$asset.'" to the linked Document instance.');
+				break;
 			default:
 				return $url;
 		}
@@ -302,29 +305,10 @@ class BundleResourceRoute implements Route {
 	public function setBase($url) { $this->base = $url; }
 
 	/**
-	 * Check if the URL parts given are routable.
-	 * @param \Quark\System\Router\URL $url
-	 * @return bool
-	 */
-	public function routable(URL $url) {
-		// TODO: Implement routable() method.
-	}
-
-	/**
-	 * Activate this route and load the applicable resource.
-	 *
-	 * This function may ONLY be called after positive feedback (e.g. true) from the routable method.
-	 * @param \Quark\System\Router\URL $url {@see Route::routable()}
-	 */
-	public function route(URL $url) {
-		// @todo
-		throw new \RuntimeException('Static routing through the quark framework is not supported as of yet!');
-	}
-
-	/**
 	 * Build a URI pointing to this resource/route with the given params.
 	 * @param array $params Parameters.
 	 * @param boolean $optimized Whether or not the builder should try to go for compatible url's (E.g. index.php?name=controller&method=methodname or optimized urls like /controller/methodname/
+	 * @throws \InvalidArgumentException
 	 * @return string The URI that leads to the specified location.
 	 */
 	public function build(array $params, $optimized = false) {
@@ -332,5 +316,26 @@ class BundleResourceRoute implements Route {
 			throw new \InvalidArgumentException('Argument $params has to be set and consist of 2 parts (bundle id, resource name).');
 
 		return $this->base.$this->bundle_path.urlencode($params[0]).'/'.$params[1];
+	}
+
+	/**
+	 * Checks if this route can route the given request.
+	 * @param IRoutableRequest $request
+	 * @return bool
+	 */
+	public function routable(IRoutableRequest $request) {
+		// TODO: Implement routable() method.
+	}
+
+	/**
+	 * Activate this route and load the applicable resource.
+	 *
+	 * This function may ONLY be called after positive feedback (e.g. true) from the routable method.
+	 * @param IRoutableRequest $request {@see Route::routable()}
+	 * @param IServerResponse $response The object where the response should be written to.
+	 * @return void
+	 */
+	public function route(IRoutableRequest $request, IServerResponse $response) {
+		// TODO: Implement route() method.
 	}
 }

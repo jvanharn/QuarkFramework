@@ -24,6 +24,7 @@
 
 // Define Namespace
 namespace Quark\Event;
+use Quark\Error;
 
 // Prevent individual file access
 if(!defined('DIR_BASE')) exit;
@@ -38,7 +39,7 @@ if(!defined('DIR_BASE')) exit;
  */
 trait baseObservable{
 	/**
-	 * Contains all the registred/attached observers
+	 * Contains all the registered/attached observers
 	 * @var array
 	 */
 	protected $_observers = array();
@@ -49,7 +50,7 @@ trait baseObservable{
 	 * @param int $event The bitmask of the events to listen for. (0 or Observable::EVENT_ALL means it will listen for every event)
 	 * @return bool
 	 */
-	public function attachObserver(\Quark\Event\Observer &$observer, $event=self::EVENT_ALL){
+	public function attachObserver(Observer &$observer, $event=Observable::EVENT_ALL){
 		array_push($this->_observers, array($observer, $event));
 	}
 	
@@ -58,17 +59,18 @@ trait baseObservable{
 	 * @param Observer $observer An observer to detach (It will remove all the registred Observers for this object)
 	 * @return bool
 	 */
-	public function detachObserver(\Quark\Event\Observer &$observer){
+	public function detachObserver(Observer &$observer){
 		foreach($this->_observers as $key => $subject){
 			if($subject[0] == $observer) unset($this->_observers[$key]);
 		}
 		return true;
 	}
-	
+
 	/**
-	 * Notify the observers about an event that occured
+	 * Notify the observers about an event that occurred
 	 * @param int $event The event to fire(One event at a time)
 	 * @param array $arguments Arguments to pass to the Observers
+	 * @throws \InvalidArgumentException
 	 * @return bool If one of the observers returns false, returns false. Otherwise always true.
 	 */
 	public function notifyObservers($event, array $arguments=array()){
@@ -76,25 +78,28 @@ trait baseObservable{
 		if(!is_int($event)) throw new \InvalidArgumentException('The parameter $event should be of type Integer, but got "'.gettype($event).'".');
 		if(is_null($arguments)) $arguments = array();
 		
-		// Whether or not we where succesfull (If all the observers executed succesfully)
-		$succes = true;
+		// Whether or not we where successful (If all the observers executed successfully)
+		$success = true;
 		
 		// Loop over the observers
+		/** @var $observer Observer[] */
 		foreach($this->_observers as $observer){
 			if($event & $observer[1]){
 				if($observer[0]->notify($this, $event, $arguments) === false)
-					$succes = false;
+					$success = false;
 			}
 		}
 		
-		// Return whether we where succesfull
-		return $succes;
+		// Return whether we where successful
+		return $success;
 	}
-	
+
 	/**
-	 * Notify the observers about an event that occured, and give them the opertunity to adjust/change/modify the arguments given
+	 * Notify the observers about an event that occurred, and give them the opportunity to adjust/change/modify the arguments given
 	 * @param int $event The event to fire(One event at a time)
 	 * @param array $arguments Arguments to pass to the Observers(And get returned)
+	 * @throws \UnexpectedValueException
+	 * @throws \InvalidArgumentException
 	 * @return array|bool The result is the modified version of the original argument list.
 	 */
 	public function notifyObserversModifyParams($event, array $arguments=array()){
@@ -104,23 +109,24 @@ trait baseObservable{
 		
 		// Loop over the observers
 		$count = count($arguments);
+		/** @var $observer Observer[] */
 		foreach($this->_observers as $observer){
 			if($event & $observer[1]){
 				$result = $observer[0]->notify($this, $event, $arguments);
 				
 				// Check if something went wrong
 				if($result === false){
-					\Quark\Error::raise('An Observer::notify() method from the class "'.get_class($observer[0]).'" returned false unexpectedly.. I ignored it and went on with the rest of the Observers. Hope nothing went wrong..', 'Something went wrong with some internal events. Probably a plugin or something, the webmaster will look into it.', E_WARNING);
+					Error::raise('An Observer::notify() method from the class "'.get_class($observer[0]).'" returned false unexpectedly.. I ignored it and went on with the rest of the Observers. Hope nothing went wrong..', 'Something went wrong with some internal events. Probably a plugin or something, the webmaster will look into it.', E_WARNING);
 					continue;
 				}else if(!is_array($result)) throw new \UnexpectedValueException('The Observer::notify() method from the class "'.get_class($observer[0]).'" should return a modified version of the argument array, of equal length. But did not return an array at all.');
 				else if(count($result) != $count) throw new \UnexpectedValueException('The Observer::notify() method from the class "'.get_class($observer[0]).'" did not meet specifications: The length of the result is not the same as the length of the argument list.');
 				
-				// Succes, save results
+				// Success, save results
 				else $arguments = $result;
 			}
 		}
 		
-		// Return whether we where succesfull
+		// Return whether we where successful
 		return $arguments;
 	}
 }

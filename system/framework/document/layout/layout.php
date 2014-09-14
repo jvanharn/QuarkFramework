@@ -108,7 +108,7 @@ abstract class Layout implements IElement, \IteratorAggregate{
 		
 	/**
 	 * IteratorAggregate implementation.
-	 * @return \ArrayIterator
+	 * @return \Iterator
 	 */
 	public function getIterator() {
 		return new \ArrayIterator($this->elements);

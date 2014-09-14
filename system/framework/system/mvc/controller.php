@@ -14,6 +14,11 @@
 namespace Quark\System\MVC;
 
 // Prevent individual file access
+use Quark\Protocols\HTTP\IRequest;
+use Quark\Protocols\HTTP\IResponse;
+use Quark\Protocols\HTTP\Server\IServerResponse;
+use Quark\System\Router\IRoutableRequest;
+
 if(!defined('DIR_BASE')) exit;
 
 /**
@@ -25,6 +30,11 @@ abstract class Controller {
 	 * @var string
 	 */
 	private $_classname;
+
+	/**
+	 * @var Route Route that is used to reach this object.
+	 */
+	protected $route;
 	
 	/**
 	 * Contains the Model reference for this controller.
@@ -39,27 +49,103 @@ abstract class Controller {
 	 * @access public
 	 */
 	protected $view;
-	
+
+	/**
+	 * (Optional) Name of this controller.
+	 * @var string
+	 */
+	protected $name;
+
 	/**
 	 * Array of routable methods.
 	 * (Optional) When filled this will determine the methods that will be used for routing.
 	 * @var array
 	 */
-	protected $routables;
+	protected $methods;
+
+	/**
+	 * @var IRequest|null The Http Request object for the current HTTP request.
+	 */
+	protected $request;
+
+	/**
+	 * @var IResponse|null The Http Response object for the current HTTP response.
+	 */
+	protected $response;
 	
 	/**
 	 * Construct the Controller.
 	 */
-	public function __construct(View $view=null, Model $model=null){
+	public function __construct($name=null, Route $route=null, View $view=null, Model $model=null){
 		$this->_classname = get_called_class();
+
+		if(!is_null($route))
+			$this->route = $route;
+
 		if(is_null($view))
 			$this->view = $this->findAssociatedClass('View');
 		else
 			$this->view = $view;
+
 		if(is_null($model))
 			$this->model = $this->findAssociatedClass('Model');
 		else
 			$this->model = $model;
+
+		if(!is_null($this->name))
+			$this->name = $name;
+	}
+
+	/**
+	 * Get the simple class name (Without the FQ Namespace Path and without the word 'controller').
+	 * @return string
+	 */
+	final public function getName(){
+		return basename(strtolower($this->_classname), 'controller');
+	}
+
+	/**
+	 * Get the fully qualified class name of this controller.
+	 * @return string
+	 */
+	final public function getFullyQualifiedClassName(){
+		return $this->_classname;
+	}
+
+	/**
+	 * Get a list of all routable methods.
+	 * @return array
+	 */
+	final public function getRoutableMethods(){
+		if(empty($this->methods)){
+			// get all methods
+			$reflected = new \ReflectionObject($this);
+			$methods = $reflected->getMethods();
+
+			// distill name if not given
+			if(!is_string($this->name) || empty($this->name)){
+				$this->name = str_ireplace('controller', '', $reflected->getShortName());
+				if(empty($this->name))
+					$this->name = end(explode('\\', $reflected->getNamespaceName()));
+			}
+
+			$this->methods = array_filter($methods, function($method){
+				/** @var $method \ReflectionMethod */
+				return ($method->isPublic() && $method->getDeclaringClass() == $method->getName() && substr($method->name, 0, 1) != '_');
+			});
+		}
+		return $this->methods;
+	}
+
+	/**
+	 * Set the current request's context objects so you can call any of the controller method's.
+	 * @param IRoutableRequest $request
+	 * @param IServerResponse $response
+	 * @access private
+	 */
+	public function setContext(IRoutableRequest $request, IServerResponse $response){
+		$this->request = $request;
+		$this->response = $response;
 	}
 	
 	/**
@@ -71,9 +157,25 @@ abstract class Controller {
 	 * @return \Quark\System\Router\Router
 	 */
 	public function getRoute(){
-		if(!empty($this->routables) && is_array($this->routables))
-			return new MVCRoute($this->routables, $this);
-		else return MVCRoute::fromController($this);
+		if($this->route == null)
+			$this->route = new Route($this->getName(), $this->getRoutableMethods(), $this);
+		return $this->route;
+	}
+
+	/**
+	 * Create an url or link that will point to the given method name on this controller instance.
+	 * @param string $method
+	 * @param array $arguments The arguments for the given method.
+	 * @return string
+	 */
+	public function link($method, array $arguments=array()){
+		if($this->route == null)
+			$this->getRoute();
+		return $this->route->build([
+			'controller' => $this->getName(), // Not needed for some mvc-like routes but set anyway.
+			'method' => $method,
+			'arguments' => $arguments
+		]);
 	}
 	
 	/**
@@ -83,169 +185,16 @@ abstract class Controller {
 		$parts = explode('\\', $this->_classname);
 		
 		// try to distill it from the basic class name
-		$classname = implode('\\', array_slice($parts, 0, -1)).str_ireplace('Controller', '', end($parts)).$suffix;
-		if(class_exists($classname, true))
-			return new $classname();
+		$className = implode('\\', array_slice($parts, 0, -1)).str_ireplace('Controller', '', end($parts)).$suffix;
+		if(class_exists($className, true))
+			return new $className();
 		
 		// try to distill it from the namespace name
-		$classname = implode('\\', array_slice($parts, 0, -1)).$suffix;
-		if(class_exists($classname, true))
-			return new $classname();
+		$className = implode('\\', array_slice($parts, 0, -1)).$suffix;
+		if(class_exists($className, true))
+			return new $className();
 		
 		// could not find it :(
 		throw new \RuntimeException('Unable to find the model and view associated with the controller "'.$parts[count($parts-2)].'\\'.$parts[count($parts-1)].'". Define your own constructor and load the models yourself, adjust your controller names to include the names of your controller or define your controller views and models in teh same namespace. If no model or view are defined for this controller(Which is offcourse discouraged in most situations), you can create your own constructor that initiates your references to null.');
-	}
-}
-
-class MVCRoute implements \Quark\System\Router\Route {
-	/**
-	 * Name of the controller to route.
-	 * @var string
-	 */
-	protected $name;
-	
-	/**
-	 * Base of the url, e.g. 'http://www.example.com/subdir/'
-	 * @var string
-	 */
-	protected $base = '';
-	
-	/**
-	 * Available methods.
-	 * @var array
-	 */
-	protected $methods = array();
-	
-	/**
-	 * The object to route the request to.
-	 * @var Controller
-	 */
-	protected $object;
-	
-	/**
-	 * @param string $name Name of the controller to route to.
-	 * @param array $methods Methods that are routable for this controller.
-	 */
-	public function __construct($name, array $methods, Controller $object){
-		$this->name = (string) $name;
-		$this->methods = $methods;
-		$this->object = $object;
-	}
-	
-	/**
-	 * Create a MVCRouter from a controller object.
-	 * @param \Quark\System\MVC\Controller $object Controller to create a route for.
-	 * @param string $name Optionally the base name of the controller, which is used for getting the correct MVCRoute to process the request.
-	 * @return \Quark\System\MVC\MVCRoute
-	 */
-	public static function fromController(Controller $object, $name=null){
-		// get all methods
-		$reflected = new ReflectionObject($object);
-		$methods = $reflected->getMethods();
-		
-		// distill name if not given
-		if(!is_string($name) || empty($name)){
-			$name = str_ireplace('controller', '', $reflected->getShortName());
-			if(empty($name))
-				$name = end(explode('\\', $reflected->getNamespaceName()));
-		}
-		
-		// filter methods and return
-		return new MVCRoute($name, array_filter($methods, function($method){
-			return ($method->isPublic() && $method->getDeclaringClass() == $method->getName() && substr($method->name, 0, 1) != '_');
-		}), $object);
-	}
-	
-	/**
-	 * Gives the base url of the Application to which this route was bound.
-	 * @param string $url URL to the base application.
-	 */
-	public function setBase($url) {
-		$this->base = (string) $url;
-	}
-	
-	/**
-	 * Build a URL with this route.
-	 * @param array $params First value is the method to call or the "method", the rest are the arguments or the "args index".
-	 * @param boolean $optimized Whether or not the builder should try to go for compatibble url's (E.g. index.php?name=controller&method=methodname or optimized urls like /controller/methodname/
-	 * @return string The built URL.
-	 */
-	public function build(array $params, $optimized=false) {
-		$reqMethod = '';
-		$reqArgs = array();
-		
-		// determine method
-		if(isset($params['method']) || isset($params[0])){
-			$index = isset($params['method']) ? 'method' : (isset($params[0]) ? 0 : null);
-			if($index !== null && isset($this->methods[$params[$index]]))
-				$reqMethod = $params[$index];
-			else if(in_array('index', $this->methods))
-				$reqMethod = 'index';
-			else throw new InvalidArgumentException('No valid method was given! This route does not have an index, so I could not route it to there either.');
-		}else if(in_array('index', $this->methods)){
-			$reqMethod = 'index';
-		}else throw new \InvalidArgumentException('No valid method was given! This route does not have an index, so I could not route it to there either.');
-		
-		// determine args
-		if(isset($params['args']) && is_array($params['args'])){
-			$reqArgs = $params['args'];
-		}
-		
-		// build the url
-		if($optimized){
-			$pathArgs = '';
-			$kvArgs = array();
-			foreach($reqArgs as $key => $arg){
-				if(is_integer($key))
-					$pathArgs .= $arg.'/';
-				else
-					$kvArgs[$key] = $arg;
-			}
-			return $this->base.$this->name.'/'.($reqMethod == 'index' ? '' : $reqMethod.'/').$pathArgs.(empty($kvArgs)? '' : '?'.http_build_query($kvArgs));
-		}else
-			return $this->base.'?'.http_build_query(array_merge(array('controller' => $this->name, 'method' => $reqMethod), $reqArgs));
-	}
-	
-	/**
-	 * Available (Named) parameters for this controller.
-	 * @return array
-	 */
-	public function parameters() {
-		return array(
-			'name' => 'The name of the MVC controller to load.',
-			'method' => 'Method to call.',
-			'args' => 'Arguments for this object'
-		);
-	}
-	
-	/**
-	 * Check if the given url is routable.
-	 * @param \Quark\System\Router\URL $url URL to check.
-	 * @return boolean
-	 */
-	public function routable(\Quark\System\Router\URL $url) {
-		$path = $url->pathinfo->path;
-		$query = $url->pathinfo->query;
-		if(count($path) >= 2 && $path[0] == $this->name && in_array($path[1], $this->methods)){
-			return true;
-		}else if(isset($query['controller']) && $query['controller'] == $this->name && isset($query['method']) && in_array($query['method'], $this->methods)){
-			return true;
-		}else return false;
-	}
-	
-	/**
-	 * Routes the given URL, and loads the specified resource.
-	 * @param \Quark\System\Router\URL $url (Pre-checked) URL to route to the resource.
-	 * @return boolean
-	 */
-	public function route(\Quark\System\Router\URL $url) {
-		$path = $url->pathinfo->path;
-		$query = $url->pathinfo->query;
-		
-		if(count($path) >= 2 && $path[0] == $this->name && in_array($path[1], $this->methods)){
-			
-		}else if(isset($query['controller']) && $query['controller'] == $this->name && isset($query['method']) && in_array($query['method'], $this->methods)){
-			
-		}else return false;
 	}
 }

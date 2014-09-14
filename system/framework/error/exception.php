@@ -29,7 +29,7 @@ if(!defined('DIR_BASE')) exit;
  * For a full list off PHP errors check:
  * {@link http://www.php.net/manual/en/errorfunc.constants.php}
  * If you wan to also be able to display a message to the user instead of only
- * the standard one and you dont care about catching errors, then please use one
+ * the standard one and you don't care about catching errors, then please use one
  * of the static functions inside {@see \Quark\Error}
  */
 class Exception extends \Exception{
@@ -44,12 +44,12 @@ class Exception extends \Exception{
 	 * @var boolean
 	 */
 	private $logged = false;
-	
+
 	/**
 	 * Constructor makes sure the timezone is set, and logs the exception.
 	 * @param String $debugMessage A message that fully describes the error, so a webmaster can fix it.
 	 * @param String $userMessage A message that can be shown tot the general internet user, without disclosing any system information.
-	 * @param Integer $debugCode Debug ErrorCode (Same as normal $code)
+	 * @param int $debugCode Debug ErrorCode (Same as normal $code)
 	 * @param \Exception $previous Previous exception
 	 */
 	public function __construct($debugMessage, $userMessage=null, $debugCode=E_USER_ERROR, \Exception $previous=null){
@@ -81,7 +81,10 @@ class Exception extends \Exception{
 		
 		return $this->userMessage;
 	}
-	
+
+	/**
+	 * @return string
+	 */
 	public function __toString(){
 		// Log the message
 		if(!$this->logged){

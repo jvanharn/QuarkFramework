@@ -44,7 +44,7 @@ interface Query {
 	 * Add a (SQL) clause to the query
 	 * @param string $name Name of the clause to add.
 	 * @param array $params Optional parameters for the clause. (Contents should depend on name given)
-	 * @return Quark\Database\Query The current query object for method chaining.
+	 * @return \Quark\Database\Query The current query object for method chaining.
 	 * @throws DatabaseException When the clause given is invalid.
 	 */
 	public function clause($name, array $params=array());
@@ -52,8 +52,8 @@ interface Query {
 	/**
 	 * Merge the results of the given query with the results of this query.
 	 * @param \Quark\Database\Query $query Query to merge with.
-	 * @return Quark\Database\Query The current query object for method chaining.
-	 * @throws Quark\Database\DatabaseException When the union query and the current query cannot be union-fied.
+	 * @return \Quark\Database\Query The current query object for method chaining.
+	 * @throws \Quark\Database\DatabaseException When the union query and the current query cannot be union-fied.
 	 */
 	public function union(Query $query);
 	
@@ -64,8 +64,8 @@ interface Query {
 	public function save();
 	
 	/**
-	 * Executes the query in the database and returns the result.
-	 * @return boolean| Description
+	 * Executes the query in the database and returns the success state.
+	 * @return boolean|int Success state or number of affected rows.
 	 */
 	public function execute();
 	
@@ -321,7 +321,15 @@ abstract class SQLQuery implements Query {
 				throw new \InvalidArgumentException('Argument $param was of unrecognised/unusable type for given statement type.');
 		}
 	}
-	
+
+	/**
+	 *
+	 * @param string $name
+	 * @param array $params
+	 * @return $this|Query
+	 * @throws \OutOfBoundsException
+	 * @throws \InvalidArgumentException
+	 */
 	public function clause($name, array $params=array()){
 		$name = strtoupper($name);
 		if(in_array($name, $this->props)){
@@ -348,7 +356,13 @@ abstract class SQLQuery implements Query {
 		
 		return $this;
 	}
-	
+
+	/**
+	 * Copies the given query to this class as an UNION query.
+	 * @param Query $query
+	 * @return $this|Query
+	 * @throws DatabaseException
+	 */
 	public function union(Query $query){
 		if($query->getDatabase()->getName() == $this->db->getName()){
 			// Check if both query's have resultsets
@@ -360,9 +374,11 @@ abstract class SQLQuery implements Query {
 		
 		return $this;
 	}
-	
+
 	/**
 	 * Get the string representation of the query
+	 * @param bool $prepared Whether or not to save it as a prepared statement.
+	 * @throws \DomainException When the query contains statements that do not adhere to the database query language domain.
 	 * @return string
 	 */
 	public function save($prepared=false){
@@ -481,27 +497,50 @@ abstract class SQLQuery implements Query {
 			}
 		}
 	}
-	
+
+	/**
+	 * Try to execute this query with the connection it was created at.
+	 * @return bool|int|Result
+	 */
 	public function execute(){
 		if($this->props['resultset'])
 			return $this->db->query($this);
 		else return $this->db->execute($this);
 	}
-	
+
+	/**
+	 * Get the database connection object this query was created on.
+	 * @return Database
+	 */
 	public function getDatabase(){
 		return $this->db;
 	}
-	
+
+	/**
+	 * Get the set proeprties for this query.
+	 * @return array
+	 */
 	public function getProperties(){
 		return array_merge($this->props, ['type' => $this->type]);
 	}
-	
+
+	/**
+	 * Get all available statements on this query type.
+	 * @return array
+	 */
 	public static function statements(){
 		$class = get_called_class();
 		return array_merge(array_keys($class::$statements), array_keys($class::$aliasses));
 	}
 	
 	// Magic methods
+	/**
+	 * Makes it possible for the queries to dynamically compile.
+	 * @param string $name
+	 * @param array $params
+	 * @return $this
+	 * @throws \InvalidArgumentException When arguments are invalid.
+	 */
 	public function __call($name, array $params){
 		if(is_string($params[0]) || (is_object($params[0]) && $params[0] instanceof SQLQuery))
 			$params[0] = array($params[0]);
@@ -509,7 +548,12 @@ abstract class SQLQuery implements Query {
 			throw new \InvalidArgumentException('Argument $params should be of type array.');
 		return $this->clause(str_replace('_',' ',$name), $params[0]);
 	}
-	
+
+	/**
+	 * Same as calling save().
+	 * @see save()
+	 * @return string
+	 */
 	public function __toString() {
 		return $this->save();
 	}

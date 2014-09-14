@@ -47,6 +47,7 @@ use Quark\Libraries\Bootstrap\BootstrapLayout,
 	Quark\Libraries\Bootstrap\Components as Components,
 	Quark\Libraries\Bootstrap\Elements as Elements;
 
+use Quark\Libraries\Bootstrap\Grid\Container;
 use Quark\System\Router\StaticRoute,
 	Quark\Document\BundleResourceRoute;
 
@@ -85,13 +86,13 @@ class Application extends \Quark\System\Application\Application{
 		date_default_timezone_set(@date_default_timezone_get()); // Fix timezone warnings.
 
 		// Update the bundles list AT LEAST ONCE before you run the application
-		//Bundles::updateList();
+		//Bundles::updateList(); // Downloads the available (3rd party) bundles that *can be installed*.
 		//Bundles::_resetInstalledList();
-		//Bundles::scan(false);
-		//var_dump(array_map(function($id){return Bundles::get($id)->resources['js'];}, Bundles::listInstalled()));
+		//Bundles::scan(false); // Scan for new *local/already installed* bundles (This HAS to be done before bundles can be used!!)
+		//var_dump(array_map(function($id){return Bundles::get($id)->resources;}, Bundles::listInstalled()));
 	}
 	
-	public function display(){
+	public function run(){
 		/** @var BootstrapLayout $layout */
 		$layout = $this->document->layout;
 
@@ -122,16 +123,18 @@ class Application extends \Quark\System\Application\Application{
 			->addLink('test2', '#lol');
 		$buttongroup->addButton($activator);
 		$buttongroup->addDropdown($dropdown);
-		$layout->place($buttongroup);
 
 		// Button and dropdown with the short syntaxis
 		/** @var Components\Dropdown $secondMenu */
 		$secondMenu = null;
-		$layout->place(Components\Dropdown::create($secondMenu, 'Shorthand Dropdown', 'ok'));
+		$secondButtongroup = Components\Dropdown::create($secondMenu, 'Shorthand Dropdown', 'ok');
 		$secondMenu
 			->addHeader('Real menu')
 			->addLink('second', '#lol')
 			->addLink('test!', '#lol');
+
+		// Place the buttons on the grid
+		$layout->placeRow([$buttongroup, $secondButtongroup]);
 
 		// Pager
 		$layout->place(new Components\Pager($dropdown, '#next'));// The dropdown won't work as in bootstrap it doesn't work with Pager elements.

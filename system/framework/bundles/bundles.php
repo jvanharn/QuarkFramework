@@ -204,6 +204,8 @@ class Bundles {
 
 	/**
 	 * List all available bundles.
+	 *
+	 * (This requires {@link Bundles::updateList()} to be called at least once)
 	 * @return array
 	 */
 	public static function listAvailable(){
@@ -241,6 +243,10 @@ class Bundles {
 
 	/**
 	 * Update the list with available bundles by getting the bundle list from all enabled repositories.
+	 *
+	 * This method downloads the list with all *available* bundles from the repositories that you have registered.
+	 * If you have not changed those they will be set to the default Quark Framework official repositories.
+	 * Please beware that this requires an active and working internet connection.
 	 * @return bool
 	 */
 	public static function updateList(){
@@ -289,6 +295,9 @@ class Bundles {
 
 	/**
 	 * Scan the bundle directory for (already) installed/available bundles, and make them referable.
+	 * @param bool $install_dependencies Whether or not to automatically install any dependencies of the available/installed/local bundles.
+	 * @throws \Quark\Exception
+	 * @return void
 	 */
 	public static function scan($install_dependencies=true){
 		foreach(glob(DIR_BUNDLES.'*/bundle.json') as $path){

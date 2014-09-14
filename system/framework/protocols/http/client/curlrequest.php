@@ -1,174 +1,21 @@
 <?php
 /**
  * @package		Quark-Framework
- * @version		$Id$
  * @author		Jeffrey van Harn <Jeffrey at lessthanthree.nl>
  * @since		August 07, 2013
  * @copyright	Copyright (C) 2013 Jeffrey van Harn. All rights reserved.
  * @license		http://opensource.org/licenses/gpl-3.0.html GNU Public License Version 3
  */
 
-namespace Quark\Services\HTTP;
-
+namespace Quark\Protocols\HTTP\Client;
 use Quark\Error;
 use Quark\Exception;
+use Quark\Protocols\HTTP\ClientRequest;
+use Quark\Protocols\HTTP\IRequest;
+use Quark\Protocols\HTTP\Response;
 
 // Prevent individual file access
 if(!defined('DIR_BASE')) exit;
-
-
-/**
- * HTTP Request
- * @package Quark\Services\HTTP
- */
-abstract class Request {
-	const METHOD_GET	= 1;
-	const METHOD_POST	= 2;
-	const METHOD_HEAD	= 3;
-	const METHOD_PUT	= 4;
-	const METHOD_DELETE	= 5;
-
-	/**
-	 * @var string The requested URL.
-	 */
-	protected $url;
-
-	/**
-	 * @var int Method used for this request.
-	 */
-	protected $method;
-
-	/**
-	 * @var array Manually set headers for this request.
-	 */
-	protected $headers = array();
-
-	/**
-	 * @var Request[]
-	 */
-	protected static $handlers = array();
-
-	/**
-	 * @param string $url Http address to make the request to.
-	 * @param int $method The HTTP method with which to make the request.
-	 */
-	abstract protected function __construct($url, $method=self::METHOD_GET);
-
-	/**
-	 * Make some of the internal vars read-only.
-	 * @param string $var Variable name.
-	 * @return int|string
-	 * @throws \Exception
-	 */
-	public function __get($var){
-		switch($var){
-			case 'url':
-				return $this->url;
-			case 'method':
-				return $this->method;
-			default:
-				throw new \Exception('Undefined request variable given.');
-		}
-	}
-
-	/**
-	 * Set the request body data for POST and PUT requests.
-	 * @param string|resource $data String or stream to set on the
-	 * @param int $length Length of the data that will get send (Recommended to be set for streams).
-	 * @param bool $binary Whether or not the data given should treated as binary data.
-	 * @throws \Quark\Exception When called on non POST or PUT requests or resource/string conversion fails.
-	 */
-	abstract public function setBody($data, $length=null, $binary=false);
-
-	#region Advanced Header Methods
-	/**
-	 * Set the headers for this request.
-	 *
-	 * Please note that this will replace any headers that were already set.
-	 * @param array $headers The headers to set, in the format array('Content-type: text/plain', 'Content-length: 100').
-	 * @throws \Quark\Exception When the headers parameter is incorrectly formatted.
-	 */
-	public function setHeaders($headers){
-		if(is_array($headers))
-			$this->headers = $headers;
-		else
-			throw new Exception('Parameter $headers should be of type array, but got "'.gettype($headers).'"');
-	}
-
-	/**
-	 * Add a header to this request.
-	 * @param string $header Header to set.
-	 */
-	public function addHeader($header){
-		if(is_string($header))
-			array_push($this->headers, $header);
-	}
-
-	/**
-	 * Remove a manually set header.
-	 * @param string $type The type of header to remove, may also be a complete header.
-	 * @return bool Whether or not the removal was successful.
-	 */
-	public function removeHeader($type){
-		$found = false;
-		foreach($this->headers as $i => $header){
-			if(stripos($header, $type) > -1){
-				unset($this->headers[$i]);
-				$found = true;
-			}
-		}
-		return $found;
-	}
-
-	/**
-	 * Get all manually set headers.
-	 * @return array
-	 */
-	public function getHeaders(){
-		return $this->headers;
-	}
-	#endregion
-
-	/**
-	 * Send this request and retrieve the request.
-	 * @return Response The response on this request.
-	 * @throws \Quark\Exception
-	 */
-	abstract public function send();
-
-	/**
-	 * Make a request to the given url and http method. Chooses the best available wrapper for your current situation.
-	 * @param string $url Http address to make the request to.
-	 * @param int $method The HTTP method with which to make the request.
-	 * @return Request
-	 */
-	public static function create($url, $method=self::METHOD_GET){
-		$class = get_called_class();
-		if($class == __CLASS__){
-			return new self::$handlers[0]($url, $method); // Choose first registered option
-		}else return new $class($url, $method);
-	}
-
-	/**
-	 * Get all the available request handlers.
-	 * @return string[]
-	 */
-	public static function available(){
-		return self::$handlers;
-	}
-
-	/**
-	 * Registers a new request handler.
-	 * @param string $classname The name of the handler request class.
-	 * @return void
-	 * @ignore
-	 */
-	public static function register($classname){
-		if(is_subclass_of($classname, __CLASS__))
-			self::$handlers[] = $classname;
-	}
-}
-
 
 /**
  * Protocol Class (Stream over Protocol)
@@ -176,7 +23,7 @@ abstract class Request {
  * Defines the basis of what a (web) protocol should be able to do, and how it should communicate.
  * @package Quark\Services\HTTP
  */
-class CurlRequest extends Request {
+class CurlRequest extends ClientRequest {
 	/**
 	 * @var resource cURL handle used to make this request.
 	 */
@@ -185,10 +32,10 @@ class CurlRequest extends Request {
 	#region Magic Methods
 	/**
 	 * @param string $url Http address to make the request to.
-	 * @param int $method The HTTP method with which to make the request.
+	 * @param string $method The HTTP method with which to make the request.
 	 * @throws \InvalidArgumentException
 	 */
-	protected function __construct($url, $method=self::METHOD_GET){
+	public function __construct($url, $method=IRequest::METHOD_GET){
 		$this->handle = curl_init();
 
 		if(empty($url))
@@ -201,29 +48,7 @@ class CurlRequest extends Request {
 		curl_setopt($this->handle, CURLOPT_URL, $url);
 
 		// Set method
-		if(is_int($method)){
-			switch($method){
-				case self::METHOD_GET:
-					//curl_setopt($this->handle, CURLOPT_HTTPGET, true);
-					break;
-				case self::METHOD_POST:
-					curl_setopt($this->handle, CURLOPT_POST, true);
-					break;
-				case self::METHOD_HEAD:
-					curl_setopt($this->handle, CURLOPT_HEADER, true);
-					break;
-				case self::METHOD_PUT:
-					curl_setopt($this->handle, CURLOPT_PUT, true);
-					break;
-				case self::METHOD_DELETE:
-					curl_setopt($this->handle, CURLOPT_CUSTOMREQUEST, 'DELETE');
-					break;
-				default:
-					throw new \InvalidArgumentException('Invalid value for $method, should be one of the Request::METHOD_* constants.');
-			}
-			$this->method = $method;
-		}else
-			throw new \InvalidArgumentException('Invalid value for $method, should be one of the Request::METHOD_* constants.');
+		$this->setMethod($method);
 
 		// Set a couple of defaults
 		curl_setopt($this->handle, CURLOPT_RETURNTRANSFER, true);
@@ -306,6 +131,14 @@ class CurlRequest extends Request {
 			curl_setopt($this->handle, CURLOPT_INFILE, $data);
 			curl_setopt($this->handle, CURLOPT_INFILESIZE, $length);
 		}else throw new Exception('Unable to set the request body for this http request method! Current method (Constant > Request::METHOD_*: "'.$this->method.'").');
+	}
+
+	/**
+	 * @ignore
+	 * @throws \HttpRuntimeException
+	 */
+	public function getBody(){
+		throw new \HttpRuntimeException('The body cannot be retrieved from HTTPRequests because they are immediately written to the socket when set.');
 	}
 	#endregion
 
@@ -450,7 +283,6 @@ class CurlRequest extends Request {
 			82 => 'CURLE_SSL_CRL_BADFILE',
 			83 => 'CURLE_SSL_ISSUER_ERROR',
 			84 => 'CURLE_FTP_PRET_FAILED',
-			84 => 'CURLE_FTP_PRET_FAILED',
 			85 => 'CURLE_RTSP_CSEQ_ERROR',
 			86 => 'CURLE_RTSP_SESSION_ERROR',
 			87 => 'CURLE_FTP_BAD_FILE_LIST',
@@ -458,72 +290,29 @@ class CurlRequest extends Request {
 		);
 		return $error_codes[$errno];
 	}
-	#endregion
-}
-
-// Check if cURL is installed
-if(in_array('curl', get_loaded_extensions()))
-	Request::register('Quark\\Services\\HTTP\\CurlRequest');// if so register
-
-/**
- * Class StreamRequest
- * @package Quark\Services\HTTP
- */
-class StreamRequest extends Request {
-
-	const VERSION = '1.0';
 
 	/**
-	 * @var array The HTTP parameters given to stream_context_create.
-	 */
-	protected $params = array(
-		'user_agent' => 'QuarkClient/1.0',
-		'max_redirects' => 10,
-		'ignore_errors' => true // always return the body
-	);
-
-	/**
-	 * @param string $url Http address to make the request to.
-	 * @param int $method The HTTP method with which to make the request.
+	 * Set the request method.
+	 * @param string $method
 	 * @throws \InvalidArgumentException
 	 */
-	protected function __construct($url, $method = self::METHOD_GET) {
-		$this->params['user_agent'] = 'Mozilla/4.0 ('.PHP_OS.'; '.php_uname('s').' '.php_uname('r').' on '.php_uname('m').') QuarkHTTPStreamRequest/'.self::VERSION.' (like Gecko) QuarkClient/'.self::VERSION;
-
-		if(empty($url))
-			throw new \InvalidArgumentException('Unable to construct a request with an empty URL.');
-		if(empty($method))
-			throw new \InvalidArgumentException('Unable to construct a request without a valid request method.');
-
-		// Set URL
-		$this->url = $url;
-
-		// Set method
-		$this->setMethod($method);
-	}
-
-	/**
-	 * Set the HTTP method.
-	 * @param string $method HTTP Method
-	 * @throws \InvalidArgumentException
-	 */
-	public function setMethod($method){
-		if(is_int($method)){
-			switch($method){
+	public function setMethod($method) {
+		if(is_string($method)) {
+			switch ($method) {
 				case self::METHOD_GET:
-					$this->params['method'] = 'GET';
+					curl_setopt($this->handle, CURLOPT_HTTPGET, true);
 					break;
 				case self::METHOD_POST:
-					$this->params['method'] = 'POST';
+					curl_setopt($this->handle, CURLOPT_POST, true);
 					break;
 				case self::METHOD_HEAD:
-					$this->params['method'] = 'HEAD';
+					curl_setopt($this->handle, CURLOPT_HEADER, true);
 					break;
 				case self::METHOD_PUT:
-					$this->params['method'] = 'PUT';
+					curl_setopt($this->handle, CURLOPT_PUT, true);
 					break;
 				case self::METHOD_DELETE:
-					$this->params['method'] = 'DELETE';
+					curl_setopt($this->handle, CURLOPT_CUSTOMREQUEST, 'DELETE');
 					break;
 				default:
 					throw new \InvalidArgumentException('Invalid value for $method, should be one of the Request::METHOD_* constants.');
@@ -532,77 +321,9 @@ class StreamRequest extends Request {
 		}else
 			throw new \InvalidArgumentException('Invalid value for $method, should be one of the Request::METHOD_* constants.');
 	}
-
-	/**
-	 * Set the request body data for POST and PUT requests.
-	 * @param array|string|resource $data Array of items for POST, String or stream to set as the data for this request.
-	 * @param int $length Length of the data that will get send (Recommended to be set for streams).
-	 * @param bool $binary Whether or not the data given should treated as binary data.
-	 * @throws \Exception When called on non POST or PUT requests or resource/string conversion fails.
-	 */
-	public function setBody($data, $length = null, $binary = false) {
-		if(!($this->method == self::METHOD_POST || $this->method == self::METHOD_PUT))
-			throw new \RuntimeException('Can only call Request::setBody on Post and Put requests.');
-
-		if($binary == true)
-			throw new \Exception('Binary posts are not supported with this request wrapper, install cURL instead.');
-
-		if(is_array($data)){
-			$this->params['content'] = http_build_query($data);
-			$this->headers['content-type'] = 'application/x-www-form-urlencoded';
-		}else if(is_string($data)){
-			$this->params['content'] = $data;
-			if(!isset($this->headers['content-type']))
-				$this->headers['content-type'] = 'text/plain';
-		}else if(is_resource($data))// @todo
-			throw new \RuntimeException('Oops, this request wrapper doesn\'t support streams, sorry. Try to install cURL instead.');
-		else
-			throw new \InvalidArgumentException('Argument $data for method setBody should be of type array, string or resource, "'.gettype($data).'" given.');
-	}
-
-	/**
-	 * Send this request and retrieve the request.
-	 * @return Response The response on this request.
-	 * @throws \Quark\Exception
-	 */
-	public function send() {
-		// Compile the headers
-		$this->params['header'] = '';
-		foreach($this->headers as $header => $content)
-			$this->params['header'] .= $header.': '.$content."\n";
-
-		// Create the stream context
-		$context = stream_context_create(array('http' => $this->params));
-
-		// Create the handle
-		$handle = fopen($this->url, 'r', false, $context);
-
-		// Get contents
-		$content = stream_get_contents($handle);
-		fclose($handle);
-
-		// Return
-		$status = '';
-		$headers = self::_parseHeaders($http_response_header, $status);
-		return new Response($status, $headers, $content);
-	}
-
-	/**
-	 * Parse headers into a dimensional array.
-	 * @param string $raw Array of headers to parse.
-	 * @param string $status A reference to a variable where the status string can be saved in.
-	 * @return array
-	 */
-	private static function _parseHeaders($raw, &$status){
-		$status = array_shift($raw);
-
-		$headers = array();
-		for($i=0; $i<count($raw); $i++){
-			$exp = explode(':', $raw[$i]);
-			$headers[trim($exp[0])] = trim($exp[1]);
-		}
-		return $headers;
-	}
+	#endregion
 }
 
-Request::register('Quark\\Services\\HTTP\\StreamRequest');
+// Check if cURL is installed
+if(in_array('curl', get_loaded_extensions()))
+	ClientRequest::register('Quark\\Protocols\\HTTP\\Client\\CurlRequest');// if so register

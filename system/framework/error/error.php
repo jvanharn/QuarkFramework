@@ -321,10 +321,11 @@ class Error{
 	 */
 	public static function prettyPrintErrorMessage($summary, $debugCode=E_USER_ERROR, $userMessage='', $debugMessage='', $trace=''){
 		// Use the Document Classes if already loaded
-		if(imported('Document', true)){
+		if(imported('Framework.Document.Document', true)){
 			// Double check for Document class or do plain text.
 			if(!class_exists('\\Quark\\Document\\Document', false)){
-				print(PHP_EOL.'!!!! Incorrect @imported result; imported said Document was imported yet class_exists said otherwise. Please report this to the developers of Quark!!'.PHP_EOL);
+				// These race conditions occur when the dependencies of the Document class are still loading, but an error occurs during this time.
+				// It is safe to ignore this, as the Loader already sets it as loaded, but the code is still executing, which is not really something you normally have to deal with, only in exception and error handlers... like this one.
 				goto plainTextErrorMessage;
 			}
 
