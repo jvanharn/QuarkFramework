@@ -22,7 +22,8 @@ if(!defined('DIR_BASE')) exit;
 \Quark\import(
 	'Quark.Protocols.HTTP.Message',
 	'Quark.Util.Type.Exception',
-	'Quark.Protocols.HTTP.Exception'
+	'Quark.Protocols.HTTP.Exception',
+	'Quark.System.Router.URL'
 );
 
 /**
@@ -83,6 +84,16 @@ interface IRequest extends IMessage {
 	 * @return bool
 	 */
 	public function isSecured();
+
+	/**
+	 * Create a basic response to the given request.
+	 *
+	 * @param int $code Response code.
+	 * @param string $text Response text.
+	 * @param bool $recycle Whether or not to try and retrieve an already created response object for this request. (Which may already be modified by now) When set to false when an response object was already created earlier, the new object will overwrite the old.
+	 * @return \Quark\Protocols\HTTP\IResponse
+	 */
+	public function createResponse($code=200, $text='OK', $recycle=true);
 }
 
 /**
@@ -130,17 +141,22 @@ class Request extends Message implements IMutableRequest {
 	/**
 	 * @var string The requested path/resource.
 	 */
-	protected $path;
+	protected $path = '/';
 
 	/**
 	 * @var int Method used for this request.
 	 */
-	protected $method;
+	protected $method = IRequest::METHOD_GET;
 
 	/**
 	 * @var string Version used for this request.
 	 */
-	protected $version;
+	protected $version = IRequest::VERSION_HTTP1;
+
+	/**
+	 * @var Response A cached response object for this request.
+	 */
+	private $responseObject;
 
 	/**
 	 * @param string $hostname Hostname to call.
@@ -151,7 +167,7 @@ class Request extends Message implements IMutableRequest {
 	 */
 	public function __construct($hostname, $path, $method=self::METHOD_GET, $secured=false){
 		if(is_string($hostname))
-			$this->setHeader('Hostname', $hostname);
+			$this->setHeader('Host', $hostname);
 		else throw new InvalidArgumentTypeException('hostname', 'string', $hostname);
 
 		if(is_string($path))
@@ -183,6 +199,14 @@ class Request extends Message implements IMutableRequest {
 	}
 
 	#region StartLine Parsing
+	/**
+	 * Get the first line of the HTTP Message defined as the "Start-Line".
+	 * @return string
+	 */
+	public function getStartLine(){
+		return $this->method.' '.$this->path.' '.$this->version;
+	}
+
 	/**
 	 * Set the first line of the HTTP Message defined as the "Start-Line".
 	 * @param string $startLine
@@ -235,7 +259,7 @@ class Request extends Message implements IMutableRequest {
 	public function getURI(){
 		if($this->getPath() == '*')
 			return null;
-		return ($this->isSecured() ? 'https://' : 'http://').$this->getHeader('Hostname').'/'.$this->getPath();
+		return ($this->isSecured() ? 'https://' : 'http://').$this->getHeader('Host').'/'.$this->getPath();
 	}
 
 	/**
@@ -274,7 +298,11 @@ class Request extends Message implements IMutableRequest {
 		if($this->getPath() == '*')
 			return null;
 		$parsed = parse_url($this->getPath());
-		return new URLPathInfo($parsed['path'], $parsed['query'], $parsed['fragment']);
+		return new URLPathInfo(
+			isset($parsed['path']) ? $parsed['path'] : '/',
+			isset($parsed['query']) ? $parsed['query'] : array(),
+			isset($parsed['fragment']) ? $parsed['fragment'] : null
+		);
 	}
 
 	/**
@@ -305,11 +333,15 @@ class Request extends Message implements IMutableRequest {
 
 	/**
 	 * Create a basic response to the given request.
-	 * @param int $code
-	 * @param string $text
+	 * @param int $code Response code.
+	 * @param string $text Response text.
+	 * @param bool $recycle Whether or not to try and retrieve an already created response object for this request. (Which may already be modified by now) When set to false when an response object was already created earlier, the new object will overwrite the old.
 	 * @return \Quark\Protocols\HTTP\Response
 	 */
-	public function createResponse($code=200, $text='OK'){
-		return new Response($this->version, $code, $text);
+	public function createResponse($code=200, $text='OK', $recycle=true){
+		if($recycle && !is_null($this->responseObject))
+			return $this->responseObject;
+
+		return ($this->responseObject = new Response($code, $text));
 	}
 }

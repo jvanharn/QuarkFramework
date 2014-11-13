@@ -10,30 +10,20 @@
 // Namespace
 namespace Quark\Protocols\HTTP\Server;
 use Quark\Protocols\HTTP\IMutableResponse;
+use Quark\Protocols\HTTP\IStreamedResponse;
 use Quark\Protocols\HTTP\Response;
 use Quark\Util\Type\InvalidArgumentTypeException;
 
 // Prevent individual file access
 if(!defined('DIR_BASE')) exit;
 
-/**
- * Interface IServerResponse
- * @package Quark\Protocols\HTTP\Server
- */
-interface IServerResponse extends IMutableResponse {
-	/**
-	 * Add the given string/bytes to the response.
-	 * @param string $bytes String to add to the response.
-	 * @return void
-	 */
-	public function write($bytes);
-}
+\Quark\import('Quark.Protocols.HTTP.Response');
 
 /**
  * Class ServerResponse
  * @package Quark\Protocols\HTTP\Server
  */
-class ServerResponse implements IServerResponse {
+class ServerResponse implements IMutableResponse {
 	/**
 	 * @var string HTTP Version to be set.
 	 */
@@ -167,7 +157,7 @@ class ServerResponse implements IServerResponse {
 	 * Check whether the response body was not empty.
 	 */
 	public function hasBody() {
-		// TODO: Implement hasBody() method.
+		return headers_sent();
 	}
 
 	/**

@@ -11,6 +11,7 @@
 
 // Define Namespace
 namespace Quark\Protocols\HTTP\Server;
+use Quark\Protocols\HTTP\IResponse;
 use Quark\Protocols\HTTP\Message;
 use Quark\Protocols\HTTP\Request;
 use Quark\Protocols\HTTP\Response;
@@ -37,10 +38,10 @@ interface IClient {
 
 	/**
 	 * Write a single response object and end the current request.
-	 * @param IServerResponse $response The response to write.
+	 * @param IResponse $response The response to write.
 	 * @return void
 	 */
-	public function respond(IServerResponse $response);
+	public function respond(IResponse $response);
 
 	/**
 	 * Write the given bytes to the client. (Wont close/end the current request).

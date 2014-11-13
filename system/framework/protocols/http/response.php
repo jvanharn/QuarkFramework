@@ -10,7 +10,12 @@
 namespace Quark\Protocols\HTTP;
 
 use Quark\Error;
-use Quark\Util\Type\InvalidArgumentTypeException;
+
+// Prevent individual file access
+if(!defined('DIR_BASE')) exit;
+
+// Dependencies
+\Quark\import('Quark.Protocols.HTTP.Message');
 
 /**
  * Interface Response
@@ -62,7 +67,7 @@ interface IMutableResponse extends IResponse, IMutableMessage {
 }
 
 /**
- * Class Response
+ * Default Response Implementation
  * @package Quark\Services\HTTP
  */
 class Response extends Message implements IMutableResponse {
@@ -149,34 +154,48 @@ class Response extends Message implements IMutableResponse {
 	/**
 	 * @var string HTTP Version.
 	 */
-	protected $version;
+	protected $version = IRequest::VERSION_HTTP1; // Do not claim HTTP/1.1 compliance by default.
 
 	/**
 	 * @var integer Http status code, message and version from response.
 	 */
-	protected $statusCode;
+	protected $statusCode = 200;
 
 	/**
 	 * @var string The status text accompanying the code.
 	 */
-	protected $statusText;
+	protected $statusText = 'OK';
 
 	/**
 	 * @param integer $statusCode HTTP Status Code
 	 * @param string $statusText HTTP Status Text
 	 * @throws \Quark\Util\Type\InvalidArgumentTypeException
 	 */
-	public function __construct($statusCode=200, $statusText='OK'){
-		if(is_integer($statusCode))
+	public function __construct($statusCode=200, $statusText=null){
+		/*if(is_integer($statusCode))
 			$this->statusCode = $statusCode;
 		else throw new InvalidArgumentTypeException('statusCode', 'integer', $statusCode);
 
 		if(is_string($statusText))
 			$this->$statusText = $statusText;
-		else throw new InvalidArgumentTypeException('statusText', 'string', $statusText);
+		else throw new InvalidArgumentTypeException('statusText', 'string', $statusText);*/
+
+		$this->setStatus($statusCode, $statusText);
+
+		$this->setHeader('Date', gmdate(IMessage::DATE_RFC1123).' GMT');
+	}
+
+	#region StartLine Parsing
+	/**
+	 * Get the first line of the HTTP Message defined as the "Start-Line".
+	 * @return string
+	 */
+	public function getStartLine(){
+		return $this->version.' '.$this->statusCode.' '.$this->statusText;
 	}
 
 	/**
+	 * Set the first line of the HTTP Message defined as the "Start-Line".
 	 * @param string $startLine
 	 */
 	public function setStartLine($startLine){
@@ -187,6 +206,7 @@ class Response extends Message implements IMutableResponse {
 		$this->statusCode = intval($exp[1]);
 		$this->statusText = $exp[2];
 	}
+	#endregion
 
 	/**
 	 * Get the protocol version the server replied with. (E.g. HTTP/1.1)
@@ -240,4 +260,87 @@ class Response extends Message implements IMutableResponse {
 	public function hasBody(){
 		return !empty($this->body);
 	}
+
+	#region Export/Import Methods
+	/**
+	 * Save the Http message to a string.
+	 *
+	 * Please note that writing {@link write()} this directly to a stream is more efficient when using larger messages.
+	 * @see writeTo
+	 * @param int $bodyBufferLimit The maximum size of the body to be passed to getBody.
+	 * @return string
+	 */
+	public function save($bodyBufferLimit=8192){
+		$response  = $this->getStartLine().self::CRLF;
+
+		$body = $this->getBody(false, $bodyBufferLimit);
+
+		if(empty($this->headers['Content-Length']))
+			$this->setHeader('Content-Length', strlen($body));
+		if(empty($this->headers['Content-Type']))
+			$this->setHeader('Content-Type', 'text/html; charset=utf8');
+			//$this->setHeader('Content-Type', 'text/plain');
+
+		$response .= $this->saveHeaders().self::CRLF;
+
+		$response .= $body;
+
+		//var_dump($response);
+		return $response;
+	}
+
+	/**
+	 * Save this Http Message to the given stream, file-handle or other type of stream.
+	 * @param resource $stream The resource to write to.
+	 * @param int $bodyBufferLimit The maximal size of the body to be written to the target stream when the body is an resource. Defaults to -1 which means that there is no limit.
+	 * @throws \RuntimeException Because of an unimplemented feature.
+	 * @return void
+	 */
+	public function writeTo($stream, $bodyBufferLimit=-1){
+		if(is_resource($this->body)){
+			fwrite($stream, $this->getStartLine().self::CRLF);
+
+			if(empty($this->headers['Content-Type']))
+				$this->setHeader('Content-Type', 'text/html; charset=utf8');
+			//$this->setHeader('Content-Type', 'text/plain');
+
+			$meta = @stream_get_meta_data($stream);
+			if($meta !== false){
+				if($bodyBufferLimit == -1){
+					$buffer = '';
+					$size = 0;
+					while(!feof($this->body)){
+						$buffer .= fread($this->body, 8192);
+						$size += 8192;
+					}
+
+					if(empty($this->headers['Content-Length']))
+						$this->setHeader('Content-Length', $size);
+
+					fwrite($stream, $this->saveHeaders().self::CRLF);
+					fwrite($stream, $buffer);
+				}else{
+					$buffer = '';
+					$size = 0;
+					while(!feof($this->body) && $size < $bodyBufferLimit){
+						$len = min(8192, $bodyBufferLimit - $size);
+						$buffer .= fread($this->body, $len);
+						$size += $len;
+					}
+
+					if(empty($this->headers['Content-Length']))
+						$this->setHeader('Content-Length', $size);
+
+					fwrite($stream, $this->saveHeaders().self::CRLF);
+					fwrite($stream, $buffer);
+				}
+			}else{
+				// @todo: socket: we have to force them to set a size when the body is a resource, otherwise you get this edge case.
+				throw new \RuntimeException('Currently cannot stream into a stream as source size is unknown.');
+			}
+		}else{
+			fwrite($stream, $this->save($bodyBufferLimit));
+		}
+	}
+	#endregion
 }

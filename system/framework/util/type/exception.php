@@ -26,6 +26,11 @@
 namespace Quark\Util\Type;
 
 // Prevent individual file access
+use Quark\Document\Document;
+use Quark\Document\Layout\BasicLayout;
+use Quark\Document\Utils\Literal;
+use Quark\Protocols\HTTP\IMutableResponse;
+
 if(!defined('DIR_BASE')) exit;
 
 /**
@@ -38,7 +43,7 @@ class InvalidArgumentTypeException extends \RuntimeException {
 	 * @param mixed $value
 	 */
 	public function __construct($name, $expectedType, $value){
-		parent::__construct('The argument $'.$name.' was of type "'.$expectedType.'" but found '.(empty($value)?'(empty) ':'').'"'.gettype($value).'"', E_ERROR);
+		parent::__construct('The argument $'.$name.' was expected to be of type "'.$expectedType.'" but found '.(empty($value)?'(empty) ':'').'"'.gettype($value).'" ('.$value.').', E_ERROR);
 		
 		// Change the line number and file tot the previously called number
 		$trace = $this->getTrace();
@@ -48,3 +53,65 @@ class InvalidArgumentTypeException extends \RuntimeException {
 }
 
 class_alias('\Quark\Util\Type\InvalidArgumentTypeException', '\InvalidArgumentTypeException');
+
+/**
+ * Http Exception
+ *
+ * Throw this in an controller or route to have the server send an error page.
+ * @package Quark\Util\Type
+ */
+class HttpException extends \RuntimeException {
+	/**
+	 * Create a http exception with the given message
+	 * @param string $httpCode
+	 * @param string $message
+	 * @param \Exception $previous
+	 */
+	public function __construct($httpCode, $message, $previous=null){
+		parent::__construct($message, $httpCode, $previous);
+	}
+
+	/**
+	 * Write this HttpException directly to the given $response message.
+	 * @param IMutableResponse $response
+	 * @param string $mimeType The mime-type to try and respond in. (E.g. application/json, text/html. text/plain..)
+	 * @return void
+	 */
+	public function writeTo(IMutableResponse $response, $mimeType='text/html'){
+		$response->setStatus($this->code);
+		switch($mimeType){
+			case 'application/json':
+			case 'application/jsonp':
+			case 'application/javascript':
+				$response->setHeader('Content-Type', 'application/json');
+				$response->setBody(json_encode(array(
+					'code' => $this->code,
+					'message' => $this->message
+				)));
+				break;
+
+			case 'text/html':
+				$document = Document::createInstance(new BasicLayout());
+				$document->place(new Literal([
+					'html' =>
+						'<div style="margin:40px auto;max-width:700px;background:#FFFFFF;font-family: Roboto, Noto, Lato, \'Open Sans\', sans-serif;box-shadow:0 2px 5px rgba(0,0,0,0.26)">'.
+							'<h1 style="background:#F44336;color: white;padding: 5px 0 5px 14px;margin:0 0 3px 0;">'.
+								$response->getStatusCode().': '.$response->getStatusText().
+							'</h1>'.
+							'<p style="padding: 10px;line-height: 1.4em">'.$this->message.'</p>'.
+						'</div>'
+				]));
+				$document->toResponse($response);
+				break;
+
+			case 'text/plain':
+			default:
+				$response->setBody(
+					PHP_EOL.
+					'Error with code '.$this->code.' occurred with message:'.PHP_EOL.
+					"\t".$this->message.PHP_EOL
+				);
+				break;
+		}
+	}
+}

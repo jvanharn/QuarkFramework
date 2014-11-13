@@ -70,7 +70,7 @@ class BasicLayout extends Layout{
 	public function save(Document $context, $depth=0){
 		// Set the css
 		$context->headers->add(Headers::STYLE, array(),
-			"body { font-family: sans-serif; background-color: #fcfcfc; }".
+			"body { font-family: Roboto, \"Open Sans\", Lato, sans-serif; background-color: #fcfcfc; }".
 			"h1, h2, h3, h4, .header, legend { font-family: \"Segoe UI\", Frutiger, \"Frutiger Linotype\", \"Dejavu Sans\", \"Helvetica Neue\", Arial, sans-serif; color: #222; text-shadow: 0 0 1px rgba(0,0,0,0.3); } ".
 			"abbr { border-bottom: 1px dotted #555; padding-bottom: -1px; }".
 			"a { color: #0198E1; text-decoration: none; }".
@@ -89,13 +89,17 @@ class BasicLayout extends Layout{
 			".header { font-size: 55px; font-weight: bolder; font-family: helvetica, arial, sans-serif; text-align: center; border-bottom: solid 1px #bbb; padding: 10px; min-width: 320px; max-width: 720px; margin: 20px auto; color: #111; }".
 			".footer { font-size: 11px; font-family: verdana, helvetica, ariel, sans-serif; text-align: center; border-top: solid 1px #bbb; padding: 10px; min-width: 320px; max-width: 720px; margin: 10px auto; color: #aaa; }"
 		);
+
+		$saved = '';
 		
 		// Save the header
-		$saved = "<div class=\"header\">\n";
-		foreach($this->elements['HEADER'] as $elem)
-			$saved .= $elem->save($context)."\n";
-		
-		$saved .= "</div>\n";
+		if(!empty($this->elements['HEADER'])){
+			$saved .= "<div class=\"header\">\n";
+			foreach($this->elements['HEADER'] as $elem)
+				$saved .= $elem->save($context)."\n";
+
+			$saved .= "</div>\n";
+		}
 		
 		// Save the main content
 		$saved .= "<div class=\"container\">\n";
@@ -105,11 +109,13 @@ class BasicLayout extends Layout{
 		$saved .= "\n</div>\n";
 		
 		// Save the footer
-		$saved .= "<div class=\"footer\">\n";
-		foreach($this->elements['FOOTER'] as $elem)
-			$saved .= $elem->save($context)."\n";
-		
-		$saved .= "</div>\n";
+		if(!empty($this->elements['FOOTER'])){
+			$saved .= "<div class=\"footer\">\n";
+			foreach($this->elements['FOOTER'] as $elem)
+				$saved .= $elem->save($context)."\n";
+
+			$saved .= "</div>\n";
+		}
 		
 		// Return the result
 		return $saved;

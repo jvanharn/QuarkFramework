@@ -28,6 +28,14 @@ if(!defined('DIR_BASE')) exit;
  */
 interface IMessage {
 	/**
+	 * RFC 1123 Date format used in response headers.
+	 *
+	 * As specified in the RFC 2616 HTTP/1.1 spec.
+	 * Source: http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.18.1
+	 */
+	const DATE_RFC1123 = 'D, d M Y H:i:s';
+
+	/**
 	 * Get the first line of the HTTP Message defined as the "Start-Line".
 	 * @return string
 	 */
@@ -38,6 +46,13 @@ interface IMessage {
 	 * @return array
 	 */
 	public function getHeaders();
+
+	/**
+	 * Get the value of the header with the given token.
+	 * @param string $token The token of the header to get.
+	 * @return string|null
+	 */
+	public function getHeader($token);
 
 	/**
 	 * Get the request body data for POST and PUT requests.
@@ -52,7 +67,7 @@ interface IMessage {
  * Interface IMutableMessage
  * @package Quark\Services\HTTP
  */
-interface IMutableMessage {
+interface IMutableMessage extends IMessage {
 	/**
 	 * Set the first line of the HTTP Message defined as the "Start-Line".
 	 * @param string $startLine
@@ -67,13 +82,6 @@ interface IMutableMessage {
 	 * @return bool
 	 */
 	public function setHeader($token, $value);
-
-	/**
-	 * Get the value of the header with the given token.
-	 * @param string $token The token of the header to get.
-	 * @return string|null
-	 */
-	public function getHeader($token);
 
 	/**
 	 * Remove an existing header.
@@ -121,7 +129,7 @@ class Message implements IMutableMessage {
 	/**
 	 * @var string
 	 */
-	protected $startLine = '';
+	protected $startLine;
 
 	/**
 	 * @var array Map of headers for this request.
@@ -173,7 +181,7 @@ class Message implements IMutableMessage {
 	 * Set the headers for this request.
 	 *
 	 * Please note that this will replace any headers that were already set.
-	 * @param array $headers The headers to set, in the format array('Content-type: text/plain', 'Content-length: 100').
+	 * @param array $headers The headers to set, in the format array('Content-Type: text/plain', 'Content-Length: 100').
 	 * @throws \Quark\Exception When the headers parameter is incorrectly formatted.
 	 */
 	public function setHeaders($headers){
@@ -190,8 +198,8 @@ class Message implements IMutableMessage {
 	 * @return bool
 	 */
 	public function setHeader($token, $value){
-		if(is_string($token) && isset($this->headers[$token])){
-			$this->headers[$token] = $token;
+		if(is_string($token) /*&& isset($this->headers[$token])*/){
+			$this->headers[$token] = $value;
 			return true;
 		}else return false;
 	}
@@ -279,7 +287,7 @@ class Message implements IMutableMessage {
 	 */
 	public function save($bodyBufferLimit=8192){
 		$message  = $this->getStartLine().self::CRLF;
-		$message .= $this->getHeaders().self::CRLF;
+		$message .= $this->saveHeaders().self::CRLF;
 		return $message.$this->getBody(false, $bodyBufferLimit);
 	}
 
@@ -291,7 +299,7 @@ class Message implements IMutableMessage {
 	 */
 	public function writeTo($stream, $bodyBufferLimit=-1){
 		fwrite($stream, $this->getStartLine().self::CRLF);
-		fwrite($stream, $this->getHeaders().self::CRLF);
+		fwrite($stream, $this->saveHeaders().self::CRLF);
 		if(is_resource($this->body)){
 			if($bodyBufferLimit == -1){
 				while(!feof($this->body))
@@ -376,8 +384,12 @@ class Message implements IMutableMessage {
 			// Socket created handle.
 			while(true){
 				// @todo this is prone to abuse. Set a timeout which is checked for every time this runs. Change 0 into MSG_DONTWAIT
-				if(($num = socket_recv($stream, $chars, 2, MSG_WAITALL)) === false)
+				//if(($num = socket_recv($stream, $chars, 2, MSG_WAITALL)) === false)
+				if(($num = socket_recv($stream, $chars, 2, 0)) === false)
 					break; // Socket close.
+
+				if($num === 0)
+					break; // No bytes send, fixes firefox indefinite hanging with recv flags set to 0
 
 				$buffer .= $chars;
 				$size += $num;
@@ -390,9 +402,9 @@ class Message implements IMutableMessage {
 			}
 		}
 
-		var_dump($buffer, $size);
-
 		// Check buffer size
+		if(strlen($buffer) != $size)
+			throw new \LengthException('Something went wrong internally which resulted in having a different resulting buffer size that counted recieved bytes.');
 		if($size == 0)
 			throw new SocketReadException('Resource stream seems empty/unable to be read and could thus not stream it into the given object.');
 
@@ -410,6 +422,7 @@ class Message implements IMutableMessage {
 	/**
 	 * Split the headers up into their sanitised key and value pairs.
 	 * @param array $headers Headers to parse.
+	 * @throws HeaderException When the headers are incorrectly formatted.
 	 * @return array Array of arrays where 0=key and 1=value. [['key', 'val'], ..]
 	 */
 	protected static function parseHeaders($headers){
@@ -420,7 +433,8 @@ class Message implements IMutableMessage {
 				$result[$current][1] .= self::CRLF.trim($headers[$i]);
 			}else{
 				$split = explode(':', $headers[$i], 2);
-				var_dump($split);
+				if(!isset($split[1])) // Incorrectly formatted
+					throw new HeaderException('Incorrectly formatted header hit, can\'t continue parsing.');
 				$result[] = array(
 					\Quark\Filter\filter_string($split[0], ['chars' => CONTAINS_ALPHANUMERIC.'-']),
 					trim($split[1])

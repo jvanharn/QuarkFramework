@@ -13,7 +13,7 @@
 // Define Namespace
 namespace Quark\System\Router;
 use Quark\Exception;
-use Quark\Protocols\HTTP\Server\IServerResponse;
+use Quark\Protocols\HTTP\IMutableResponse;
 
 // Prevent individual file access
 if(!defined('DIR_BASE')) exit;
@@ -49,10 +49,10 @@ interface Route {
 	 *
 	 * This function may ONLY be called after positive feedback (e.g. true) from the routable method.
 	 * @param IRoutableRequest $request {@see Route::routable()}
-	 * @param IServerResponse $response The object where the response should be written to.
-	 * @return void
+	 * @param IMutableResponse $response The object where the response should be written to.
+	 * @return mixed|void
 	 */
-	public function route(IRoutableRequest $request, IServerResponse $response);
+	public function route(IRoutableRequest $request, IMutableResponse $response);
 	
 	/**
 	 * Get the available parameters for the url builder.

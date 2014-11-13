@@ -596,7 +596,8 @@ DOCUMENT;
 			$response = new Response(200, 'OK');
 
 		// Set the encoding
-		$response->setHeader('Content-Type', ($this->getXHTML() ? 'application/xml+xhtml' : 'text/html').'; charset='.$this->getEncoding()); // @todo HTML5 doesn't require xhtml mime-type, maybe drop alltogether?
+		//$response->setHeader('Content-Type', ($this->getXHTML() ? 'application/xml+xhtml' : 'text/html').'; charset='.$this->getEncoding()); // @todo HTML5 doesn't require xhtml mime-type, maybe drop alltogether?
+		$response->setHeader('Content-Type', 'text/html; charset='.$this->getEncoding());
 
 		// Set the saved body
 		$response->setBody($this->save());

@@ -13,10 +13,11 @@
 namespace Quark\System\Router;
 use Quark\Protocols\HTTP\IRequest;
 use Quark\Protocols\HTTP\Request;
-use Quark\Protocols\HTTP\Server\ServerRequest;
 
 // Prevent individual file access
 if(!defined('DIR_BASE')) exit;
+
+\Quark\import('framework.protocols.http.request');
 
 /**
  * Interface IRoutableRequest
@@ -47,7 +48,7 @@ interface IRoutableRequest extends IRequest {
  *
  * Represents all relevant data for a (un)routed incoming application request.
  */
-class RoutableRequest extends ServerRequest {
+class RoutableRequest extends Request implements IRoutableRequest {
 	/**
 	 * @var Route The route used to
 	 */
@@ -79,19 +80,19 @@ class RoutableRequest extends ServerRequest {
 		else throw new \InvalidArgumentException('Argument route should be non-null.');
 	}
 
-	/*
+	/**
 	 * Creates an RoutableRequest from a Request object.
-	 * @param Request $request
+	 * @param IRequest $request
 	 * @return RoutableRequest
 	 */
-	/*public static function fromRequest(Request $request){
-		$routable = new RoutableRequest($request->url, $request->method);
+	public static function fromRequest(IRequest $request){
+		$routable = new RoutableRequest($request->getHeader('Host'), $request->getPath(), $request->getMethod(), $request->isSecured());
 
-		$routable->startLine = $request->startLine;
-		$routable->headers = $request->headers;
-		$routable->body = $request->body;
-		$routable->version = $request->version;
+		$routable->startLine = $request->getStartLine();
+		$routable->headers = $request->getHeaders();
+		$routable->body = $request->getBody();
+		$routable->version = $request->getVersion();
 
 		return $routable;
-	}*/
+	}
 }

@@ -235,7 +235,7 @@ class URLPathInfo {
 
 		$this->query = $query;
 
-		if(is_string($hash))
+		if(is_string($hash) || is_null($hash))
 			$this->hash = $hash;
 		else throw new InvalidArgumentTypeException('hash', 'string', $hash);
 	}
@@ -355,6 +355,26 @@ class URLPathInfo {
 	 * @return void
 	 */
 	public function removeBasePath($basePath){
-		//@todo
+		$basePath = trim($basePath, '/');
+		if(empty($basePath))
+			return;
+
+		$base = explode('/', $basePath);
+		$baseCount = count($base);
+		$pathCount = count($this->path);
+
+		if($baseCount > $pathCount)
+			return;
+
+		$match = true;
+		for($i=count($base)-1; $i>0; $i--){
+			if($this->path[$i] != $base[$i]){
+				$match = false;
+				break;
+			}
+		}
+
+		if($match)
+			$this->path = array_slice($this->path, $baseCount);
 	}
 }

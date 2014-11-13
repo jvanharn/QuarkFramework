@@ -11,11 +11,20 @@
 
 // Define Namespace
 namespace Quark\System\Router;
-use Quark\Protocols\HTTP\Server\IServerResponse;
+use Quark\Protocols\HTTP\IMutableResponse;
+use Quark\Protocols\HTTP\MimeParser;
+use Quark\Protocols\HTTP\MimeTypes;
+use Quark\Util\Type\HttpException;
 use Quark\Util\Type\InvalidArgumentTypeException;
 
 // Prevent individual file access
 if(!defined('DIR_BASE')) exit;
+
+\Quark\import(
+	'Quark.Protocols.HTTP.Response',
+	'Quark.Protocols.HTTP.MimeParser',
+	'Quark.Protocols.HTTP.MimeTypes'
+);
 
 /**
  * Static Route.
@@ -62,9 +71,10 @@ class StaticRoute implements Route {
 	 * @return bool
 	 */
 	public function routable(IRoutableRequest $request){
+		$routablePath = trim($this->virtualPath, '/ ');
 		$resource = $request->getPathObject();
 		$resource->removeBasePath($this->base);
-		return (strcasecmp(substr($resource->path, 0, strlen($this->virtualPath)) , $this->virtualPath) === 0);
+		return (strcasecmp(substr(implode($resource->path, '/'), 0, strlen($routablePath)), $routablePath) === 0);
 	}
 
 	/**
@@ -72,28 +82,38 @@ class StaticRoute implements Route {
 	 *
 	 * This function may ONLY be called after positive feedback (e.g. true) from the routable method.
 	 * @param IRoutableRequest $request {@see Route::routable()}
-	 * @param IServerResponse $response The object where the response should be written to.
-	 * @return void
+	 * @param IMutableResponse $response The object where the response should be written to.
+	 * @throws \Quark\Util\Type\HttpException When something out of the ordinary happens (e.g. the request cannot be handled.) but the route should not be passed on to another route to handle.
+	 * @return bool
 	 */
-	public function route(IRoutableRequest $request, IServerResponse $response){
+	public function route(IRoutableRequest $request, IMutableResponse $response){
 		$resource = $request->getPathObject();
 		$resource->removeBasePath($this->base);
+		$resource->removeBasePath($this->virtualPath); // Base it in the local dir.
 
 		// Check if the file exists on the file system
-		if(($real = realpath($this->localPath.'/'.$resource->path)) !== false && is_file($real) && is_readable($real)){
+		if(($real = realpath($this->localPath.'/'.implode('/', $resource->path))) !== false && is_file($real) && is_readable($real)){
 			// Check if the file is inside our target directory $localPath
-			if(strncmp($this->localPath, $real, strlen($this->localPath))){
-				// Check the meta-type information table and apply the appropriate headers.
-				// @todo add the appropriate headers.
-				$response->setHeader('content-type', 'text/plain');
+			if(strncmp($this->localPath, $real, strlen($this->localPath)) === 0){
+				$mimeType = MimeTypes::forFile($real, true);
+
+				// Check if the file is acceptable
+				if(!MimeParser::acceptable($mimeType, $request->getHeader('Accept')))
+					throw new HttpException(406, 'No acceptable resource available.');
+
+				// Apply the appropriate headers.
+				$response->setHeader('Content-Type', $mimeType);
 
 				// Respond with the asked file
 				$response->setBody(fopen($real, 'rb'));
-			}
+
+				return true;
+			}else
+				throw new HttpException(400, 'Target path was not inside target directory. Access denied.');
 		}
 
 		// 404 not found
-		// @todo
+		throw new HttpException(404, 'Could not find the resource you were after.');
 	}
 
 	/**

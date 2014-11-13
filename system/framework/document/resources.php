@@ -14,11 +14,10 @@
 namespace Quark\Document;
 use \Quark\Bundles\Bundles;
 use Quark\Error;
-use Quark\Protocols\HTTP\Server\IServerResponse;
+use Quark\Protocols\HTTP\IMutableResponse;
 use Quark\System\Router\IRoutableRequest;
 use Quark\System\Router\Router;
 use Quark\System\Router\Route;
-use Quark\System\Router\URL;
 
 \Quark\import('Bundles');
 
@@ -332,10 +331,10 @@ class BundleResourceRoute implements Route {
 	 *
 	 * This function may ONLY be called after positive feedback (e.g. true) from the routable method.
 	 * @param IRoutableRequest $request {@see Route::routable()}
-	 * @param IServerResponse $response The object where the response should be written to.
+	 * @param IMutableResponse $response The object where the response should be written to.
 	 * @return void
 	 */
-	public function route(IRoutableRequest $request, IServerResponse $response) {
+	public function route(IRoutableRequest $request, IMutableResponse $response) {
 		// TODO: Implement route() method.
 	}
 }

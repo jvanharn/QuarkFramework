@@ -15,10 +15,14 @@ use Quark\Document\Document;
 use Quark\Document\Layout\BasicLayout;
 use Quark\Document\Utils\Literal;
 use Quark\Exception;
+use Quark\Protocols\HTTP\IMutableResponse;
 use Quark\Protocols\HTTP\IResponse;
 use Quark\Protocols\HTTP\Response;
+use Quark\System\Router\IRoutableRequest;
+use Quark\System\Router\RoutableRequest;
 use Quark\System\Router\Route;
 use Quark\System\Router\Router;
+use Quark\Util\Type\HttpException;
 
 // Prevent individual file access
 if(!defined('DIR_BASE')) exit;
@@ -33,6 +37,11 @@ if(!defined('DIR_BASE')) exit;
  */
 abstract class ForkingServer extends Server {
 	/**
+	 * @var int Master process identifier. The PID of the server process.
+	 */
+	protected $master = -1;
+
+	/**
 	 * @var int The Process Identifier of the current server or child fork.
 	 */
 	protected $pid = -1;
@@ -43,9 +52,16 @@ abstract class ForkingServer extends Server {
 	protected $parent = true;
 
 	/**
+	 * @var array Array of child PIDs
+	 */
+	protected $children = array();
+
+	/**
 	 * Start the server/make the server listen.
 	 */
 	public function start() {
+		$this->master = getmypid();
+
 		// Start socket
 		$this->_createSocket();
 		$this->_bindSocket();
@@ -96,12 +112,44 @@ abstract class ForkingServer extends Server {
 			try {
 				$httpClient = new HttpClient($client);
 
+				// Make sure the httpclient is correctly configured.
+				$this->handleClientCreation($httpClient);
+
+				$request = $httpClient->getRequest();
+				$response = $request->createResponse();
+
 				// Handle keep-alive
-				if(strcasecmp($httpClient->getRequest()->getHeader('Connection'), 'Keep-Alive') == 0){
+				if(strcasecmp($request->getHeader('Connection'), 'Keep-Alive') == 0){
 					socket_set_option($client, SOL_SOCKET, SO_KEEPALIVE, 1);
+					$response->setHeader('Connection', 'keep-alive');
+				}else
+					$response->setHeader('Connection', 'close');
+
+				// Set bare minimum headers
+				// @todo
+
+				try {
+					$this->handleAcceptedConnection($httpClient);
+				}catch(HttpException $httpException){
+					// @todo allow for custom error messages
+					// @todo check for asked mime-types and reply accordingly.
+					$httpException->writeTo($response);
+
+					$response->setHeader('Connection', 'close');
+					$httpClient->writeResponse($response);
+					$httpClient->close();
 				}
 
-				$this->handleAcceptedConnection($httpClient);
+				// @todo handle stay alive connections.
+				if(!$httpClient->isClosed()){
+					$httpClient->close();
+					// @todo log connection close
+				}
+
+				// Connection handled; stop this child.
+				if(!defined('ROUTED_REQUEST'))
+					define('ROUTED_REQUEST', 1);
+				exit(1);
 			}catch(\Exception $e){
 				// @todo log this
 				echo 'An error occurred in procid '.$this->pid.' ('.($this->parent?'parent':'child/fork').') whilst handling an incoming connection: '.$e->__toString().PHP_EOL;
@@ -118,6 +166,16 @@ abstract class ForkingServer extends Server {
 	protected function handleIncomingConnection(){}
 
 	/**
+	 * Should handle an incoming already accepted connection, just after the client is created and no data has been read.
+	 *
+	 * WARNING: Please beware that this method already get's executed in the CHILD PROCESS.
+	 * NOTICE: This fires before handleAcceptedConnection
+	 * @param HttpClient $client Accepted client connection.
+	 * @return void
+	 */
+	protected function handleClientCreation(HttpClient $client){}
+
+	/**
 	 * Should handle an incoming already accepted connection.
 	 *
 	 * WARNING: Please beware that this method already get's executed in the CHILD PROCESS.
@@ -132,17 +190,19 @@ abstract class ForkingServer extends Server {
 	 */
 	protected function _forkProcess(){
 		// Fork
-		$this->pid = pcntl_fork();
-		if ($this->pid == -1) {
+		$pid = pcntl_fork(); // returns child's pid if parent and 0 if child.
+		if ($pid == -1) {
+			$this->pid = -1;
 			return false; // Something went wrong when forking.
-		} else if ($this->pid) {
+		} else if ($pid > 0) {
+			$this->children[] = $pid;
 			$this->parent = true; // we are the parent
-			return true;
 		} else {
 			$this->parent = false; // we are the child
-			$this->_demonize(); // Detach all
-			return true;
+			//$this->_demonize(); // Detach all
 		}
+		$this->pid = getmypid();
+		return true;
 	}
 }
 
@@ -236,21 +296,31 @@ class RoutingForkingServer extends ForkingServer implements IRoutingServer {
 	protected function handleIncomingConnection(){}
 
 	/**
-	 * Should handle an incoming already accepted connection.
-	 *
-	 * WARNING: Please beware that this method already get's executed in the CHILD PROCESS.
+	 * This method makes sure the HttpClient gives us the correct IRequest implementation.
+	 * @param HttpClient $client
+	 */
+	protected function handleClientCreation(HttpClient $client){
+		$client->setRequestFactory(function(){
+			return new RoutableRequest('0.0.0.0', '/'); // @todo use the configured default server ip.
+		});
+	}
+
+	/**
+	 * Handles an incoming already accepted connection by routing it whenever possible.
 	 * @param HttpClient $client Accepted client connection.
+	 * @throws \Quark\Util\Type\HttpException
 	 * @return void
 	 */
 	protected function handleAcceptedConnection(HttpClient $client) {
 		// Route the request
+		/** @var IRoutableRequest $request */
 		$request = $client->getRequest();
-		if($this->router->route($request->getURLObject()) === false){
+		$response = $request->createResponse();
+		if($this->router->route($request, $response) === false){ // Here's the routing magic.
 			// Resource not found. (404 Not Found)
-			$client->writeResponse($this->_writeError(
-				$request->createResponse(404, 'Not Found'),
-				'I was unable to find the resource you are looking for, are you sure it was here?<br/>Maybe you want to try the <a href="/">Homepage</a>?'
-			));
+			throw new HttpException(404, 'I was unable to find the resource you are looking for, are you sure it was here?<br/>Maybe you want to try the <a href="/">Homepage</a>?');
+		}else if($response->hasBody()){ // Routing was successful
+			$client->writeResponse($response);
 		}
 
 		// Check if the response has been written already..
@@ -258,14 +328,11 @@ class RoutingForkingServer extends ForkingServer implements IRoutingServer {
 			// ..it hasn't; check if it at least filled the document object.
 			if(Document::hasInstance() && Document::getInstance()->hasContent()){
 				// Yay! Content!
-				$client->writeResponse(Document::getInstance()->asResponse());
+				Document::getInstance()->toResponse($documentResponse = $request->createResponse());
+				$client->writeResponse($documentResponse);
 			}else{
 				// No content: Internal server error; Nobody wrote a response :/
-				$client->writeResponse(
-					$this->_writeError(
-						$request->createResponse(500, 'Internal Server Error'),
-						'Your request got routed correctly, but nobody generated an actual response.. It is probably wise to inform the webmaster or file a bug.'
-					));
+				throw new HttpException(500, 'Your request got routed correctly, but nobody generated an actual response.. It is probably wise to inform the webmaster or file a bug.');
 			}
 		}
 	}
@@ -307,16 +374,24 @@ class RoutingForkingServer extends ForkingServer implements IRoutingServer {
 
 	/**
 	 * The error to write.
-	 * @param \Quark\Protocols\HTTP\IResponse $response
+	 * @param \Quark\Protocols\HTTP\IMutableResponse $response
 	 * @param string $errorMessage
 	 * @return Response
 	 */
-	private function _writeError(IResponse $response, $errorMessage){
+	private function _writeError(IMutableResponse $response, $errorMessage){
 		$document = Document::createInstance(new BasicLayout());
 		$document->place(new Literal([
-			'html' => '<div style="margin:20px auto;border:1px solid grey;width:500px;text-align:center;border-radius: 4px;background:#f0f0f0;font-family: sans-serif;"><h1 style="text-shadow:#555 0px 0px 3px;border-bottom:1px solid grey;padding:0px 0px 15px 0px">'.$code.': '.$text.'</h1><p>'.$errorMessage.'</p></div>'
+			'html' =>
+				'<div style="margin:40px auto;max-width:700px;background:#FFEBEE;font-family: Roboto, Noto, Lato, \'Open Sans\', sans-serif;box-shadow:0 2px 5px rgba(0,0,0,0.26)">'.
+					'<h1 style="background:#F44336;color: white;padding: 5px 0 5px 14px;margin:0 0 3px 0;">'.
+						$response->getStatusCode().': '.$response->getStatusText().
+					'</h1>'.
+					'<p style="padding: 10px;line-height: 1.4em">'.$errorMessage.'</p>'.
+				'</div>'
 		]));
 		$document->toResponse($response);
+
+		$response->setHeader('Connection', 'close');
 		return $response;
 	}
 }

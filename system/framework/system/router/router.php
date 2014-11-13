@@ -12,7 +12,11 @@
 // Define Namespace
 namespace Quark\System\Router;
 use Quark\Loader;
+use Quark\Protocols\HTTP\IMutableResponse;
+use Quark\Protocols\HTTP\IRequest;
+use Quark\Protocols\HTTP\IResponse;
 use Quark\Protocols\HTTP\Request;
+use Quark\Protocols\HTTP\Server\IServerResponse;
 use Quark\Util\Multiton;
 
 // Prevent individual file access
@@ -84,33 +88,37 @@ class Router implements RouteCollection, \IteratorAggregate, Multiton {
 
 	/**
 	 * Checks all the Route's and tries to load the requested resource.
-	 * @param \Quark\Protocols\HTTP\Request $request Request to route, or null to use the current.
+	 *
+	 * If you have an IRequest implementation that does not implement IRoutableRequest, you can convert it in the following way:
+	 * 	if(!($request instanceof RoutableRequest))
+	 * 		$request = RoutableRequest::fromRequest($request);
+	 * @param IRoutableRequest $request Request to route, or null to use the current.
+	 * @param IMutableResponse $response The response the route can write it's response to/into or null to create a new one using the request.
 	 * @return bool Whether or not the request was successfully routed.
 	 */
-	public function route(Request $request=null){
-		// Convert if necessary
-		if(!($request instanceof RoutableRequest))
-			$request = RoutableRequest::fromRequest($request);
+	public function route(IRoutableRequest $request=null, IMutableResponse $response=null){
+		if(is_null($response))
+			$response = $request->createResponse();
 
 		// Find a suitable route
 		/** @var $route Route */
 		foreach($this->routes as $route){
-			if($route->routable($request) && ($return = $route->route($request)) !== false)
+			if($route->routable($request) && ($return = $route->route($request, $response)) !== false)
 				return $return;
 		}
 		return false;
 	}
 
 	/**
-	 * Checks all the Route's and returns the first route that can route the given url.
-	 * @param \Quark\System\Router\URL $url URL to route, or null to use the current.
-	 * @return Route|null Route that can route the given URL or null.
+	 * Checks all the Route's and returns the first route that can route the given request.
+	 * @param \Quark\System\Router\IRoutableRequest $request Request to route, or null to use the current.
+	 * @return Route|null Route that can route the given request or null.
 	 */
-	public function findRoute(URL $url=null){
+	public function findRoute(IRoutableRequest $request=null){
 		// find a suitable route
 		/** @var $route Route */
 		foreach($this->routes as $route){
-			if($route->routable($url))
+			if($route->routable($request))
 				return $route;
 		}
 		return null;
@@ -123,6 +131,7 @@ class Router implements RouteCollection, \IteratorAggregate, Multiton {
 	 * @return string|bool The resulting URI or false if it failed to build with the given parameters.
 	 */
 	public function build($type, array $params){
+		/** @var $route Route */
 		foreach($this->routes as $route){
 			if($route instanceof $type)
 				return $route->build($params);
