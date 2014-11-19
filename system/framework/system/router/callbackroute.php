@@ -11,7 +11,7 @@
 
 // Define Namespace
 namespace Quark\System\Router;
-use Quark\Protocols\HTTP\Server\IServerResponse;
+use Quark\Protocols\HTTP\IMutableResponse;
 use Quark\Util\Type\InvalidArgumentTypeException;
 
 // Prevent individual file access
@@ -98,10 +98,10 @@ class CallbackRoute implements Route {
 	 *
 	 * This function may ONLY be called after positive feedback (e.g. true) from the routable method.
 	 * @param IRoutableRequest $request {@see Route::routable()}
-	 * @param IServerResponse $response The object where the response should be written to.
+	 * @param IMutableResponse $response The object where the response should be written to.
 	 * @return void
 	 */
-	public function route(IRoutableRequest $request, IServerResponse $response){
+	public function route(IRoutableRequest $request, IMutableResponse $response){
 		call_user_func($this->route, $request, $response);
 	}
 
