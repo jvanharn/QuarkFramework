@@ -109,6 +109,7 @@ class BootstrapLayout extends Layout {
 			self::POSITION_CONTAINER => array('Inside the Page-Container', 'descr'),
 			self::POSITION_AFTER_CONTAINER => array('After the Page-Container', 'descr'),
 		), array('MAIN_CONTENT' => self::POSITION_CONTAINER));
+        $this->positions->default = self::POSITION_CONTAINER;
 	}
 
 	/**
@@ -118,9 +119,13 @@ class BootstrapLayout extends Layout {
 	 * @return boolean
 	 */
 	public function place(IElement $elem, $position=self::POSITION_CONTAINER){
-		if($position == self::POSITION_CONTAINER)
-			$this->placeRow($elem);
-		parent::place($elem, $position);
+        if(!$this->positions->exists($position)) return false;
+        $position = $this->positions->resolve($position);
+
+        if($position == self::POSITION_CONTAINER)
+			return $this->placeRow($elem);
+
+		return parent::place($elem, $position);
 	}
 
 	/**

@@ -26,6 +26,8 @@
 namespace Quark\Database\Driver;
 
 // Prevent individual file access
+use Quark\Database\SQLQuery;
+
 if(!defined('DIR_BASE')) exit;
 
 \Quark\import('Framework.Database.Query');
@@ -33,7 +35,7 @@ if(!defined('DIR_BASE')) exit;
 /**
  * MySQL Query Builder
  */
-class MySQLQuery extends \Quark\Database\SQLQuery {
+class MySQLQuery extends SQLQuery {
 	/**
 	 * All statements with their allowed clauses, call order and any other settings.
 	 * @var array

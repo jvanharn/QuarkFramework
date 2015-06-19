@@ -21,7 +21,7 @@ if(!defined('DIR_BASE')) exit;
 \Quark\import('Framework.Database.Result');
 
 /**
- * MySQL Query Result
+ * SQLite Query Result
  */
 class SQLiteStatement implements Statement {
 	/**
@@ -83,7 +83,7 @@ class SQLiteStatement implements Statement {
 	public function query(array $params=array()){
 		try {
 			if($this->stmt->execute($params)){
-				return new MySQLResult($this->stmt, $this->cursor);
+				return new SQLiteResult($this->stmt, $this->cursor);
 			}else{
 				throw new DatabaseException('Could not execute query, something went wrong while executed prepared PDOStatement object: "'.$this->stmt->errorInfo()[2].'"');
 			}

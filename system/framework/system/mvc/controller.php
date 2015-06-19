@@ -14,15 +14,18 @@
 namespace Quark\System\MVC;
 
 // Prevent individual file access
+use Quark\Protocols\HTTP\IMutableResponse;
 use Quark\Protocols\HTTP\IRequest;
 use Quark\Protocols\HTTP\IResponse;
-use Quark\Protocols\HTTP\Server\IServerResponse;
 use Quark\System\Router\IRoutableRequest;
 
 if(!defined('DIR_BASE')) exit;
 
 /**
  * MVC Controller Implementation base class.
+ *
+ * @property-read View $view
+ * @property-read Model $model
  */
 abstract class Controller {
 	/**
@@ -64,12 +67,12 @@ abstract class Controller {
 	protected $methods;
 
 	/**
-	 * @var IRequest|null The Http Request object for the current HTTP request.
+	 * @var IRoutableRequest|null The Http Request object for the current HTTP request.
 	 */
 	protected $request;
 
 	/**
-	 * @var IResponse|null The Http Response object for the current HTTP response.
+	 * @var IMutableResponse|null The Http Response object for the current HTTP response.
 	 */
 	protected $response;
 	
@@ -94,6 +97,23 @@ abstract class Controller {
 
 		if(!is_null($this->name))
 			$this->name = $name;
+	}
+
+	/**
+	 * Get the value of a value. Magic method.
+	 * @param $attribute
+	 * @return Model|View
+	 * @throws \RuntimeException
+	 */
+	public function __get($attribute){
+		switch($attribute){
+			case 'view':
+				return $this->view;
+			case 'model':
+				return $this->model;
+			default:
+				throw new \RuntimeException('Requested class attribute "'.$attribute.'" does not exist.');
+		}
 	}
 
 	/**
@@ -140,10 +160,10 @@ abstract class Controller {
 	/**
 	 * Set the current request's context objects so you can call any of the controller method's.
 	 * @param IRoutableRequest $request
-	 * @param IServerResponse $response
+	 * @param IMutableResponse $response
 	 * @access private
 	 */
-	public function setContext(IRoutableRequest $request, IServerResponse $response){
+	public function setContext(IRoutableRequest $request, IMutableResponse $response){
 		$this->request = $request;
 		$this->response = $response;
 	}
@@ -195,6 +215,6 @@ abstract class Controller {
 			return new $className();
 		
 		// could not find it :(
-		throw new \RuntimeException('Unable to find the model and view associated with the controller "'.$parts[count($parts-2)].'\\'.$parts[count($parts-1)].'". Define your own constructor and load the models yourself, adjust your controller names to include the names of your controller or define your controller views and models in teh same namespace. If no model or view are defined for this controller(Which is offcourse discouraged in most situations), you can create your own constructor that initiates your references to null.');
+		throw new \RuntimeException('Unable to find the model and view associated with the controller "'.$parts[count($parts)-2].'\\'.$parts[count($parts)-1].'". Define your own constructor and load the models yourself, adjust your controller names to include the names of your controller or define your controller views and models in teh same namespace. If no model or view are defined for this controller(Which is offcourse discouraged in most situations), you can create your own constructor that initiates your references to null.');
 	}
 }

@@ -46,7 +46,7 @@ interface IElement {
 }
 
 /**
- * Loose element without context.
+ * Loose element without context. Mostly inline elements.
  *
  * An loose or unbound element is an element that does not (Necessarily) need to know about the document it is in to render itself.
  */
@@ -59,11 +59,12 @@ interface IIndependentElement extends IElement {
 	 */
 	public function save(Document $context=null, $depth=0);
 
-	/**
-	 * Retrieve the HTML representation of the element without requiring a document as context.
-	 * @return String HTML Representation
-	 */
-	public function independentSave();
+    /**
+     * Retrieve the HTML representation of the element without requiring a document as context.
+     * @param int $depth The current indentation depth, not required.
+     * @return String HTML Representation
+     */
+	public function independentSave($depth=0);
 
 	/**
 	 * @see save()
@@ -154,16 +155,17 @@ trait baseIndependentElement {
 	 * @return String HTML Representation
 	 */
 	public function save(Document $context=null, $depth=0){
-		return $this->independentSave();
+		return $this->independentSave($depth);
 	}
 
 	/**
 	 * Placeholder to satisfy the error checkers.
 	 * @throws \RuntimeException
+     * @param int $depth The current indentation depth, not required.
 	 * @return string|void
 	 * @ignore
 	 */
-	public function independentSave(){
+	public function independentSave($depth=0){
 		throw new \RuntimeException('This method has to be overwritten.');
 	}
 

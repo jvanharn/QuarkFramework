@@ -181,7 +181,7 @@ class Router implements RouteCollection, \IteratorAggregate, Multiton {
 	
 	/**
 	 * Remove certain routes from the router by filtering them with a callback.
-	 * @param callable $filter
+	 * @param callable $filter Function that receives a route and
 	 */
 	public function filterRoutes(callable $filter) {
 		foreach($this->routes as $index => $route){
@@ -199,7 +199,7 @@ class Router implements RouteCollection, \IteratorAggregate, Multiton {
 	public static function getInstance($name=self::DEFAULT_NAME){
 		// Check instance name and return
 		if(!isset(self::$_instances[$name]))
-			throw new \OutOfBoundsException('Named database instance "'.$name.'" could not be found.');
+			throw new \OutOfBoundsException('Named router instance "'.$name.'" could not be found for "'.get_called_class().'"".');
 		
 		return self::$_instances[$name];
 	}

@@ -42,13 +42,12 @@ if(!defined('DIR_BASE')) exit;
 /**
  * Quark uses namespaces to prevent class name duplication and box in dependencies. 'use' makes it easy to use the class without their FQN or namespaces.
  */
-use Quark\Document\Layout\GridLayout;
 use	\Quark\Document\Utils\Text,
 	\Quark\Document\Utils\Literal,
 	\Quark\Document\Utils\Paragraph,
 	
 	\Quark\Document\Form\Form,
-	\Quark\Document\Form\TextFieldI as Field,
+	\Quark\Document\Form\TextField,
 	\Quark\Document\Form\Action,
 	\Quark\Document\Form\Checkbox,
 	\Quark\Document\Form\Selectable;
@@ -82,9 +81,8 @@ class IntroApplication extends Application{
 
 	/**
 	 * This function builds the display of the page in this super basic example.
-	 * @return bool
 	 */
-	public function display(){
+	public function run(){
 		// Header
 		/**
 		 * When using Quark's Document system (Strongly recommended) you can easily place the provided or your own page or application parts onto the page with the place command.
@@ -136,10 +134,10 @@ class IntroApplication extends Application{
 		// Form
 		$form = new Form($this->document, '/', Form::METHOD_POST, false);
 		$form->group(Form::DEFAULT_GROUP, 'Contact');
-		$form->place(new Field('name', 'Your name'));
-		$form->place(new Field('love', 'Awesome'));
+		$form->place(new TextField('name', 'Your name'));
+		$form->place(new TextField('love', 'Awesome'));
 		$form->place(new Checkbox('checky', 'Check diz out.', false));
-		$field = new Field('validated_field','This field get\'s validated');
+		$field = new TextField('validated_field','This field get\'s validated');
 		$field->addValidator(function($v){
 			if($v != 'Quark is Awesome!!')
 				return 'This field should equal "Quark is Awesome!!".';

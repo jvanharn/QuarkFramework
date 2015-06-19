@@ -28,6 +28,8 @@ namespace Quark\Document\Form;
 // Import namespaces
 use Quark\Document\IElement;
 use Quark\Document\IIndependentElement;
+use Quark\Libraries\Bootstrap\baseElementMarkupClasses;
+use Quark\Libraries\Bootstrap\IElementMarkupClasses;
 
 // Prevent individual file access
 if(!defined('DIR_BASE')) exit;
@@ -35,7 +37,9 @@ if(!defined('DIR_BASE')) exit;
 /**
  * Form Field.
  */
-abstract class Field implements IIndependentElement {
+abstract class Field implements IElement, IElementMarkupClasses {
+    use baseElementMarkupClasses;
+
 	/**
 	 * Name of the field in the form.
 	 * @var string
@@ -53,14 +57,6 @@ abstract class Field implements IIndependentElement {
 	 * @var string
 	 */
 	protected $last;
-	
-	/**
-	 * @access protected
-	 * @return string
-	 */
-	public function __toString(){
-		return $this->independentSave();
-	}
 	
 	/**
 	 * Get the name of the current field.
@@ -87,6 +83,14 @@ abstract class Field implements IIndependentElement {
 	public function setLastValue($value){
 		$this->last = $value;
 	}
+
+    /**
+     * Gets the current value for the field.
+     * @return string
+     */
+    public function __toString(){
+        return $this->last;
+    }
 }
 
 /**
@@ -132,7 +136,10 @@ interface IValidatableField {
 	public function validate($value);
 }
 
-trait baseRegisterableNormalizers {
+/**
+ * Class baseRegistrableNormalizers
+ */
+trait baseRegistrableNormalizers {
 	/**
 	 * All registred normalizers
 	 * @var array
@@ -177,11 +184,11 @@ trait baseRegisterableNormalizers {
 }
 
 /**
- * Trait that implements IValidatableField with rigisterable validators.
+ * Trait that implements IValidatableField with registrable validators.
  */
-trait baseRegisterableValidators {
+trait baseRegistrableValidators {
 	/**
-	 * All registred validators
+	 * All registered validators
 	 * @var array
 	 */
 	protected $validators = array();
@@ -189,7 +196,7 @@ trait baseRegisterableValidators {
 	/**
 	 * Add a function to validate the form data.
 	 * 
-	 * Function recieves the value as parameter and should return true on valid,
+	 * Function receives the value as parameter and should return true on valid,
 	 * and a string when there was an error.
 	 * @param callable $validator Method to call.
 	 * @return \Quark\Document\Form\Field The current instance of the field.

@@ -12,7 +12,10 @@ namespace Quark\Bundles;
 
 use Quark\Error;
 use Quark\Exception;
-use Quark\Services\HTTP\Request;
+use Quark\Protocols\HTTP\Client\CurlRequest;
+use Quark\Protocols\HTTP\IRequest;
+use Quark\Protocols\HTTP\Request;
+use Quark\Protocols\HTTP\Response;
 
 // Prevent individual file access
 if(!defined('DIR_BASE')) exit;
@@ -53,17 +56,18 @@ class Repository {
 	 * @return array|bool List of the available bundles as keys with their Name, /Versions/ and Description as array values.
 	 */
 	public static function GetBundleList($url){
-		$request = Request::create($url.self::REMOTE_BUNDLES_LIST);
+		$request = new CurlRequest($url.self::REMOTE_BUNDLES_LIST, IRequest::METHOD_GET);
 
 		try {
+			/** @var $response Response */
 			$response = $request->send(true);
 		} catch(Exception $e) {
-			Error::raiseWarning('An exception occurred during the retrieval of the repository bundle index list of repo "'.$url.'". The HTTP\\Request Class gave the following exception: '.$e->getMessage(), 'An exception ocurred during the retrieval of the bundle list from the repo "'.$url.'".');
+			Error::raiseWarning('An exception occurred during the retrieval of the repository bundle index list of repo "'.$url.self::REMOTE_BUNDLES_LIST.'". The HTTP\\Request Class gave the following exception: '.$e->getMessage(), 'An exception ocurred during the retrieval of the bundle list from the repo "'.$url.'".');
 			return false;
 		}
 
 		if(!$response->hasBody()){
-			Error::raiseWarning('Unable to retrieve the repository bundle index list for repo "'.$url.'". Received an empty response with status code "'.$response->getResponseCode().'".');
+			Error::raiseWarning('Unable to retrieve the repository bundle index list for repo "'.$url.self::REMOTE_BUNDLES_LIST.'". Received an empty response with status code "'.$response->getStatusCode().'".');
 			return false;
 		}
 
@@ -84,7 +88,7 @@ class Repository {
 				return negative( Error::raiseWarning('Whilst trying to determine the latest version for bundle "'.$bundleId.'" in repo "'.$url.'" something went wrong. Try determining whether or not the repo is still in working order or if your connection is still working. If none of these is to blame, consider reporting the package to the repo\'s administrator.') );
 		}
 
-		$request = Request::create($url.urlencode($bundleId).'/'.urlencode($version).'/bundle.json');
+		$request = new CurlRequest($url.urlencode($bundleId).'/'.urlencode($version).'/bundle.json', IRequest::METHOD_GET);
 
 		try {
 			$response = $request->send(true);
@@ -108,7 +112,7 @@ class Repository {
 		if($url == false)
 			return false;
 
-		$request = Request::create($url);
+		$request = new CurlRequest($url, IRequest::METHOD_GET);
 		try {
 			$response = $request->send(true);
 		} catch(Exception $e) {
@@ -145,7 +149,7 @@ class Repository {
 	 * @return string The version string.
 	 */
 	public static function GetBundleLatestAvailableVersion($url, $bundleId){
-		$request = Request::create($url.urlencode($bundleId).'/latest.version');
+		$request = new CurlRequest($url.urlencode($bundleId).'/latest.version', IRequest::METHOD_GET);
 
 		try {
 			$response = $request->send(true);

@@ -19,7 +19,7 @@ use Quark\Database\Driver;
 if(!defined('DIR_BASE')) exit;
 
 /**
- * MySQL Database Driver
+ * SQLite Database Driver
  */
 class SQLiteDriver implements Driver {
 	/**
@@ -39,15 +39,15 @@ class SQLiteDriver implements Driver {
 		if(!self::checkSettings($settings))
 			throw new \BadMethodCallException('Settings incorrectly formatted see the driver info for the required attributes, and make sure the hostname and database fields are non-empty.');
 		
-		// Check if MySQL is available
+		// Check if SQLite is available
 		if(!self::driverAvailable())
-			throw new DatabaseException('Required "MySQL" PDO Driver required for this database driver, was not installed on this server. Please do so to use this specific driver, or use another driver that does have it\'s dependency\'s installed. Drivers that you /can/ use include, but are not limited to: '.implode(', ', \PDO::getAvailableDrivers()).'.');
+			throw new DatabaseException('Required "SQLite" PDO Driver required for this database driver, was not installed on this server. Please do so to use this specific driver, or use another driver that does have it\'s dependency\'s installed. Drivers that you /can/ use include, but are not limited to: '.implode(', ', \PDO::getAvailableDrivers()).'.');
 		
 		// Create the pdo object
 		try {
-			$this->pdo = new \PDO('mysql:host='.$settings['hostname'].';dbname='.$settings['database'], $settings['username'], $settings['password']);
+			$this->pdo = new \PDO('sqlite:'.$settings['database']);
 		}catch(\PDOException $e){
-			throw new DatabaseException('Could not connect to the database.', E_USER_ERROR, $e);
+			throw new DatabaseException('Could not open the SQLite database.', E_USER_ERROR, $e);
 		}
 	}
 	
@@ -59,27 +59,27 @@ class SQLiteDriver implements Driver {
 	}
 	
 	/**
-	 * MySQL Query to Execute
-	 * @param string|\Quark\Database\Driver\MySQLQuery $statement Statement to execute.
+	 * SQLite Query to Execute
+	 * @param string|\Quark\Database\Driver\SQLiteQuery $statement Statement to execute.
 	 * @throws DatabaseException When something was wrong with the query/statement.
 	 * @return boolean|integer Boolean false on failure or the number of affected rows on succes. Beware that the number of rows on succes can also be evaluated as an boolean, try to use the === operator to be sure.
 	 */
 	public function execute($statement) {
-		if(is_string($statement) || $statement instanceof MySQLQuery){
+		if(is_string($statement) || $statement instanceof SQLiteQuery){
 			return $this->pdo->exec((string) $statement);
-		}else throw new DatabaseException('Invalid statement type given. MySQL Driver can only execute SQL Query strings and MySQL Query\'s.');
+		}else throw new DatabaseException('Invalid statement type given. SQLite Driver can only execute SQL Query strings and SQLite Query\'s.');
 	}
 	
 	/**
-	 * MySQL Query to query the database with for results.
-	 * @param string|\Quark\Database\Driver\SQLite $statement Statement to query with.
+	 * SQLite Query to query the database with for results.
+	 * @param string|\Quark\Database\Driver\SQLiteStatement $statement Statement to query with.
 	 * @param boolean $cursor Whether or not to enable a cursor (When possible) for this query.
 	 * @throws DatabaseException When something was wrong with the query/statement.
 	 * @return \Quark\Database\Driver\SQLiteResult
 	 */
 	public function query($statement, $cursor=false) {
 		if(is_bool($cursor)){
-			if(is_string($statement) || $statement instanceof MySQLQuery){
+			if(is_string($statement) || $statement instanceof SQLiteQuery){
 				if($cursor == true)
 					return new SQLiteResult($this->pdo->query((string) $statement), false);
 				else {
@@ -87,7 +87,7 @@ class SQLiteDriver implements Driver {
 					$stmt->execute();
 					return new SQLiteResult($stmt, true);
 				}
-			}else throw new DatabaseException('Invalid statement type given. MySQL Driver can only execute SQL Query strings and MySQL Query\'s.');
+			}else throw new DatabaseException('Invalid statement type given. SQLite Driver can only execute SQL Query strings and SQLite Query\'s.');
 		}else throw new DatabaseException('$cursor should be a boolean, but got "'.gettype($cursor).'".');
 	}
 
@@ -130,7 +130,7 @@ class SQLiteDriver implements Driver {
 	}
 	
 	/**
-	 * Whether or not the MySQL Driver is available/can be used.
+	 * Whether or not the SQLite Driver is available/can be used.
 	 * @return boolean
 	 */
 	public static function driverAvailable() {
@@ -148,7 +148,7 @@ class SQLiteDriver implements Driver {
 		if(!self::checkSettings($settings))
 			return 'Settings incorrectly formatted see the driver info for the required attributes, and make sure the hostname and database fields are non-empty.';
 		
-		// Check if MySQL is available
+		// Check if SQLite is available
 		if(!self::driverAvailable())
 			return 'Required "SQLite" PDO Driver required for this database driver, was not installed on this server. Please do so to use this specific driver, or use another driver that does have it\'s dependency\'s installed. Drivers that you /can/ use include, but are not limited to: '.implode(', ', \PDO::getAvailableDrivers()).'.';
 		

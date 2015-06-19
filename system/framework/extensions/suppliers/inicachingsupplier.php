@@ -26,6 +26,10 @@
 namespace Quark\Extensions\Suppliers;
 
 // Prevent individual file access
+use Quark\Extensions\CachingSupplier;
+use Quark\Extensions\Extensions;
+use Quark\Util\INIFile;
+
 if(!defined('DIR_BASE')) exit;
 
 /**
@@ -41,29 +45,52 @@ if(!defined('DIR_BASE')) exit;
  * handler = driver							; The handler to be used to load it.
  * priority = 10							; The priority of the extension (Influences loading order)
  */
-class INICachingSupplier implements \Quark\Extensions\CachingSupplier{
+class INICachingSupplier implements CachingSupplier {
+	/**
+	 * The default cache ini filename.
+	 */
 	const DEFAULT_FILENAME = 'extensions.ini';
-	
+
+	/**
+	 * @var string The full path to the cached extensions ini file.
+	 */
 	protected $path;
-	
+
+	/**
+	 * @var IniFile Ini file handle.
+	 */
 	protected $ini;
-	
+
+	/**
+	 * @param string $filename
+	 */
 	public function __construct($filename=self::DEFAULT_FILENAME) {
 		$this->path = DIR_DATA.$filename;
 	}
-	
+
+	/**
+	 * @return boolean
+	 */
 	public function cacheable() {
 		return is_writable(dirname($this->path));
 	}
-	
+
+	/**
+	 * @return bool
+	 */
 	public function available() {
 		return is_file($this->path);
 	}
 
-	public function cache(\Quark\Extensions\Extensions $registry) {
+	/**
+	 * @param Extensions $registry
+	 * @return bool
+	 */
+	public function cache(Extensions $registry) {
 		// Create an empty ini object
-		if(is_file($this->path)) unlink($this->path);
-		$this->ini = new \Quark\Util\INIFile($this->path);
+		if(file_exists($this->path) && is_writable($this->path))
+			@unlink($this->path);
+		$this->ini = new INIFile($this->path);
 		
 		// Get extensions registry
 		$extensions = $registry->getExtensionRegistry();
@@ -88,12 +115,16 @@ class INICachingSupplier implements \Quark\Extensions\CachingSupplier{
 		}
 		
 		// Apply Changes
-		$this->ini->write();
+		return ($this->ini->write() !== false);
 	}
 
-	public function fill(\Quark\Extensions\Extensions $registry) {
+	/**
+	 * @param Extensions $registry
+	 * @return bool
+	 */
+	public function fill(Extensions $registry) {
 		if(is_null($this->ini))
-			$this->ini = new \Quark\Util\INIFile($this->path);
+			$this->ini = new INIFile($this->path);
 		
 		// Get the extension registry
 		$extensions = $registry->getExtensionRegistry();
@@ -111,8 +142,8 @@ class INICachingSupplier implements \Quark\Extensions\CachingSupplier{
 			
 			// Check the handler is loadable
 			if(!$handlers->exists($props['handler'])){
-				$this->ini->set($name, 'state', self::STATE_LOADERROR);
-				$props['state'] = self::STATE_LOADERROR;
+				$this->ini->set($name, 'state', Extensions::STATE_LOADERROR);
+				$props['state'] = Extensions::STATE_LOADERROR;
 			}
 				
 			// Insert in Queue
@@ -128,6 +159,6 @@ class INICachingSupplier implements \Quark\Extensions\CachingSupplier{
 		}
 		
 		// Apply Changes
-		$this->ini->applyChanges();
+		return $this->ini->applyChanges();
 	}	
 }

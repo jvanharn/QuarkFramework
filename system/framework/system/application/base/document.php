@@ -27,6 +27,8 @@
 
 // Define Namespace
 namespace Quark\System\Application\Base;
+use Quark\Document\Layout\BasicLayout;
+use Quark\Document\Layout\Layout;
 
 // Prevent individual file access
 if(!defined('DIR_BASE')) exit;
@@ -49,16 +51,23 @@ trait Document {
 	 */
 	protected function initDocument(){
 		\Quark\import('Framework.Document.Layout.BasicLayout');
-		$this->initDocumentWithLayout(new \Quark\Document\Layout\BasicLayout());
+		$this->initDocumentWithLayout(new BasicLayout());
 	}
 	
 	/**
 	 * Initialize the document with the given layout.
-	 * @param \Quark\Document\Layout\Layout $layout Layout to create the document with
+	 * @param Layout $layout Layout to create the document with
 	 * @param string $type Valid Document TYPE_* constant. Defines the standard with wich the document will be rendered (XHTML, HTML5(Default), etc.)
 	 */
-	protected function initDocumentWithLayout(\Quark\Document\Layout\Layout $layout, $type=\Quark\Document\Document::TYPE_HTML){
+	protected function initDocumentWithLayout(Layout $layout, $type=\Quark\Document\Document::TYPE_HTML){
 		$this->document = \Quark\Document\Document::createInstance($layout, $type);
+
+		if($this instanceof Router)
+			/** @noinspection PhpUndefinedFieldInspection */
+			$this->document->resources->setRouter($this);
+
+		if(!empty($this->router) && $this->router instanceof Router)
+			$this->document->resources->setRouter($this->router);
 	}
 	
 	/**

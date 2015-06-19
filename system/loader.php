@@ -141,6 +141,61 @@ class Loader{
 	}
 
 	/**
+	 * Method to easily load the bare essentials needed to load a application.
+	 * @param boolean $debug Whether or not to enable debug mode.
+	 */
+	public static function bootstrapConsoleFramework($debug=false){
+		// Check for correct PHP Version
+		if(version_compare(PHP_VERSION, '5.4.0') < 0)
+			exit(PHP_EOL.'-> Unqualified PHP Installation'.PHP_EOL."\t".'The minimal php version required to run any Quark Based application is PHP 5.4.0,'.PHP_EOL."\t".'we recommend one of the later bugfix releases though. You are running '.PHP_VERSION.', please upgrade.');
+
+		// Enable debugmode when needed
+		if($debug){
+			error_reporting(-1);			// Enables ALL php errors
+			ini_set('display_errors', 1);	// Makes sure those errors are displayed
+		}
+
+		// Make sure the circular reference garbage collector is enabled
+		if(!gc_enabled()) gc_enable();
+
+		// Define some Shortcut constants
+		if(!defined('DS'))
+			define('DS', DIRECTORY_SEPARATOR); // Directory_Separator shortcut
+		if(!defined('EOL')) // Default end of line character for output
+			define('EOL', "\n");
+		if(!defined('FILE_EOL'))
+			define('FILE_EOL', PHP_EOL);
+
+		// Set the default paths if they haven't been set yet
+		if(!defined('DIR_SYSTEM')){
+			// System paths
+			define('DIR_SYSTEM', DIR_BASE.'system'.DS);
+			define('DIR_FRAMEWORK', DIR_SYSTEM.'framework'.DS);
+			define('DIR_LIBRARIES', DIR_SYSTEM.'libraries'.DS);
+			define('DIR_EXTENSIONS', DIR_SYSTEM.'extensions'.DS);
+			define('DIR_APPLICATION', DIR_SYSTEM.'application'.DS);
+
+			// Set the paths to assets
+			define('DIR_ASSETS', DIR_BASE.'assets'.DS);
+			define('DIR_BUNDLES', DIR_ASSETS.'bundles'.DS);
+			define('DIR_SKINS', DIR_ASSETS.'skins'.DS);
+
+			// Set the paths to data
+			define('DIR_DATA', DIR_BASE.'data'.DS);
+			define('DIR_LOGS', DIR_DATA.'logs'.DS);
+			define('DIR_TEMP', sys_get_temp_dir().'quark'.DS);
+		}
+
+		// Error Handling and Logging
+		import(
+			//'Framework.Error',				// Framework Error Handling
+			//'Framework.Error.Exception',	// Framework Unhandled Exception to Error Handler/Converter
+			'Framework.System.Log',			// System Logging
+			'Framework.Util.Singleton'		// Is needed by a lot of classes, just include it here.
+		);
+	}
+
+	/**
 	 * Simple way to start your default application.
 	 *
 	 * Searches the DIR_APPLICATION directory for a file like 'application.php'

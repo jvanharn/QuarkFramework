@@ -10,7 +10,6 @@
 namespace Quark\Protocols\HTTP\Client;
 use Quark\Error;
 use Quark\Exception;
-use Quark\Protocols\HTTP\ClientRequest;
 use Quark\Protocols\HTTP\IRequest;
 use Quark\Protocols\HTTP\Response;
 
@@ -58,8 +57,7 @@ class CurlRequest extends ClientRequest {
 	 * Close the handle.
 	 */
 	public function __destruct(){
-		if(!is_null($this->handle))
-			curl_close($this->handle);
+		$this->close();
 	}
 	#endregion
 
@@ -137,7 +135,7 @@ class CurlRequest extends ClientRequest {
 	 * @ignore
 	 * @throws \HttpRuntimeException
 	 */
-	public function getBody(){
+	public function getBody($raw=true, $bufferLimit=8192){
 		throw new \HttpRuntimeException('The body cannot be retrieved from HTTPRequests because they are immediately written to the socket when set.');
 	}
 	#endregion
@@ -157,6 +155,9 @@ class CurlRequest extends ClientRequest {
 		// Set headers
 		curl_setopt($response_handle, CURLOPT_HTTPHEADER, $this->headers);
 
+		// We want the headers in the response too
+		curl_setopt($response_handle, CURLOPT_HEADER, true);
+
 		// Send
 		$response = curl_exec($response_handle);
 		$info = curl_getinfo($response_handle);
@@ -170,38 +171,24 @@ class CurlRequest extends ClientRequest {
 		curl_close($response_handle);
 
 		// Create and return a resource response wrapper
-		$status = '';
-		$headers = self::_parseHeaders(substr($response, 0, $info['header_size']), $status);
-		return new Response($status, $headers, substr($response, $info['header_size']));
+		return new ClientResponse(
+			substr($response, 0, $info['header_size']),
+			substr($response, $info['header_size'])
+		);
 	}
 
 	/**
 	 * Close the request
+     * @return boolean
 	 */
 	public function close(){
-		if(!is_null($this->handle))
-			curl_close($this->handle);
-	}
-
-	/**
-	 * Parse headers into a dimensional array.
-	 * @param string $str Header string to parse.
-	 * @param string $status A reference to a variable where the status string can be saved in.
-	 * @return array
-	 */
-	private static function _parseHeaders($str, &$status){
-		$raw = explode("\n", $str);
-		$headers = array();
-		for($i=0; $i<count($raw); $i++){
-			if($i == 0 && strpos($raw[$i], ':') == -1)
-				$status = $raw[$i];
-
-			else{
-				$exp = explode(':', $raw[$i]);
-				$headers[trim($exp[0])] = trim($exp[1]);
-			}
-		}
-		return $headers;
+		if(!is_null($this->handle)) {
+            try {
+                @curl_close($this->handle);
+                return true;
+            }catch(\Exception $e){ }
+        }
+        return false;
 	}
 
 	/**

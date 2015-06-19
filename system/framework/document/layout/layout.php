@@ -59,7 +59,7 @@ abstract class Layout implements IElement, \IteratorAggregate{
 	
 	/**
 	 * Dictionary of all the positions and the elements they contain
-	 * @var IElement[]
+	 * @var array[]
 	 */
 	protected $elements = array();
 	
@@ -80,7 +80,7 @@ abstract class Layout implements IElement, \IteratorAggregate{
 	 */
 	public function place(IElement $elem, $position){
 		if(!$this->positions->exists($position)) return false;
-		else $position = $this->positions->resolve($position);
+		$position = $this->positions->resolve($position);
 		
 		if(!isset($this->elements[$position]))
 			$this->elements[$position] = array();

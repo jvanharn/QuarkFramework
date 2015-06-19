@@ -221,10 +221,11 @@ class Headers {
 	 * @param int $content One of the CONTENT_* constants.
 	 * @return boolean
 	 */
-	public function registerType($type, $attr, $opt=null, $content=self::CONTENT_REMOVE){
+	public function registerType($type, $attr, $opt=null, $content=self::CONTENT_NONE){
 		// Check type
 		if(is_string($type) && is_array($attr) && (is_array($opt)||is_null($opt))){
-			$this->types[$type] = array($attr, $opt);
+			$this->types[$type] = array($attr, $opt, $content);
+            return true;
 		}else return false;
 	}
 	

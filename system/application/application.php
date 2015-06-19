@@ -41,181 +41,115 @@ if(!defined('DIR_BASE')) exit;
 	'Framework.System.Application.Base.Extensions',
 	'Framework.System.Application.Base.Database'
 );
-
+use Quark\Protocols\HTTP\IMutableResponse;
+use Quark\Protocols\HTTP\Server\ServerResponse;
+use Quark\System\Application\MVC;
+use Quark\System\Application\MVCApplication;
+use Quark\System\MVC\MultiRoute;
+use Quark\System\Router\IRoutableRequest;
+use Quark\Util\baseSingleton;
+use Quark\System\Application\Base\Router as RouterAppBase,
+    Quark\System\Application\Base\Document as DocumentAppBase,
+    Quark\System\Application\Base\Extensions as ExtensionsAppBase,
+    Quark\System\Application\Base\Database as DatabaseAppBase;
 use Quark\Bundles\Bundles;
+
 use Quark\Libraries\Bootstrap\BootstrapLayout,
 	Quark\Libraries\Bootstrap\Components as Components,
-	Quark\Libraries\Bootstrap\Elements as Elements;
+	Quark\Libraries\Bootstrap\Elements as Elements,
+    Quark\Libraries\Bootstrap\Components\Alert,
+    Quark\Libraries\Bootstrap\Elements\Label,
+    Quark\Libraries\Bootstrap\Elements\Text,
+    Quark\Libraries\Bootstrap\Glyphicon,
+    Quark\Document\Utils\Paragraph;
 
-use Quark\Libraries\Bootstrap\Grid\Container;
+use Quark\Libraries\Bootstrap\Form\Form,
+    Quark\Libraries\Bootstrap\Form\Plaintext,
+    Quark\Document\Form\Action,
+    Quark\Document\Form\Checkbox,
+    Quark\Document\Form\Selectable,
+    Quark\Document\Form\Textarea,
+    Quark\Document\Form\TextField;
+
 use Quark\System\Router\StaticRoute,
 	Quark\Document\BundleResourceRoute;
+use Quark\Util\Type\HttpException;
 
-use \Quark\System\Application\Base\Router as RouterAppBase,
-	\Quark\System\Application\Base\Document as DocumentAppBase,
-	\Quark\System\Application\Base\Extensions as ExtensionsAppBase,
-	\Quark\System\Application\Base\Database as DatabaseAppBase;
-use Quark\Util\baseSingleton;
 
 /**
  * Default Quark Framework Homepage.
  */
-class Application extends \Quark\System\Application\Application{
-	use baseSingleton,
-		RouterAppBase,
-		DocumentAppBase,
-		ExtensionsAppBase,
-		DatabaseAppBase;
-	
-	public function __construct(){
-		$this->initRouter(array(
-			new BundleResourceRoute(),
-			new StaticRoute()
-		));
+class Application extends MVCApplication {
+    /**
+     * Configure the system/application.
+     */
+    public function __construct(){
+        parent::__construct(
+            // Controllers
+            'controllers/', // Path of the controller directory (Relative to the application directory).
+            '\\QuarkSample\\Controllers\\',
+            '/',
 
-		$this->initDocumentWithLayout(new BootstrapLayout());
+            // Routes
+            array(
+                new BundleResourceRoute(),
+                new StaticRoute(DIR_ASSETS, 'assets/')
+            ),
+
+            // Database
+            'mysql.driver',
+            array('hostname' => 'localhost', 'database' => 'quark', 'username' => 'quark', 'password' => 'quarktest'),
+
+            // Layout
+            new BootstrapLayout()
+        );
+
+        // Reference the bootstrap library
 		$this->document->resources->reference('bootstrap.css');
 
-		$this->initExtensions();
-		/*$this->initDatabaseWithDriverName( // Database no longer available on Debug VM
-			'mysql.driver',
-			array('hostname' => 'localhost', 'database' => 'quark', 'username' => 'quark', 'password' => 'quarktest'),
-			$this->extensions
-		);*/
+        // Set the default/home controller
+        foreach($this->router as $route){
+            if($route instanceof MultiRoute)
+                $route->defaultController = 'home';
+        }
 
-		date_default_timezone_set(@date_default_timezone_get()); // Fix timezone warnings.
+		\date_default_timezone_set(@\date_default_timezone_get()); // Fix timezone warnings.
 
-		// Update the bundles list AT LEAST ONCE before you run the application
-		//Bundles::updateList(); // Downloads the available (3rd party) bundles that *can be installed*.
-		//Bundles::_resetInstalledList();
-		//Bundles::scan(false); // Scan for new *local/already installed* bundles (This HAS to be done before bundles can be used!!)
-		//var_dump(array_map(function($id){return Bundles::get($id)->resources;}, Bundles::listInstalled()));
+        if(Bundles::cacheWritable() && filemtime(BUNDLE_LIST_PATH) < (time() - 604800)) { // Update once in the week
+            $this->document->place(new Alert('Updating local resource bundle cache..', Alert::TYPE_INFO));
+            Bundles::updateList(); // Downloads the available (3rd party) bundles that *can be installed*.
+            Bundles::_resetInstalledList();
+            Bundles::scan(false); // Scan for new *local/already installed* bundles (This HAS to be done before bundles can be used!!)
+        }else if(!Bundles::cacheWritable()){
+            // @todo this is kind of ugly.
+            $page = new HttpException(500, 'The bundle cache has not been made writable, and therefore will have to be reloaded every time you request a page from the server. This is bad for performance, please make the file "'.BUNDLE_LIST_PATH.'" writable for me.');
+            $page->writeTo(new ServerResponse());
+        }
 	}
-	
-	public function run(){
-		/** @var BootstrapLayout $layout */
-		$layout = $this->document->layout;
 
-		// Header
-		$navigation = new Components\NavigationBar('Quark App Framework');
-		$menu = new Components\NavigationBarMenu();
-		$menu->addLink('test1');
-		$menu->addLink('test2');
-		$menu->addDropdown('test3', array('text' => 'link'));
-		$navigation->addContent($menu);
-		$layout->place($navigation);
+    /**
+     *
+     * @param IRoutableRequest $request
+     * @param IMutableResponse $response
+     * @return boolean
+     */
+    public function routeRequest(IRoutableRequest $request, IMutableResponse $response) {
+        // Header
+        $navigation = new Components\NavigationBar('Quark App Framework');
+        $menu = new Components\NavigationBarMenu();
+        $menu->addLink('test1');
+        $menu->addLink('test2');
+        $menu->addDropdown('test3', array('text' => 'link'));
+        $navigation->addContent($menu);
+        $this->document->place($navigation);
 
-		// Breadcrumbs
-		$breadcrumbs = new Components\Breadcrumbs();
-		$breadcrumbs->append(new Components\BreadcrumbPart('Home', '/'));
-		$breadcrumbs->append(new Components\BreadcrumbPart('News'), true);
-		$layout->place($breadcrumbs);
+        // Run the controller
+        if(!$this->router->route($request, $response)){
+            // 404
+            $errorPage = new HttpException(404, 'Could not find the requested resource.');
+            $errorPage->writeTo($response);
+        }
 
-		// Dropdown Button inside a Button group (The same as the shorthand, with the exception that this is a small button)
-		$buttongroup = new Components\ButtonGroup(Components\ButtonGroup::BTN_GROUP_XS);
-		$activator =
-			(new Components\Button('Locking menu!'))
-				->setIcon('lock');
-		$activator->setActivatable($dropdown = new Components\Dropdown());
-		$dropdown
-			->addLink('test', '#lol')
-			->addDivider()
-			->addLink('test2', '#lol');
-		$buttongroup->addButton($activator);
-		$buttongroup->addDropdown($dropdown);
-
-		// Button and dropdown with the short syntaxis
-		/** @var Components\Dropdown $secondMenu */
-		$secondMenu = null;
-		$secondButtongroup = Components\Dropdown::create($secondMenu, 'Shorthand Dropdown', 'ok');
-		$secondMenu
-			->addHeader('Real menu')
-			->addLink('second', '#lol')
-			->addLink('test!', '#lol');
-
-		// Place the buttons on the grid
-		$layout->placeRow([$buttongroup, $secondButtongroup]);
-
-		// Pager
-		$layout->place(new Components\Pager($dropdown, '#next'));// The dropdown won't work as in bootstrap it doesn't work with Pager elements.
-
-		// Pagination
-		$layout->place(
-			(new Components\Pagination(Components\Pagination::PAGINATION_SM))
-				->addCluster(1, 3, 10, '#pages/{{page}}', false));
-
-
-
-		// Left Menu
-
-
-		// Content
-
-		/*
-		// Content
-		$this->document->place(
-			new Literal(array('html' => 
-				'<h2>Introduction</h2>'.
-				
-				'<p>
-					Quark is an Application Framework which for Quark basically means that it helps you to easily and quickly conceive simple websites,
-					web applications and even complete web services and matching <abbr title="Application Programming Interface">API\'s</abbr>.
-					Quark does this in a way that gives you as much control as possible, for almost everything you may possibly need we try to provide
-					multiple ways to do something with one being the preffered one. If you do not like to build your document using DocumentModels and
-					Interface elements, you can use a templating system. If you just want to generate the HTML yourself? Go ahead.
-				</p>'.
-				'<p>
-					Don\'t like all those grumpy old Framework\'s and cms\'s that have had the same aged functional interface since PHP3?
-					We don\'t like them either. While providing a consistent interface for you to use, we try to make available to you the latest and
-					greatest PHP functions and speed improvements that we can possibly offer. But instead of holding on to a part of the API that has
-					become outdated, we provide you with a detailed upgrade guide on how to convert your existing application to the new major version
-					and just fix what has to be fixed. For example, we already heavily use Inline Funcions, Short-Syntax array notation and most of
-					all Trait\'s.
-				</p>'
-			))
-		, 'CONTENT');
-		$this->document->place(
-			new Literal(array('html' => 
-				'<h2>History</h2>'.
-				'<p>
-					The Quark Application Framework was initially conceived for a <abbr title="Content Management System">CMS</abbr> named PageTree CMS.
-				</p>'))
-		, 'CONTENT');
-		$this->document->place(
-			new Literal(array('html' => 
-				'<h2>Documentation</h2>'.
-				'<p>
-					Even though Quark is still in the early stages of it\'s development, we have a Documentation that matches any other Framework\'s docs.
-					The documentation consists of a considerable amount of <a href="http://quark.lessthanthree.nl/" title="Application Programming Interface">API Documentation</a>,
-					we also have some <a href="http://quark.lessthanthree.nl/">regular documentation</a> and off course some simple <a href="http://quark.lessthanthree.nl/">tutorials</a> to get you started!
-				</p>'))
-		, 'CONTENT');
-		
-		$form = new Form($this->document, '/', Form::METHOD_POST, false);
-		$form->group(Form::DEFAULT_GROUP, 'Contact');
-		$form->place(new Field('name', 'Your name'));
-		$form->place(new Field('love', 'Awesome'));
-		$form->place(new Checkbox('checky', 'Check diz out.', false));
-		$field = new Field('validated_field','This field get\'s validated');
-		$field->addValidator(function($v){
-			if($v != 'Quark is Awesome!!')
-				return 'This field should equal "Quark is Awesome!!".';
-			else return true;
-		});
-		$form->place($field);
-		$form->place(new Selectable('lolzz','Select some',false,['option1', 'option2', 'option3', 'option4', 'option5', 'option6', 'option7']));
-		$form->place(new Action(Action::ACTION_SUBMIT));
-		if($form->validated()) $this->document->place(new Paragraph(var_export($form->data(), true), 'Results', 2), 'CONTENT');
-		else $this->document->place(new Paragraph($form, 'Contact', 2), 'CONTENT');
-		
-		// Footer
-		$this->document->place(
-			new Text('Copyleft 2012 LessThanThree Design')
-		, 'FOOTER');*/
-
-		// Output the resulting document.
-		$this->document->display();
-
-		return true;
-	}
+        $this->document->display();
+    }
 }

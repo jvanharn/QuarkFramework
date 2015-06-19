@@ -63,6 +63,7 @@ class CallbackRoute implements Route {
 	/**
 	 * Gives the base url of the Application to which this route was bound.
 	 * @param string $url URL to the base application.
+	 * @return void
 	 */
 	public function setBase($url) {
 		$this->base = $url;
@@ -99,10 +100,10 @@ class CallbackRoute implements Route {
 	 * This function may ONLY be called after positive feedback (e.g. true) from the routable method.
 	 * @param IRoutableRequest $request {@see Route::routable()}
 	 * @param IMutableResponse $response The object where the response should be written to.
-	 * @return void
+	 * @return mixed
 	 */
 	public function route(IRoutableRequest $request, IMutableResponse $response){
-		call_user_func($this->route, $request, $response);
+		return call_user_func($this->route, $request, $response);
 	}
 
 	/**

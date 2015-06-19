@@ -198,7 +198,9 @@ class Random {
 	
 	/**
 	 * Pseudo Random Number Generator.
-	 * 
+	 *
+	 * This method is NOT CRYPTOGRAPHICALLY SECURE. Please use the other methods for those purposes.
+	 *
 	 * This generator /always/ returns the same result with the same seed, which
 	 * is usefull in some cases where you want persistent values.
 	 * @param integer $seed Seed to use for the generator.

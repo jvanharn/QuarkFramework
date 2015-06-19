@@ -63,7 +63,7 @@ class_alias('\Quark\Util\Type\InvalidArgumentTypeException', '\InvalidArgumentTy
 class HttpException extends \RuntimeException {
 	/**
 	 * Create a http exception with the given message
-	 * @param string $httpCode
+	 * @param int $httpCode
 	 * @param string $message
 	 * @param \Exception $previous
 	 */
@@ -92,6 +92,7 @@ class HttpException extends \RuntimeException {
 
 			case 'text/html':
 				$document = Document::createInstance(new BasicLayout());
+				$document->headers->add('title', array(), $response->getStatusCode().' '.$response->getStatusText());
 				$document->place(new Literal([
 					'html' =>
 						'<div style="margin:40px auto;max-width:700px;background:#FFFFFF;font-family: Roboto, Noto, Lato, \'Open Sans\', sans-serif;box-shadow:0 2px 5px rgba(0,0,0,0.26)">'.

@@ -52,7 +52,7 @@ class Text implements IElement {
 	public function __construct($text){
 		if(is_string($text))
 			$this->text = $text;
-		else throw new InvalidArgumentException('The $text given should be of type "string".');
+		else throw new \InvalidArgumentException('The $text given should be of type "string".');
 	}
 
 	/**

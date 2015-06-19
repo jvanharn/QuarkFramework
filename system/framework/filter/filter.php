@@ -256,7 +256,7 @@ function filter_string($input, $filters){
  * @return bool|mixed
  */
 function validate_string($input, $validators){
-	if(is_string($input) || is_numeric($input))
+	if(is_scalar($input))
 		return Filter::apply((string) $input, array(Filter::VALIDATOR=>$validators));
 	else return false;
 }

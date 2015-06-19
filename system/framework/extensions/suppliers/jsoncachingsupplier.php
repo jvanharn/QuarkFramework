@@ -81,8 +81,8 @@ class JSONCachingSupplier implements CachingSupplier{
 	 */
 	public function cache(Extensions $registry) {
 		// Make sure we overwrite
-		if(is_file($this->path))
-			unlink($this->path);
+		if(file_exists($this->path) && is_writable($this->path))
+			@unlink($this->path);
 
 		// Get extensions registry
 		$extensions = $registry->getExtensionRegistry();
@@ -108,7 +108,7 @@ class JSONCachingSupplier implements CachingSupplier{
 			);
 		}
 
-		file_put_contents($this->path, json_encode($result));
+		return (file_put_contents($this->path, json_encode($result)) !== false);
 	}
 
 	/**

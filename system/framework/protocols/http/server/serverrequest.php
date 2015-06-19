@@ -8,12 +8,18 @@
  */
 
 namespace Quark\Protocols\HTTP\Server;
-use Quark\Protocols\HTTP\IRequest;
+use Quark\System\Router\IRoutableRequest;
+use Quark\System\Router\Route;
 use Quark\System\Router\URL;
 use Quark\System\Router\URLPathInfo;
 
 // Prevent individual file access
 if(!defined('DIR_BASE')) exit;
+
+\Quark\import(
+	'Quark.Protocols.HTTP.Request',
+	'Quark.System.Router.RoutableRequest'
+);
 
 /**
  * Class ServerRequest
@@ -22,7 +28,17 @@ if(!defined('DIR_BASE')) exit;
  * It is read-only (in contrast to the default implementation) and maps all methods to native php/hphp calls.
  * @package Quark\Protocols\HTTP\Server
  */
-class ServerRequest implements IRequest {
+class ServerRequest implements IRoutableRequest {
+	/**
+	 * @var array
+	 */
+	protected $headers;
+
+	/**
+	 * @var Route|null
+	 */
+	protected $route;
+
 	/**
 	 * Get the first line of the HTTP Message defined as the "Start-Line".
 	 * @return string
@@ -39,6 +55,9 @@ class ServerRequest implements IRequest {
 	 * @return array
 	 */
 	public function getHeaders() {
+		if(!is_null($this->headers))
+			return $this->headers;
+
 		if(function_exists('apache_request_headers'))
 			return apache_request_headers();
 		$headers = array();
@@ -52,12 +71,16 @@ class ServerRequest implements IRequest {
 			$headers['Accept-Language'] = $_SERVER['HTTP_ACCEPT_LANGUAGE'];
 		if(!empty($_SERVER['HTTP_CONNECTION']))
 			$headers['Connection'] = $_SERVER['HTTP_CONNECTION'];
+		if(!empty($_SERVER['HTTP_IF_NONE_MATCH']))
+			$headers['If-None-Match'] = $_SERVER['HTTP_IF_NONE_MATCH'];
 		if(!empty($_SERVER['HTTP_HOST']))
 			$headers['Host'] = $_SERVER['HTTP_HOST'];
 		if(!empty($_SERVER['HTTP_REFERER']))
 			$headers['Referer'] = $_SERVER['HTTP_REFERER'];
 		if(!empty($_SERVER['HTTP_USER_AGENT']))
 			$headers['User-Agent'] = $_SERVER['HTTP_USER_AGENT'];
+
+		$this->headers = $headers;
 		return $headers;
 	}
 
@@ -147,6 +170,58 @@ class ServerRequest implements IRequest {
 		if($this->getPath() == '*')
 			return null;
 		$parsed = parse_url($this->getPath());
-		return new URLPathInfo($parsed['path'], $parsed['query'], $parsed['fragment']);
+		return new URLPathInfo(
+			isset($parsed['path']) ? $parsed['path'] : '/',
+			isset($parsed['query']) ? $parsed['query'] : array(),
+			isset($parsed['fragment']) ? $parsed['fragment'] : ''
+		);
+	}
+
+	/**
+	 * Get the value of the header with the given token.
+	 * @param string $token The token of the header to get.
+	 * @return string|null
+	 */
+	public function getHeader($token) {
+		$headers = $this->getHeaders();
+		return isset($headers[$token]) ? $headers[$token] : null;
+	}
+
+	/**
+	 * Create a basic response to the given request.
+	 *
+	 * @param int $code Response code.
+	 * @param string $text Response text.
+	 * @param bool $recycle Whether or not to try and retrieve an already created response object for this request. (Which may already be modified by now) When set to false when an response object was already created earlier, the new object will overwrite the old.
+	 * @return \Quark\Protocols\HTTP\Server\ServerResponse
+	 */
+	public function createResponse($code=200, $text='OK', $recycle=true) {
+		return new ServerResponse($code);
+	}
+
+	/**
+	 * Get the route used to route the current request.
+	 * @return Route|null
+	 */
+	public function getRoute() {
+		return $this->route;
+	}
+
+	/**
+	 * Check whether this request is (already) routed.
+	 */
+	public function isRouted() {
+		return !is_null($this->route);
+	}
+
+	/**
+	 * Set the route assigned to this request.
+	 * @param Route $route
+	 * @throws \InvalidArgumentException When route is null.
+	 */
+	public function setRoute(Route $route) {
+		if(is_null($route)) // @todo I dont think these kinds of checks are required since the method def says Route $route and not Route $route=null
+			throw new \InvalidArgumentException('Invalid $route given. Expected valid Route object, got null.');
+		$this->route = $route;
 	}
 }

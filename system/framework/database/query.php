@@ -65,7 +65,7 @@ interface Query {
 	
 	/**
 	 * Executes the query in the database and returns the success state.
-	 * @return boolean|int Success state or number of affected rows.
+	 * @return boolean|int|Result Success state or number of affected rows.
 	 */
 	public function execute();
 	

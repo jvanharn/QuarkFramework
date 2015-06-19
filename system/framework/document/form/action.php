@@ -25,6 +25,7 @@
 // Define Namespace
 namespace Quark\Document\Form;
 use \Quark\Document\Document;
+use Quark\Document\Utils\_;
 
 // Prevent individual file access
 if(!defined('DIR_BASE')) exit;
@@ -34,9 +35,7 @@ if(!defined('DIR_BASE')) exit;
  * 
  * Enables you to add submit and/or reset buttons to your form.
  */
-class Action extends Field implements IValidatableField {
-	use baseRegisterableValidators;
-	
+class Action extends Field {
 	/**
 	 * When clicked this button will submit the form.
 	 */
@@ -76,16 +75,17 @@ class Action extends Field implements IValidatableField {
 				throw new \InvalidArgumentException('Parameter $action should be one of the ACTION_* constants.');
 		}
 		$this->action = $action;
-		$this->label = null;
 		$this->text = (string) $text;
 	}
-	
-	/**
-	 * Save the button to HTML.
-	 * @param Document $context The context within which the Element gets saved. (Contains data like encoding, XHTML or not etc.)
-	 * @return String HTML Representation
-	 */
-	public function save(Document $context) {
-		return "\t\t\t\t<input type=\"".$this->name."\" name=\"".$this->name."\" value=\"".$context->encodeText($this->text)."\"/>\n";
+
+    /**
+     * Save the button to HTML.
+     * @param Document $context The context within which the Element gets saved. (Contains data like encoding, XHTML or not etc.)
+     * @param int $depth
+     * @return String HTML Representation
+     */
+	public function save(Document $context, $depth=0) {
+		//return _::line($depth, '<input type="'.$this->name.'" '.$context->encodeAttribute('value', $this->text).' '.$this->saveClassAttribute($context).' />');
+		return _::line($depth, '<button type="'.$this->name.'" '.$this->saveClassAttribute($context).'>'.$context->encodeText($this->text).'</button>');
 	}
 }

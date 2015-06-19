@@ -1,6 +1,6 @@
 <?php
 /**
- * MySQL Database Driver - Query Result
+ * SQLite Database Driver - Query Result
  * 
  * @package		Quark-Framework
  * @version		$Id: result.php 69 2013-01-24 15:14:45Z Jeffrey $

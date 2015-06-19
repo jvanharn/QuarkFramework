@@ -34,6 +34,11 @@ class ServerResponse implements IMutableResponse {
 	 */
 	protected $statusText = null;
 
+	public function __construct($statusCode=200){
+		if($statusCode != $this->getStatusCode())
+			$this->setStatus($statusCode);
+	}
+
 	/**
 	 * Set the response body.
 	 *

@@ -30,6 +30,7 @@ use Quark\Event\Observable;
 use Quark\Protocols\HTTP\IResponse;
 use Quark\Protocols\HTTP\Request;
 use Quark\Protocols\HTTP\Response;
+use Quark\System\Router\Router;
 use Quark\Util\Singleton;
 
 // Prevent individual file access
@@ -546,18 +547,21 @@ DOCUMENT;
 	public static function hasInstance() {
 		return (self::$_instance != null);
 	}
-	
-	/**
-	 * Create the default document instance
-	 * @param \Quark\Document\Layout\Layout $layout Layout manager to use.
-	 * @param string $type A TYPE_* constant, defines what type of document this will be. For example; HTML4.01 Strict, HTML5 doc etc. Affects the rules used to generate the document.
-	 * @return Document|boolean
-	 */
-	public static function createInstance(Layout $layout, $type=self::TYPE_HTML){
+
+    /**
+     * Create the default document instance
+     * @param \Quark\Document\Layout\Layout $layout Layout manager to use.
+     * @param string $type A TYPE_* constant, defines what type of document this will be. For example; HTML4.01 Strict, HTML5 doc etc. Affects the rules used to generate the document.
+     * @param Router $router Optional router object to use for the resource manager instance.
+     * @param Headers $headers Optional Headers instance to bind to the document.
+     * @return bool|Document
+     */
+	public static function createInstance(Layout $layout, $type=self::TYPE_HTML, Router $router=null, Headers $headers=null){
 		if(is_string($type) && isset(self::$documentProperties[$type])){
-			$headers = new Headers;
+			if($headers == null)
+                $headers = new Headers;
 			self::$_instance = new Document($layout, $type, self::$documentProperties[$type]['doctype'], self::$documentProperties[$type]['charset'], self::$documentProperties[$type]['xmlns'], self::$documentProperties[$type]['xhtml'], $headers);
-			self::$_instance->setResourceManager(new ResourceManager($headers));
+			self::$_instance->setResourceManager(new ResourceManager($headers, $router));
 			return self::$_instance;
 		}else return false;
 	}

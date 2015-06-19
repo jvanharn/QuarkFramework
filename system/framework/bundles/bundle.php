@@ -125,7 +125,7 @@ class LocalBundle extends Bundle {
 	public static function fromJSON($json){
 		$info = json_decode($json, true);
 		if(!is_array($info))
-			throw new \UnexpectedValueException('JSON_Decode failed on the given json data ('.json_last_error().'), please check your syntaxis.');
+			throw new \UnexpectedValueException('JSON_Decode failed on the given bundle\'s json data ('.json_last_error().'), please check your "bundle.json" syntaxis.');
 		$bundle = new LocalBundle();
 
 		if(isset($info['id']) && \Quark\Filter\validate_string($info['id'], array('CHARS' => CONTAINS_ALPHANUMERIC.'.-')))
@@ -140,9 +140,11 @@ class LocalBundle extends Bundle {
 			$bundle->version = $info['version'];
 		else throw new \UnexpectedValueException('LocalBundle->fromJSON; Expected "version" to be set and be filled with alpha-numeric characters and \'.-_ \'.');
 
-		if(isset($info['description']) && \Quark\Filter\validate_string($info['description'], array('CHARS' => CONTAINS_ALPHANUMERIC.'\\|":;\'[]{}()*&%$#@!~+=,.-_ ')))
+		if(isset($info['description'])){
+			if(!empty($info['description']) && !\Quark\Filter\validate_string($info['description'], array('CHARS' => CONTAINS_ALPHANUMERIC.'\\|":;\'[]{}()*&%$#@!~+=,.-_ ')))
+				throw new \UnexpectedValueException('LocalBundle->fromJSON; Description string contained invalid characters, please make sure the description only contains these characters: "'.CONTAINS_ALPHANUMERIC.'\\|":;\'[]{}()*&%$#@!~+=,.-_ "');
 			$bundle->description = $info['description'];
-		else throw new \UnexpectedValueException('LocalBundle->fromJSON; Expected "description" to be set.');
+		}else throw new \UnexpectedValueException('LocalBundle->fromJSON; Expected "description" to be set.');
 
 		if(isset($info['resources']) && is_array($info['resources'])){
 			$bundle->resources = array('css' => array(), 'js' => array(), 'font' => array(), 'image' => array());

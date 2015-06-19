@@ -190,7 +190,7 @@ class Debug{
 			if($code === true){
 				$highlighted = '';
 				try { // lets prevented nested errors, as that really /is/ deadly.
-					// @todo Replace with class reflection to prevent Infinite Recursion depth Fatals caused by var_export.
+					// @todo Replace with class reflection to prevent Infinite Recursion depth Fatals caused by var_export in HHVM.
 					//$highlighted = @highlight_string('<?php'.PHP_EOL.@var_export($var, true), true);
 					$highlighted = \Reflection::export(new \ReflectionClass($var), true);
 				}catch(\Exception $e){}
@@ -205,9 +205,13 @@ class Debug{
 				return $content;
 			}else return '[String('.strlen($var).')]';
 		}else{
-			if($code === true)
-				return @var_export($var, true);
-			else
+			if($code === true){
+				// Bugfix for hhvm (This causes inf. loops due to the poorly coded Standard Php Library in there), @todo once my fix is accepted this will be modified to compare with a version.
+				if(defined('HHVM_VERSION'))
+					return '(Due to HHVM runtime limitations, following is simplified output) ['.gettype($var).']';
+				else // Yay; proper SPL
+					return @var_export($var, true);
+			}else
 				return '['.ucfirst(gettype($var)).']';
 		}
 	}

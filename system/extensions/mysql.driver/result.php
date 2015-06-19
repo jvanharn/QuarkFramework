@@ -26,6 +26,10 @@
 namespace Quark\Database\Driver;
 
 // Prevent individual file access
+use BadMethodCallException;
+use InvalidArgumentException;
+use Quark\Database\ResultRow;
+
 if(!defined('DIR_BASE')) exit;
 
 // Dependencies
@@ -70,7 +74,7 @@ class MySQLResult implements \IteratorAggregate, \Quark\Database\Result {
 	 * Word of Warning: Should only be available on query's executed with the cursor enabled!
 	 * @param integer $index Index of the row to retrieve. (You van use count to determine whether or not the index is in the range of this resultset)
 	 * @param integer $style A FETCH_* Constant.
-	 * @return array Array of the columns in the style given on the given index.
+	 * @return array|null Array of the columns in the style given on the given index.
 	 * @throws BadMethodCallException When the query was not executed as a query with cursor.
 	 * @throws InvalidArgumentException When the incorrect constant was used.
 	 */
@@ -83,15 +87,16 @@ class MySQLResult implements \IteratorAggregate, \Quark\Database\Result {
 			case self::FETCH_LIST:
 				return $this->stmt->fetch(\PDO::FETCH_NUM, \PDO::FETCH_ORI_ABS, $index);
 			case self::FETCH_OBJECT:
-				return new \Quark\Database\ResultRow($this->stmt->fetch(\PDO::FETCH_ASSOC, \PDO::FETCH_ORI_ABS, $index));
+				return new ResultRow($this->stmt->fetch(\PDO::FETCH_ASSOC, \PDO::FETCH_ORI_ABS, $index));
 			default:
 				throw new \InvalidArgumentException('Invalid Result::FETCH_* constant used.');
 		}
 	}
-	
+
 	/**
 	 * Fetch the next row in the result set.
-	 * @param integer $style A FETCH_* Constant.
+	 * @param int $style A FETCH_* Constant.
+	 * @throws \InvalidArgumentException
 	 * @return mixed Array of row values or object depending on $style.
 	 */
 	public function fetchNext($style = self::FETCH_NAMED) {
@@ -101,15 +106,16 @@ class MySQLResult implements \IteratorAggregate, \Quark\Database\Result {
 			case self::FETCH_LIST:
 				return $this->stmt->fetch(\PDO::FETCH_NUM, \PDO::FETCH_ORI_NEXT);
 			case self::FETCH_OBJECT:
-				return new \Quark\Database\ResultRow($this->stmt->fetch(\PDO::FETCH_ASSOC, \PDO::FETCH_ORI_NEXT));
+				return new ResultRow($this->stmt->fetch(\PDO::FETCH_ASSOC, \PDO::FETCH_ORI_NEXT));
 			default:
 				throw new \InvalidArgumentException('Invalid Result::FETCH_* constant used.');
 		}
 	}
-	
+
 	/**
 	 * Fetch the given column from the next row in the result set.
 	 * @param integer|string $column Column name or index.
+	 * @throws \InvalidArgumentException
 	 * @return mixed Value of column.
 	 */
 	public function fetchNextColumn($column=0) {
@@ -132,10 +138,11 @@ class MySQLResult implements \IteratorAggregate, \Quark\Database\Result {
 	public function fetchNextAsClass($classname, array $params = array()) {
 		return $this->stmt->fetchObject($classname, $params);
 	}
-	
+
 	/**
 	 * Fetch all rows in the resultset and their columns.
-	 * @param integer $style A FETCH_* Constant.
+	 * @param int $style A FETCH_* Constant.
+	 * @throws \InvalidArgumentException
 	 * @return mixed Array consisting of array of row values or object depending on $style.
 	 */
 	public function fetchAll($style = self::FETCH_NAMED) {
@@ -147,7 +154,7 @@ class MySQLResult implements \IteratorAggregate, \Quark\Database\Result {
 			case self::FETCH_OBJECT:
 				$result = array();
 				foreach($this->stmt->fetchAll(\PDO::FETCH_ASSOC) as $row)
-					$result[] = new \Quark\Database\ResultRow($row);
+					$result[] = new ResultRow($row);
 				return $result;
 			default:
 				throw new \InvalidArgumentException('Invalid Result::FETCH_* constant used.');

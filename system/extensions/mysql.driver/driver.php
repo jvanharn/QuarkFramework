@@ -24,6 +24,9 @@
 
 // Define Namespace
 namespace Quark\Database\Driver;
+use BadMethodCallException;
+use Quark\Database\DatabaseException;
+use Quark\Database\Driver;
 
 // Prevent individual file access
 if(!defined('DIR_BASE')) exit;
@@ -31,31 +34,36 @@ if(!defined('DIR_BASE')) exit;
 /**
  * MySQL Database Driver
  */
-class MySQLDriver implements \Quark\Database\Driver {
+class MySQLDriver implements Driver {
 	/**
 	 * PDO MySQL Connection
 	 * @var \PDO
 	 */
 	protected $pdo;
-	
+
 	/**
 	 * Connect to the database
 	 * @param array $settings Properly formatted connection array.
+	 * @throws DatabaseException
+	 * @throws BadMethodCallException
 	 */
 	public function __construct(array $settings) {
 		// Check settings array
 		if(!self::checkSettings($settings))
-			throw new \BadMethodCallException('Settings incorrectly formatted see the driver info for the required attributes, and make sure the hostname and database fields are non-empty.');
+			throw new BadMethodCallException('Settings incorrectly formatted see the driver info for the required attributes, and make sure the hostname and database fields are non-empty.');
 		
 		// Check if MySQL is available
 		if(!self::driverAvailable())
-			throw new \Quark\Database\DatabaseException('Required "MySQL" PDO Driver required for this database driver, was not installed on this server. Please do so to use this specific driver, or use another driver that does have it\'s dependency\'s installed. Drivers that you /can/ use include, but are not limited to: '.implode(', ', \PDO::getAvailableDrivers()).'.');
+			throw new DatabaseException('Required "MySQL" PDO Driver required for this database driver, was not installed on this server. Please do so to use this specific driver, or use another driver that does have it\'s dependency\'s installed. Drivers that you /can/ use include, but are not limited to: '.implode(', ', \PDO::getAvailableDrivers()).'.');
 		
 		// Create the pdo object
 		try {
-			$this->pdo = new \PDO('mysql:host='.$settings['hostname'].';dbname='.$settings['database'], $settings['username'], $settings['password']);
+			if(isset($settings['hostname']))
+				$this->pdo = new \PDO('mysql:host='.$settings['hostname'].';dbname='.$settings['database'], $settings['username'], $settings['password']);
+			else
+				$this->pdo = new \PDO('mysql:unix_socket='.$settings['unix_socket'].';dbname='.$settings['database'], $settings['username'], $settings['password']);
 		}catch(\PDOException $e){
-			throw new \Quark\Database\DatabaseException('Could not connect to the database.', E_USER_ERROR, $e);
+			throw new DatabaseException('Could not connect to the database: '.$e->getMessage(), E_USER_ERROR, $e);
 		}
 	}
 	
@@ -65,23 +73,25 @@ class MySQLDriver implements \Quark\Database\Driver {
 	public function __destruct() {
 		$this->pdo = null;
 	}
-	
+
 	/**
 	 * MySQL Query to Execute
 	 * @param string|\Quark\Database\Driver\MySQLQuery $statement Statement to execute.
+	 * @throws \Quark\Database\DatabaseException
 	 * @return boolean|integer Boolean false on failure or the number of affected rows on succes. Beware that the number of rows on succes can also be evaluated as an boolean, try to use the === operator to be sure.
 	 */
 	public function execute($statement) {
 		if(is_string($statement) || $statement instanceof MySQLQuery){
 			return $this->pdo->exec((string) $statement);
-		}else throw new \Quark\Database\DatabaseException('Invalid statement type given. MySQL Driver can only execute SQL Query strings and MySQL Query\'s.');
+		}else throw new DatabaseException('Invalid statement type given. MySQL Driver can only execute SQL Query strings and MySQL Query\'s.');
 	}
-	
+
 	/**
 	 * MySQL Query to query the database with for results.
 	 * @param string|\Quark\Database\Driver\MySQLQuery $statement Statement to query with.
 	 * @param boolean $cursor Whether or not to enable a cursor (When possible) for this query.
-	 * @return \Quark\Database\Driver\MySQLResult Description
+	 * @throws \Quark\Database\DatabaseException
+	 * @return \Quark\Database\Driver\MySQLResult
 	 */
 	public function query($statement, $cursor=false) {
 		if(is_bool($cursor)){
@@ -93,10 +103,10 @@ class MySQLDriver implements \Quark\Database\Driver {
 					$stmt->execute();
 					return new MySQLResult($stmt, true);
 				}
-			}else throw new \Quark\Database\DatabaseException('Invalid statement type given. MySQL Driver can only execute SQL Query strings and MySQL Query\'s.');
-		}else throw new \Quark\Database\DatabaseException('$cursor should be a boolean, but got "'.gettype($cursor).'".');
+			}else throw new DatabaseException('Invalid statement type given. MySQL Driver can only execute SQL Query strings and MySQL Query\'s.');
+		}else throw new DatabaseException('$cursor should be a boolean, but got "'.gettype($cursor).'".');
 	}
-	
+
 	/**
 	 * Get a prepared statement object.
 	 * @param mixed $statement (SQL) Query statement for the database.
@@ -178,7 +188,10 @@ class MySQLDriver implements \Quark\Database\Driver {
 	 * @return boolean
 	 */
 	public static function checkSettings(array $settings) {
-		return (isset($settings['hostname']) && !empty($settings['hostname']) && isset($settings['database']) && !empty($settings['database']) && isset($settings['username']) && isset($settings['password']));
+		return (
+			(isset($settings['hostname']) && !empty($settings['hostname'])) ||
+			(isset($settings['unix_socket']) && !empty($settings['unix_socket']))
+		) && (isset($settings['database']) && !empty($settings['database']) && isset($settings['username']) && isset($settings['password']));
 	}
 	
 	/**

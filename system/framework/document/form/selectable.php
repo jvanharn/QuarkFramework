@@ -25,6 +25,7 @@
 // Define Namespace
 namespace Quark\Document\Form;
 use \Quark\Document\Document;
+use Quark\Document\Utils\_;
 
 // Prevent individual file access
 if(!defined('DIR_BASE')) exit;
@@ -89,22 +90,23 @@ class Selectable extends Field implements IValidatableField, INullableField {
 	public function getOptions(){
 		return $this->options;
 	}
-	
-	/**
-	 * Get the html representation of the selectable field.
-	 * @param Document $context The context within which the Element gets saved. (Contains data like encoding, XHTML or not etc.)
-	 * @return string HTML Representation
-	 */
-	public function save(Document $context) {
+
+    /**
+     * Get the html representation of the selectable field.
+     * @param Document $context The context within which the Element gets saved. (Contains data like encoding, XHTML or not etc.)
+     * @param int $depth
+     * @return string HTML Representation
+     */
+	public function save(Document $context, $depth=0) {
 		if($this->multiple !== false){
-			$saved = "\t\t\t\t<select size=\"4\" multiple=\"multiple\" name=\"".$this->name."[]\" id=\"".$this->name."\">\n";
+			$saved = _::line($depth, '<select size="4" multiple="multiple" '.$context->encodeAttribute('name', $this->name.'[]').' '.$context->encodeAttribute('id', $this->name).' '.$this->saveClassAttribute($context).'>');
 		}else{
-			$saved = "\t\t\t\t<select name=\"".$this->name."\" id=\"".$this->name."\">\n";
+			$saved = _::line($depth, '<select '.$context->encodeAttribute('name', $this->name).' '.$context->encodeAttribute('id', $this->name).' '.$this->saveClassAttribute($context).'>');
 		}
 		foreach($this->options as $option){
-			$saved .= "\t\t\t\t\t<option value=\"".$option[1]."\"".(($this->last == $option[1])?' selected="selected"':'').">".$option[0]."</option>\n";
+			$saved .= _::line($depth+1, '<option '.$context->encodeAttribute('value', $option[1]).(($this->last == $option[1])?' selected="selected"':'').'>'.$context->encodeText($option[0]).'</option>');
 		}
-		$saved .= "\t\t\t\t</select>\n";
+		$saved .= _::line($depth, '</select>');
 		return $saved;
 	}
 	

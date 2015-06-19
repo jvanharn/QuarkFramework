@@ -25,6 +25,7 @@
 // Define Namespace
 namespace Quark\Document\Form;
 use \Quark\Document\Document;
+use Quark\Document\Utils\_;
 
 // Prevent individual file access
 if(!defined('DIR_BASE')) exit;
@@ -49,15 +50,16 @@ class Checkbox extends Field implements INormalizableField, INullableField {
 		$this->label = (string) $label;
 		$this->default = (bool) $default;
 	}
-	
-	/**
-	 * Save the field to it's html representation.
-	 * @param Document $context The context within which the Element gets saved. (Contains data like encoding, XHTML or not etc.)
-	 * @return String HTML Representation
-	 */
-	public function save(Document $context) {
+
+    /**
+     * Save the field to it's html representation.
+     * @param Document $context The context within which the Element gets saved. (Contains data like encoding, XHTML or not etc.)
+     * @param int $depth
+     * @return String HTML Representation
+     */
+	public function save(Document $context, $depth=0) {
 		$checked = (is_null($this->last)?$this->default:$this->last);
-		return "\t\t\t\t<input type=\"checkbox\" name=\"".$this->name."\" id=\"".$this->name."\"".($checked?' checked="checked"':'')." />\n";
+		return _::line($depth, '<input type="checkbox" '.$context->encodeAttribute('name', $this->name).' '.$context->encodeAttribute('id', $this->name).' '.($checked?' checked="checked"':'').' '.$this->saveClassAttribute($context).' />');
 	}
 	
 	/**

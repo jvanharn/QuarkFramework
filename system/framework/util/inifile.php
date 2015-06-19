@@ -98,7 +98,7 @@ class INIFile implements \Countable, \IteratorAggregate{
 	
 	/**
 	 * Write the ini file back
-	 * @return boolean
+	 * @return int|boolean
 	 */
 	public function write(){
 		if(is_writable($this->filename)){

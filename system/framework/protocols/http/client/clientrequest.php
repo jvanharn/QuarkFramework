@@ -65,3 +65,8 @@ abstract class ClientRequest extends Request {
 			self::$handlers[] = $classname;
 	}
 }
+
+\Quark\import(
+	'Quark.Protocols.HTTP.Client.CurlRequest',
+	'Quark.Protocols.HTTP.Client.StreamRequest'
+);

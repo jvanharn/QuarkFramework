@@ -24,6 +24,8 @@
 
 // Define Namespace
 namespace Quark\Database\Driver;
+use Quark\Database\DatabaseException;
+use Quark\Database\Statement;
 
 // Prevent individual file access
 if(!defined('DIR_BASE')) exit;
@@ -34,7 +36,7 @@ if(!defined('DIR_BASE')) exit;
 /**
  * MySQL Query Result
  */
-class MySQLStatement implements \Quark\Database\Statement {
+class MySQLStatement implements Statement {
 	/**
 	 * Whether or not this statement should have a cursor over it's result.
 	 * @var boolean
@@ -46,22 +48,24 @@ class MySQLStatement implements \Quark\Database\Statement {
 	 * @var \PDOStatement
 	 */
 	protected $stmt = null;
-	
+
 	/**
 	 * @param \PDOStatement $stmt MySQL PDO Statement that was prepared.
+	 * @param bool $cursor
 	 * @access private
 	 */
 	public function __construct(\PDOStatement $stmt, $cursor){
 		$this->cursor = $cursor;
 		$this->stmt = $stmt;
 	}
-	
+
 	/**
 	 * Bind a value to a name.
 	 * @param string|integer $name Use numbers for "?"-marks and names for the ":name" notation.
 	 * @param mixed $value Value for the column.
 	 * @param integer $type A PARAM_* Constant or null for detection.
-	 * @return \Quark\Database\Statement Returns a reference to itself for chaining.
+	 * @throws \InvalidArgumentException
+	 * @return Statement Returns a reference to itself for chaining.
 	 */
 	public function bind($name, $value, $type=null){
 		if(!(is_string($name) || is_integer($name)))
@@ -81,10 +85,11 @@ class MySQLStatement implements \Quark\Database\Statement {
 		}
 		$this->stmt->bindValue($name, $value, $this->_convertTypeForPDO($type));
 	}
-	
+
 	/**
 	 * Query the database with the prepared statement
 	 * @param array $params The bound parameter array should be in the form of k=>v if using named notation (:name) and numerically indexed when using questionmark notation (?).
+	 * @throws DatabaseException
 	 * @return \Quark\Database\Result Result of the query.
 	 * @see \Quark\Database\Database::query
 	 */
@@ -93,16 +98,17 @@ class MySQLStatement implements \Quark\Database\Statement {
 			if($this->stmt->execute($params)){
 				return new MySQLResult($this->stmt, $this->cursor);
 			}else{
-				throw new \Quark\Database\DatabaseException('Could not execute query, something went wrong while executed prepared PDOStatement object: "'.$this->stmt->errorInfo()[2].'"');
+				throw new DatabaseException('Could not execute query, something went wrong while executed prepared PDOStatement object: "'.$this->stmt->errorInfo()[2].'"');
 			}
 		}catch(\PDOException $e){
-			throw new \Quark\Database\DatabaseException('Could not execute prepared statement, something went wrong, see last exception for more info.', E_ERROR, $e);
+			throw new DatabaseException('Could not execute prepared statement, something went wrong, see last exception for more info.', E_ERROR, $e);
 		}
 	}
-	
+
 	/**
 	 * Execute the prepared statement
 	 * @param array $params The bound parameter array should be in the form of k=>v if using named notation (:name) and numerically indexed when using questionmark notation (?).
+	 * @throws DatabaseException
 	 * @return boolean|integer
 	 * @see \Quark\Database\Database::execute
 	 */
@@ -112,7 +118,7 @@ class MySQLStatement implements \Quark\Database\Statement {
 				return $this->stmt->rowCount();
 			else return false;
 		}catch(\PDOException $e){
-			throw new \Quark\Database\DatabaseException('Could not execute prepared statement, something went wrong, see last exception for more info.', E_ERROR, $e);
+			throw new DatabaseException('Could not execute prepared statement, something went wrong, see last exception for more info.', E_ERROR, $e);
 		}
 	}
 	

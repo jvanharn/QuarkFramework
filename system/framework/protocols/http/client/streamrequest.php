@@ -9,7 +9,6 @@
 
 namespace Quark\Protocols\HTTP\Client;
 use Quark\Error;
-use Quark\Protocols\HTTP\ClientRequest;
 use Quark\Protocols\HTTP\Response;
 
 // Prevent individual file access
@@ -113,7 +112,7 @@ class StreamRequest extends ClientRequest {
 	 * @ignore
 	 * @throws \HttpRuntimeException
 	 */
-	public function getBody(){
+	public function getBody($raw=true, $bufferLimit=8192){
 		throw new \HttpRuntimeException('The body cannot be retrieved from HTTPRequests because they are immediately written to the socket when set.');
 	}
 
@@ -139,26 +138,7 @@ class StreamRequest extends ClientRequest {
 		fclose($handle);
 
 		// Return
-		$status = '';
-		$headers = self::_parseHeaders($http_response_header, $status);
-		return new Response($status, $headers, $content);
-	}
-
-	/**
-	 * Parse headers into a dimensional array.
-	 * @param string $raw Array of headers to parse.
-	 * @param string $status A reference to a variable where the status string can be saved in.
-	 * @return array
-	 */
-	private static function _parseHeaders($raw, &$status){
-		$status = array_shift($raw);
-
-		$headers = array();
-		for($i=0; $i<count($raw); $i++){
-			$exp = explode(':', $raw[$i]);
-			$headers[trim($exp[0])] = trim($exp[1]);
-		}
-		return $headers;
+		return new ClientResponse($http_response_header, $content);
 	}
 }
 

@@ -12,6 +12,8 @@
 
 // Define Namespace
 namespace Quark\System\MVC;
+use Quark\Protocols\HTTP\IMutableResponse;
+use Quark\System\Router\IRoutableRequest;
 
 // Prevent individual file access
 if(!defined('DIR_BASE')) exit;
@@ -20,5 +22,12 @@ if(!defined('DIR_BASE')) exit;
  * MVC View Implementation.
  */
 abstract class View {
-	
+	/**
+	 * Should accept the return value of a controller method and display it.
+	 * @param mixed $returnValue The value to display for the controller.
+	 * @param IRoutableRequest $request
+	 * @param IMutableResponse $response The object to write the response to.
+	 * @return mixed
+	 */
+	abstract public function display($returnValue, IRoutableRequest $request, IMutableResponse $response);
 }

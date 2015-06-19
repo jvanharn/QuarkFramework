@@ -127,6 +127,11 @@ class Message implements IMutableMessage {
 	const CRLF = "\r\n";
 
 	/**
+	 * Line Feed
+	 */
+	const LF = "\n";
+
+	/**
 	 * @var string
 	 */
 	protected $startLine;
@@ -421,23 +426,28 @@ class Message implements IMutableMessage {
 
 	/**
 	 * Split the headers up into their sanitised key and value pairs.
-	 * @param array $headers Headers to parse.
+	 * @param array $headers Headers to parse (split by newline, no status line).
 	 * @throws HeaderException When the headers are incorrectly formatted.
 	 * @return array Array of arrays where 0=key and 1=value. [['key', 'val'], ..]
 	 */
 	protected static function parseHeaders($headers){
-		$current = 0;
+		$current = -1;
 		$result = array();
 		for($i=0; $i<count($headers); $i++){
+			$header = trim($headers[$i]);
+			if(empty($header)) continue;
+
 			if($headers[$i][0] == ' ' || $headers[$i][0] == "\t"){
-				$result[$current][1] .= self::CRLF.trim($headers[$i]);
+				if($current == -1)
+					throw new HeaderException('Incorrectly formatted header hit, can\'t continue parsing. Header list started with a multi-line header.');
+				$result[$current][1] .= self::LF.$header;
 			}else{
-				$split = explode(':', $headers[$i], 2);
+				$split = explode(':', $header, 2);
 				if(!isset($split[1])) // Incorrectly formatted
-					throw new HeaderException('Incorrectly formatted header hit, can\'t continue parsing.');
+					throw new HeaderException('Incorrectly formatted header hit, can\'t continue parsing. Header did not have valid name delimiter (:).');
 				$result[] = array(
 					\Quark\Filter\filter_string($split[0], ['chars' => CONTAINS_ALPHANUMERIC.'-']),
-					trim($split[1])
+					ltrim($split[1])
 				);
 				$current++;
 			}

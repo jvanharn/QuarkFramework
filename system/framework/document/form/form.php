@@ -26,6 +26,10 @@
 namespace Quark\Document\Form;
 use Quark\Document\Document,
 	Quark\Document\IElement;
+use Quark\Document\Utils\_;
+use Quark\Libraries\Bootstrap\baseElementMarkupClasses;
+use Quark\Libraries\Bootstrap\IElementMarkupClasses;
+use Quark\Loader;
 
 // Prevent individual file access
 if(!defined('DIR_BASE')) exit;
@@ -37,11 +41,13 @@ if(!defined('DIR_BASE')) exit;
  * Simplifies the construction and the easy (and safe) extraction of data from
  * the resulting submit.
  */
-class Form implements IElement {
+class Form implements IElement, IElementMarkupClasses {
+    use baseElementMarkupClasses;
+
 	/**
 	 * The hash algorithm to use to hash the "unique" form identifiers.
-	 * Should be as fast as possible. (Most platforms MD4 performs slightly faster)
 	 * @access private
+     * @internal Hash algorithm should be as fast as possible, security or collisions do not matter as much. (On most platforms, MD4 performs slightly faster, which is why it was chosen)
 	 */
 	const FID_HASH = 'md4';
 	
@@ -63,75 +69,45 @@ class Form implements IElement {
 	const METHOD_GET = 'GET';
 	
 	/**
-	 * The Unique Form instance identifier.
 	 * Saved as session data when enabled, will enable the form class to
 	 * differentiate between multiple forms with exactly the same fields.
-	 * @var string
+	 * @var string The Unique Form instance identifier.
 	 */
 	private $uid = null;
 	
 	/**
-	 * The Form instance identifier.
 	 * Enables the form to quickly determine if the submitted form is the same
 	 * as the one this object represents.
-	 * @var string
+	 * @var string The Form instance identifier.
+     * @see Form::getFID()
 	 */
 	private $fid = null;
 
-	/**
-	 * The document this form was created in.
-	 * @var \Quark\Document\Document
-	 */
+	/** @var \Quark\Document\Document The document this form was created in. */
 	protected $context;
 
-	/**
-	 * The URL where the form get's submitted to.
-	 * @var string
-	 */
+	/** @var string The URL where the form get's submitted to. */
 	protected $action = null;
 	
-	/**
-	 * The method to use when submitting.
-	 * One of the METHOD_* constants.
-	 * @var string
-	 */
+	/** @var string The method to use when submitting. One of the METHOD_* constants. */
 	protected $method = 'POST';
 	
-	/**
-	 * Current CSS class(es).
-	 * @var string
-	 */
-	protected $class = '';
-	
-	/**
-	 * Whether or not to automatically place fields without a group in a default group.
-	 * @var boolean
-	 */
+	/** @var boolean Whether or not to automatically place fields without a group in a default group. */
 	protected $autogroup;
 	
-	/**
-	 * Groups of fields
-	 * @var array
-	 */
+	/** @var array Groups of fields */
 	protected $groups = array();
 	
-	/**
-	 * Fields that are part of this form.
-	 * @var array
-	 */
-	protected $fields = array(self::DEFAULT_GROUP => array());
+	/** @var array Fields that are part of this form. */
+	protected $fields = array(
+        self::DEFAULT_GROUP => array()
+    );
 	
-	/**
-	 * Caches the result of the submitted method.
-	 * @var boolean
-	 */
-	private $submitted = null;
+	/** @var boolean Caches the result of the submitted method. */
+	protected $submitted = null;
 	
-	/**
-	 * Caches the result of the validated method.
-	 * @var boolean
-	 */
-	private $validated = null;
+	/** @var boolean Caches the result of the validated method. */
+	protected $validated = null;
 
 	/**
 	 * Constructs a new Form object.
@@ -149,10 +125,14 @@ class Form implements IElement {
 		else throw new \InvalidArgumentException('Expected Document object for argument $context, but got null.');
 
 		if(is_null($action)){
-			$app = \Quark\Loader::getApplication();
-			if(method_exists($app, 'getRouter'))
-				$this->action = $app->getURL();
-			else throw new \InvalidArgumentException('The argument $action should be manually defined for this application: could not get a reference to the router object.');
+			$app = Loader::getApplication();
+			if(method_exists($app, 'getRouter')) {
+                try {
+                    $this->action = $app->getRouter()->getURL();
+                }catch(\Exception $e){
+                    throw new \RuntimeException('Tried to get router object and get its url, but this resulted in an unexpected exception.', 0, $e);
+                }
+            }else throw new \InvalidArgumentException('The argument $action should be manually defined for this application: could not get a reference to the router object (application object has no "getRouter" method).');
 		}else $this->action = $action;
 		
 		if($method == self::METHOD_POST || $method == self::METHOD_GET)
@@ -311,14 +291,16 @@ class Form implements IElement {
 			throw new \RuntimeException('It appears this form has been saved/added to an document where it was not created for, this might result in unexpected errors or incompatible encodings.');
 		$this->context = $context;
 
-		$data = $this->data();
-		$form = "\n<form action=\"".$this->action."\" method=\"".$this->method."\" class=\"".$this->class."\">\n";
-		$form .= "\t<input type=\"hidden\" name=\"formid\" value=\"".$this->getFID()."\"/>\n";
-		$form .= (empty($this->uid)?'':"\t<input type=\"hidden\" name=\"uniqid\" value=\"".$this->getUID()."\"/>\n");
+		$data  = $this->data();
+		$form  = _::line($depth,     '<form action="'.$this->action.'" method="'.$this->method.'" '.$this->saveClassAttribute($context).'>');
+		$form .= _::line($depth + 1, '<input type="hidden" name="formid" value="'.$this->getFID().'"/>');
+        $uid = $this->getUID();
+        $form .= (empty($uid) ? '' : _::line($depth + 1, '<input type="hidden" name="uniqid" value="'.$uid.'"/>'));
 		
 		$grouped = $this->fields;
 		if(!$this->autogroup){
-			foreach($grouped['default'] as $field){
+            /** @var Field $field */
+            foreach($grouped['default'] as $field){
 				$name = $field->getName();
 				if($data != false && (
 						( is_array($this->validated) && !isset($this->validated[$name]) && isset($data[$name]))
@@ -326,15 +308,15 @@ class Form implements IElement {
 				)){
 					$field->setLastValue($data[$name]);
 				}
-				$form .= $this->saveField($field);
+				$form .= $this->saveField($field, $depth+2);
 			}
 			unset($grouped['default']);
 		}
 		
 		foreach($grouped as $group => $fields){
-			$form .= "\t<fieldset>\n";
+			$form .= _::line($depth + 1, '<fieldset>');
 			if(!empty($this->groups[$group]))
-				$form .= "\t\t<legend>".$this->groups[$group]."</legend>\n";
+				$form .= _::line($depth + 1, '<legend>'.$this->groups[$group].'</legend>');
 			foreach($fields as $field){
 				$name = $field->getName();
 				if($data != false && (
@@ -343,12 +325,12 @@ class Form implements IElement {
 				)){
 					$field->setLastValue($data[$name]);
 				}
-				$form .= $this->saveField($field);
+				$form .= $this->saveField($field, $depth+2);
 			}
-			$form .= "\t</fieldset>\n";
+			$form .= _::line($depth + 1, '</fieldset>');
 		}
 		
-		$form .= "</form>\n";
+		$form .= _::line($depth, '</form>');
 		
 		return $form;
 	}
@@ -415,26 +397,6 @@ class Form implements IElement {
 	}
 	
 	/**
-	 * Get the current css class(es).
-	 * @return string
-	 */
-	public function getClass(){
-		return $this->class;
-	}
-	
-	/**
-	 * Set the css class(es)
-	 * @param string $classname
-	 * @return boolean
-	 */
-	public function setClass($classname){
-		if(is_string($classname)){
-			$this->class = $classname;
-			return true;
-		}else return false;
-	}
-	
-	/**
 	 * Get the Unique Identifier of the current Form Object.
 	 * @return string Hexadecimal string of 32 characters.
 	 */
@@ -444,7 +406,7 @@ class Form implements IElement {
 	
 	/**
 	 * Set the Unique form Identifier.
-	 * @param null|string Hexadecimal string of 32 characters, if it is not is is padded.
+	 * @param null|string Hexadecimal string of 32 characters. Shorter strings will be padded.
 	 */
 	public function setUID($value){
 		if(empty($value))
@@ -454,7 +416,11 @@ class Form implements IElement {
 	}
 	
 	/**
-	 * Get the current object's Form IDentifier.
+	 * Get the current object's Form Identifier.
+     *
+     * This value is used to identify any submitted post requests as containing data for this specific object instance.
+     * Will not work if you have two objects with the exact same fields.
+     * Note: NOT FOR SECURITY PURPOSES. Just usability.
 	 * @return string Hexadecimal string of 32 characters.
 	 * @access protected
 	 */
@@ -465,35 +431,38 @@ class Form implements IElement {
 	}
 	
 	/**
-	 * Generates a Form IDentifier for the current fields.
+	 * Generates a Form Identifier for the current fields.
+     * @see Form::getFID()
 	 */
 	protected function generateFID(){
 		$data = $this->method.$this->action;
 		foreach($this->fields as $group => $fields){
 			$data .= $group;
-			foreach($fields as $field)
+            /** @var Field $field */
+            foreach($fields as $field)
 				$data .= $field->getName().get_class($field);
 		}
 		$this->fid = hash(self::FID_HASH, $data, false);
 	}
-	
-	/**
-	 * Save a single field to it's html representation.
-	 * 
-	 * If you want to "template" the fields, this is the easiest place to do that. (Just extend the class and override this method).
-	 * @param \Quark\Document\Form\Field $field
-	 * @return string
-	 */
-	protected function saveField(Field $field){
+
+    /**
+     * Save a single field to it's html representation.
+     *
+     * If you want to "template" the fields, this is the easiest place to do that. (Just extend the class and override this method).
+     * @param \Quark\Document\Form\Field $field
+     * @param int $depth
+     * @return string
+     */
+	protected function saveField(Field $field, $depth=2){
 		$name = $field->getName();
 		$label = $field->getLabel();
 		$field_error = (is_array($this->validated) && isset($this->validated[$name]));
-		return	"\t\t<div class=\"control-group\">\n".
-					(is_null($label)?'':"\t\t\t<label for=\"".$name."\">".$label."</label>\n").
-					"\t\t\t<div class=\"controls".($field_error?' invalid-value':'')."\">\n".
-						$field->save($this->context).
-						($field_error?"\t\t\t\t<span class=\"validation-errors\">".$this->validated[$name]."</span>\n":'').
-					"\t\t\t</div>\n".
-				"\t\t</div>\n";
+		return	_::line($depth, '<div class="control-group">').
+					(is_null($label)?'':_::line($depth + 1, '<label for="'.$name.'">'.$label.'</label>')).
+                    _::line($depth + 1, '<div class="controls'.($field_error ? ' invalid-value':'').'">').
+						$field->save($this->context, $depth+3).
+						($field_error?_::line($depth + 2, '<span class="validation-errors">'.$this->validated[$name].'</span>'):'').
+                    _::line($depth + 1, '</div>').
+                _::line($depth, '</div>');
 	}
 }

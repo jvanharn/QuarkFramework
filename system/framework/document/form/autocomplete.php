@@ -34,7 +34,7 @@ if(!defined('DIR_BASE')) exit;
  * This field requires MooTools.
  */
 class Autocomplete extends TextFieldI implements IValidatableField, INormalizableField {
-	use baseRegisterableValidators, baseRegisterableNormalizers;
+	use baseRegistrableValidators, baseRegistrableNormalizers;
 	
 	protected $uri;
 	

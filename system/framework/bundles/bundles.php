@@ -11,9 +11,13 @@
 namespace Quark\Bundles;
 
 // Prevent individual file access
+use FilesystemIterator;
 use Quark\Archive\Zip;
 use Quark\Error;
 use Quark\Exception;
+use Quark\Util\Type\HttpException;
+use RecursiveIteratorIterator;
+use SplFileInfo;
 
 if(!defined('DIR_BASE')) exit;
 
@@ -155,6 +159,7 @@ class Bundles {
 			$path = @realpath(self::$installed[$bundleId]['path']);
 			if(is_string($path)){
 				foreach(new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($path, FilesystemIterator::SKIP_DOTS), RecursiveIteratorIterator::CHILD_FIRST) as $item){
+					/** @var $item SplFileInfo */
 					if($item->isFile()) unlink($item->getPathname());
 					else rmdir($item->getPathname());
 				}
@@ -164,7 +169,10 @@ class Bundles {
 			// Remove from installed list.
 			unset(self::$installed[$bundleId]);
 			self::$modified = true;
-		}else return false;
+
+			return true;
+		}
+		return false;
 	}
 
 	/**
@@ -291,6 +299,8 @@ class Bundles {
 
 		// Flush those changes
 		self::_flushCache();
+
+		return true;
 	}
 
 	/**
@@ -335,11 +345,14 @@ class Bundles {
 				}
 
 				// Add as installed package
-				self::_loadInstalled();
+				//self::_loadInstalled(); // @todo ???? what??? this cant be correct..
 				self::$installed[$bundle] = $object;
 				self::$modified = true;
 			}
 		}
+
+        // @todo may be incorrectly placed here, but it seems to only work with this here.
+        self::_flushInstalled();
 	}
 
 	/**
@@ -510,6 +523,8 @@ class Bundles {
 	private static function _resolveBundleDependencies($bundleId, $result){
 		$info = self::info($bundleId);
 
+		// @todo dunno what I did here. It should be a remotebundle? Why do I check this?
+		var_dump($info);
 		if(!is_array($info))
 			throw new \RuntimeException('The given bundle id "'.$bundleId.'" could not be resolved; the bundle is not known in any of my repositories, thus I could not resolve any dependencies for it.');
 
@@ -627,6 +642,14 @@ class Bundles {
 	#endregion
 
 	#region Caching Methods
+    /**
+     * Checks if the bundle list file is writable.
+     * @return bool
+     */
+    public static function cacheWritable(){
+        return @is_writable(dirname(BUNDLE_LIST_PATH));
+    }
+
 	/**
 	 * Loads the list of currently installed bundles from cache.
 	 * @access private
@@ -726,7 +749,7 @@ class Bundles {
 	 */
 	public static function _resetInstalledList(){
 		if(!@is_writable(dirname(BUNDLE_LIST_PATH))) return;
-		unlink(BUNDLE_LIST_PATH);
+		if(is_file(BUNDLE_LIST_PATH)) unlink(BUNDLE_LIST_PATH);
 	}
 	#endregion
 }

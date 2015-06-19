@@ -50,10 +50,29 @@ class ResourceManager {
 	protected $referenced = array();
 
 	/**
-	 * @param Headers $headers
+	 * @var Router The router to use for building resource/bundle asset urls.
 	 */
-	public function __construct(Headers $headers){
+	protected $router;
+
+	/**
+	 * @param Headers $headers
+	 * @param Router $router The router to use for building resource/bundle asset urls
+	 */
+	public function __construct(Headers $headers, Router $router=null){
 		$this->headers = $headers;
+        try {
+            $this->router = empty($router) ? Router::getInstance() : $router;
+        }catch(\OutOfBoundsException $e){
+            throw new \UnexpectedValueException('I tried to get the default instance of the global router object, but I failed as it was seemingly not yet created. Please ensure it is, or give me (ResourceManager) an explicit instance of a n router, so I can resolve the required assets for this page.');
+        }
+	}
+
+	/**
+	 * Set the router this resource provider should use for building the asset urls.
+	 * @param Router $router Router to use.
+	 */
+	public function setRouter(Router $router){
+		$this->router = $router;
 	}
 
 	/**
@@ -131,10 +150,14 @@ class ResourceManager {
 		);
 
 		// Get the (public) path for the given asset relative to the server root
-		$url = Router::getInstance()->build(
+		$url = $this->router->build(
 			BundleResourceRoute::getName(),
 			array($bundle, $asset)
 		); // @todo: Use a Document/ResourceManager assigned Router object instead of the default instance.
+
+		// Check if we could build an URI
+		if($url === false)
+			Error::raiseWarning('Unable to build an URL for the bundle "'.$bundle.'" and asset "'.$asset.'". Maybe you forgot to include the '.BundleResourceRoute::getName().' route?');
 
 		// Check if force URL is activated.
 		if($forceURI === true)

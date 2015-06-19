@@ -1,14 +1,14 @@
 <?php
 /**
- * Bootstrap Column Collection
+ * Bootstrap Button Component
  *
  * @package		Quark-Framework
  * @author		Jeffrey van Harn <Jeffrey at lessthanthree.nl>
  * @since		January 6, 2014
- * @copyright	Copyright (C) 2012-2014 Jeffrey van Harn. All rights reserved.
+ * @copyright	Copyright (C) 2014-2015 Jeffrey van Harn. All rights reserved.
  * @license		http://opensource.org/licenses/gpl-3.0.html GNU Public License Version 3
  *
- * Copyright (C) 2012-2013 Jeffrey van Harn
+ * Copyright (C) 2014-2015 Jeffrey van Harn
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -73,6 +73,7 @@ class Button extends Component implements ISingleActivator, IElementMarkupClasse
 	 * Add an icon in front of the button. (Without the glyphicon- prefix)
 	 * @param string $name Name of the glyphicon.
 	 * @return Button Self reference for command chaining.
+     * @see Glyphicon
 	 */
 	public function setIcon($name){
 		$this->icon = 'glyphicon glyphicon-'.$name;

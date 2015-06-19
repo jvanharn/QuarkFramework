@@ -26,8 +26,6 @@
 namespace Quark\Document;
 
 // Prevent individual file access
-use Traversable;
-
 if(!defined('DIR_BASE')) exit;
 
 // Make sure dependencies are loaded
@@ -47,24 +45,17 @@ class ErrorMessage implements IIndependentElement {
 		'message' => '',
 	);
 
-	/**
-	 * Retrieve the HTML representation of the element
-	 * @param Document $context The context within which the Element gets saved. (Contains data like encoding, XHTML or not etc.)
-	 * @param int $depth
-	 * @throws \RuntimeException
-	 * @return String HTML Representation
-	 */
-	public function save(Document $context=null, $depth=0){
-		// @todo STUB
-		throw new \RuntimeException('Unimplemented stub.');
-	}
-
-	/**
-	 * @see save()
-	 */
-	public function __toString() {
-		return $this->save();
-	}
+    /**
+     * Placeholder to satisfy the error checkers.
+     * @throws \RuntimeException
+     * @param int $depth The current indentation depth, not required.
+     * @return string|void
+     * @ignore
+     */
+    public function independentSave($depth=0){
+        // @todo Stub
+        throw new \RuntimeException('Stub.');
+    }
 }
 
 /**
@@ -114,9 +105,10 @@ class ErrorBox implements IIndependentElement{
 	
 	/**
 	 * Generates the HTML
+     * @param int $depth The current indentation depth, not required.
 	 * @return String HTML Representation
 	 */
-	public function independentSave() {
+	public function independentSave($depth=0) {
 		// Set the style of the box
 		$style = 'color: '.$this->options['text_color'].'; font: 11px Verdana, Tahoma, Geneva, sans-serif;'.
 		'margin: 4px; padding: 8px;'.
@@ -172,9 +164,10 @@ class ErrorFrame implements IIndependentElement {
 	/**
 	 * Retrieve the HTML representation of the element
 	 * @throws \RuntimeException
+     * @param int $depth The current indentation depth, not required.
 	 * @return String HTML Representation
 	 */
-	public function independentSave() {
+	public function independentSave($depth=0) {
 		if($this->options['type'] == self::Text)
 			return '<div style="padding:0;margin:0;margin-left:3px;'.$this->options['style'].'">'.$this->options['text'].'</div>';
 		elseif($this->options['type'] == self::NoWrap)
