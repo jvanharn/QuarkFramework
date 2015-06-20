@@ -1,15 +1,14 @@
 <?php
 /**
- * Bootstrap Column Collection
+ * Bootstrap Navigationbar Component
  *
  * @package		Quark-Framework
- * @version		$Id: collection.php 69 2013-01-24 15:14:45Z Jeffrey $
  * @author		Jeffrey van Harn <Jeffrey at lessthanthree.nl>
- * @since		December 15, 2012
- * @copyright	Copyright (C) 2012-2013 Jeffrey van Harn. All rights reserved.
+ * @since		January 27, 2014
+ * @copyright	Copyright (C) 2014-2015 Jeffrey van Harn. All rights reserved.
  * @license		http://opensource.org/licenses/gpl-3.0.html GNU Public License Version 3
  *
- * Copyright (C) 2012-2013 Jeffrey van Harn
+ * Copyright (C) 2014-2015 Jeffrey van Harn
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,10 +23,20 @@
 
 // Define Namespace
 namespace Quark\Libraries\Bootstrap\Components;
-use Quark\Document\baseCollection,
-	Quark\Document\Document;
+use Quark\Document\baseCollection;
+use Quark\Document\Document;
+use Quark\Document\Form\Form;
+use Quark\Document\ICollection;
+use Quark\Document\IElement;
+use Quark\Document\Utils\_;
+use Quark\Document\Utils\Image;
+use Quark\Error;
+use Quark\Libraries\Bootstrap\baseElementMarkupClasses;
 use Quark\Libraries\Bootstrap\BootstrapElement;
 use Quark\Libraries\Bootstrap\Component;
+use Quark\Libraries\Bootstrap\Elements\Text;
+use Quark\Libraries\Bootstrap\IElementMarkupClasses;
+use Quark\Util\Type\InvalidArgumentTypeException;
 
 // Prevent individual file access
 if(!defined('DIR_BASE')) exit;
@@ -39,55 +48,157 @@ true);
 
 /**
  * Bootstrap Navigation-bar IComponent
+ * @property string $blub
  */
-class NavigationBar extends Component {
-	/**
-	 * @var string The title or brand of the nav-bar.
-	 */
+class NavigationBar extends Component implements IElementMarkupClasses, ICollection {
+    use baseElementMarkupClasses, baseCollection;
+
+    // Positioning constants for navbar children.
+    const ALIGN_DEFAULT = null;
+    const ALIGN_LEFT = 'navbar-left';
+    const ALIGN_RIGHT = 'navbar-right';
+
+    // Positioning constants for the navbar itself.
+    const POS_DEFAULT = null;
+    const POS_FIXED_TOP = 'navbar-fixed-top';
+    const POS_FIXED_BOTTOM = 'navbar-fixed-bottom';
+    const POS_STATIC_TOP = 'navbar-static-top';
+
+    // Navbar type constants
+    const TYPE_DEFAULT = 'navbar-default';
+    const TYPE_INVERTED = 'navbar-inverse';
+
+    // Navbar container types
+    const CONTAINER_NONE = null;
+    const CONTAINER_DEFAULT = 'container';
+    const CONTAINER_FLUID = 'container-fluid';
+
+    /**
+     * @var array List of possible alignment values.
+     * @internal
+     */
+    public static $alignments = array(self::ALIGN_DEFAULT, self::ALIGN_LEFT, self::ALIGN_RIGHT);
+
+    /**
+     * @var array List of possible position values.
+     * @internal
+     */
+    public static $positions = array(self::POS_DEFAULT, self::POS_FIXED_BOTTOM, self::POS_FIXED_TOP, self::POS_STATIC_TOP);
+
+    /**
+     * @var array List of possible type values.
+     * @internal
+     */
+    public static $types = array(self::TYPE_DEFAULT, self::TYPE_INVERTED);
+
+    /**
+     * @var array List of possible container configurations.
+     * @internal
+     */
+    public static $containers = array(self::CONTAINER_DEFAULT, self::CONTAINER_FLUID, self::CONTAINER_NONE);
+
+	/** @var string The title or brand of the nav-bar. */
 	protected $brand;
 
-	/**
-	 * @var array The (extra) classes of the element.
-	 */
-	protected $classes;
+    /** @var string The link for the brand. */
+	public $brandLink = '/';
 
-	/**
-	 * @var NavigationBarElement[] Contains the elements that will reside in the collapsible area.
-	 */
-	protected $elements = array();
+    /** @var string The type or style of navbar to use. */
+    protected $type = self::TYPE_DEFAULT;
 
-	/**
-	 * @param string $brand
-	 * @param string $id
-	 * @param array $classes Extra classes for the bar wrapper.
-	 * @throws \InvalidArgumentException When a parameter's type is invalid.
-	 */
-	public function __construct($brand=null, $id=null, array $classes=array()){
-		if(!empty($brand))
-			$this->setBrand($brand);
+    /** @var string|null The position of the navbar. */
+    protected $position = self::POS_DEFAULT;
 
-		$this->setId($id);
+    /** @var string|null The type of container to use, if at all. */
+    protected $container = self::CONTAINER_DEFAULT;
 
-		if(is_array($classes))
-			$this->classes = $classes;
-		else throw new \InvalidArgumentException('Param $classes should be of type array.');
-	}
+    /**
+     * @param string|Image $brand The brandname in the form of a string or an Image object.
+     * @param string $brandLink The href for the brand image or text.
+     * @param string $type The type or style of navbar to use.
+     * @param string|null $position The position of the navbar.
+     * @param string|null $container The type of container to use, if at all.
+     * @param string|null $id
+     */
+	public function __construct($brand=null, $brandLink='/', $type=self::TYPE_DEFAULT, $position=self::POS_DEFAULT, $container=self::CONTAINER_DEFAULT, $id=null){
+        $this->cssClasses = array('navbar', 'navbar-default');
 
-	/**
-	 * Set the bars brand-name/title.
-	 * @param string|int $text
-	 */
-	public function setBrand($text){
-		$this->brand = (string) $text;
-	}
+        if(!empty($brand))
+            $this->__set('brand', $brand);
+        $this->__set('type', $type);
+        $this->__set('position', $position);
+        $this->__set('container', $container);
+        $this->setId($id);
+    }
 
-	/**
-	 * Adds a navigation bar element to the collapsible area of the bar.
-	 * @param NavigationBarElement $element
-	 */
-	public function addContent(NavigationBarElement $element){
-		$this->elements[] = $element;
-	}
+    /**
+     * @param string $name
+     * @return string|null
+     */
+    public function __get($name){
+        switch($name){
+            case 'brand':
+                return $this->brand;
+            case 'type':
+                return $this->type;
+            case 'position':
+                return $this->position;
+            case 'container':
+                return $this->container;
+            default:
+                throw new \UnexpectedValueException('The given class-variable "'.$name.'"" does not exist.');
+        }
+    }
+
+    /**
+     * @param string $name
+     * @param string|null $value
+     */
+    public function __set($name, $value){
+        switch($name){
+            case 'brand':
+                if(!(is_string($value) || (is_object($value) && $value instanceof Image)))
+                    throw new InvalidArgumentTypeException('brand', 'string or Image (object) instance', $value);
+                $this->brand = $value;
+                break;
+            case 'type':
+                if(!in_array($value, self::$types))
+                    throw new \InvalidArgumentException('The value given for the class-variable "type" is not in the list of accepted values. Please check the documentation for acceptable values.');
+                if(!empty($this->type))
+                    $this->removeMarkupClass($this->type);
+                $this->type = $value;
+                $this->addMarkupClass($this->type);
+                break;
+            case 'position':
+                if(!in_array($value, self::$positions))
+                    throw new \InvalidArgumentException('The value given for the class-variable "position" is not in the list of accepted values. Please check the documentation for acceptable values.');
+                if(!empty($this->position))
+                    $this->removeMarkupClass($this->position);
+                $this->position = $value;
+                $this->addMarkupClass($this->position);
+                break;
+            case 'container':
+                if(!in_array($value, self::$containers))
+                    throw new \InvalidArgumentException('The value given for the class-variable "container" is not in the list of accepted values. Please check the documentation for acceptable values.');
+                $this->container = $value;
+                break;
+            default:
+                throw new \UnexpectedValueException('The given class-variable "'.$name.'"" does not exist.');
+        }
+    }
+
+    /**
+     * Place an element on the navigation bar.
+     * @param IElement $element Element to place.
+     * @param string|null $alignment Alignment of the element. Use one of the ALIGN_* constants.
+     */
+    public function place(IElement $element, $alignment=self::ALIGN_DEFAULT){
+        $this->appendChild($element);
+        if($alignment !== null && $element instanceof IElementMarkupClasses && in_array($alignment, self::$alignments))
+            $element->addMarkupClass($alignment);
+        else if(!($element instanceof IElementMarkupClasses))
+            Error::raiseWarning('The element passed to NavigationBar::place cannot be aligned according to the given value, as the given element does not allow the application of markup classes. (It does not implement IElementMarkupClasses)', 'Something went wrong with aligning some UI elements.');
+    }
 
 	/**
 	 * Save the navigation bar to its HTML representation.
@@ -96,10 +207,17 @@ class NavigationBar extends Component {
 	 * @return String HTML Representation
 	 */
 	public function save(Document $context, $depth=1) {
-		$navigation  = self::line($depth, '<nav class="navbar navbar-default '.implode($this->classes, ' ').'" role="navigation" id="'.$this->id.'">');
-		$navigation .= $this->saveHeader($context, $depth+1);
-		$navigation .= $this->saveContent($context, $depth+1);
-		$navigation .= self::line($depth, '</nav>');
+        $contentDepth = $depth+1;
+		$navigation  = _::line($depth, '<nav '.$this->saveClassAttribute($context).' role="navigation" id="'.$this->id.'">');
+        if($this->container !== self::CONTAINER_NONE){
+            $navigation .= _::line($depth+1, '<div class="'.$this->container.'">');
+            $contentDepth += 1;
+        }
+		$navigation .= $this->saveHeader($context, $contentDepth);
+		$navigation .= $this->saveContent($context, $contentDepth);
+        if($this->container !== self::CONTAINER_NONE)
+            $navigation .= _::line($depth+1, '</div>');
+		$navigation .= _::line($depth, '</nav>');
 		return $navigation;
 	}
 
@@ -110,21 +228,25 @@ class NavigationBar extends Component {
 	 * @return string
 	 */
 	protected function saveHeader(Document $context, $depth=1){
-		$header = self::line($depth, '<div class="navbar-header">');
+		$header = _::line($depth, '<div class="navbar-header">');
 
 		// Mobile dev. toggle button
-		$header .= self::line($depth+1, '<button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#'.$this->id.'-collapse">');
-		$header .= self::line($depth+2, '<span class="sr-only">Toggle navigation</span>');
-		$header .= self::line($depth+2, '<span class="icon-bar"></span>');
-		$header .= self::line($depth+2, '<span class="icon-bar"></span>');
-		$header .= self::line($depth+2, '<span class="icon-bar"></span>');
-		$header .= self::line($depth+1, '</button>');
+		$header .= _::line($depth+1, '<button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#'.$this->id.'-collapse">');
+		$header .= _::line($depth+2, '<span class="sr-only">Toggle navigation</span>');
+		$header .= _::line($depth+2, '<span class="icon-bar"></span>');
+		$header .= _::line($depth+2, '<span class="icon-bar"></span>');
+		$header .= _::line($depth+2, '<span class="icon-bar"></span>');
+		$header .= _::line($depth+1, '</button>');
 
 		// Brand-name/title
-		if(!empty($this->brand))
-			$header .= self::line($depth+1, '<a class="navbar-brand" href="#">'.$context->encodeText($this->brand).'</a>');
+		if(!empty($this->brand)){
+            if(is_object($this->brand))
+                $header .= _::line($depth+1, '<a class="navbar-brand" '.$context->encodeAttribute('href', $this->brandLink).'>'.$this->brand->save($context).'</a>');
+            else
+                $header .= _::line($depth+1, '<a class="navbar-brand" '.$context->encodeAttribute('href', $this->brandLink).'>'.$context->encodeText($this->brand).'</a>');
+        }
 
-		$header .= self::line($depth, '</div>');
+		$header .= _::line($depth, '</div>');
 		return $header;
 	}
 
@@ -135,137 +257,32 @@ class NavigationBar extends Component {
 	 * @return string
 	 */
 	protected function saveContent(Document $context, $depth=1){
-		$content  = self::line($depth, '<div class="collapse navbar-collapse" id="'.$this->id.'-collapse">');
-		foreach($this->elements as $element){
-			$content .= $element->save($context, $depth+1);
-		}
-		$content .= self::line($depth, '</div>');
+		$content  = _::line($depth, '<div class="collapse navbar-collapse" id="'.$this->id.'-collapse">');
+		$content .= $this->saveChildren($context, $depth+1);
+		$content .= _::line($depth, '</div>');
 		return $content;
 	}
 
-	/**
-	 * @param int $depth Number of tabs.
-	 * @param string $text text on line.
-	 * @return string
-	 */
-	protected static function line($depth, $text){ return str_repeat("\t", $depth).$text."\n"; }
-
-	/**
-	 * Invoke the collection to simplify adding elements to the collection
-	 * @param NavigationBarElement $element Element to append to the collection.
-	 * @return \Quark\Document\Utils\Collection The current object for chaining.
-	 * @see \Quark\Document\Collection::appendChild()
-	 */
-	public function __invoke(NavigationBarElement $element) {
-		$this->addContent($element);
-		return $this;
-	}
-}
-
-/**
- * Navigation Bar Element
- * @package Quark\Libraries\Bootstrap\Elements
- */
-abstract class NavigationBarElement extends BootstrapElement {
-	/**
-	 * @param int $depth Number of tabs.
-	 * @param string $text text on line.
-	 * @return string
-	 */
-	protected static function line($depth, $text){ return str_repeat("\t", $depth).$text."\n"; }
-}
-
-/**
- * Literal for the navigation bar.
- * @package Quark\Libraries\Bootstrap\Elements
- */
-class NavigationBarLiteral extends NavigationBarElement {
-	/**
-	 * @var string Contents of the literal.
-	 */
-	public $html = '';
-
-	/**
-	 * @param string $html Contents of the literal.
-	 */
-	public function __construct($html=''){
-		$this->html = $html;
-	}
-
-	/**
-	 * Saves the element.
-	 * @param Document $context
-	 * @param int $depth
-	 * @return String
-	 */
-	public function save(Document $context, $depth = 0) {
-		return $this->html;
-	}
-}
-
-/**
- * Class NavigationBarMenu
- * @package Quark\Libraries\Bootstrap\Components
- */
-class NavigationBarMenu extends NavigationBarElement {
-	/**
-	 * @var array[]
-	 */
-	protected $items = array();
-
-	/**
-	 * @var bool Whether or not to align this menu right (or left).
-	 */
-	protected $pull_right = false;
-
-	public function __construct($pull_right=false){
-		if(is_bool($pull_right))
-			$this->pull_right = $pull_right;
-		else throw new \InvalidArgumentException('Expected argument $pull_right to be of type boolean.');
-	}
-
-	/**
-	 * Add a link/item to the menu.
-	 * @param $text
-	 * @param string $href
-	 */
-	public function addLink($text, $href='#'){
-		$this->items[] = array($text, $href);
-	}
-
-	/**
-	 * Add a sub-menu/dropdown to the menu.
-	 * @param $text
-	 * @param array $menu
-	 * @param string $href
-	 */
-	public function addDropdown($text, array $menu, $href='#'){
-		$this->items[] = array($text, $href, $menu);
-	}
-
-	/**
-	 * Saves the element.
-	 * @param Document $context
-	 * @param int $depth
-	 * @return String
-	 */
-	public function save(Document $context, $depth = 0) {
-		$menu  = self::line($depth, '<ul class="nav navbar-nav'.($this->pull_right?' navbar-right':'').'">');
-		foreach($this->items as $item){
-			if(isset($item[2])){
-				$menu .= self::line($depth+1, '<li class="dropdown">');
-				$menu .= self::line($depth+2, '<a href="'.$context->encodeText($item[1]).'" class="dropdown-toggle" data-toggle="dropdown">'.$context->encodeText($item[0]).' <b class="caret"></b></a>');
-
-				$menu .= self::line($depth+2, '<ul class="dropdown-menu">');
-				foreach($item[2] as $text => $href)
-					$menu .= self::line($depth+3, '<li><a href="'.$context->encodeText((string) $href).'">'.$context->encodeText((string) $text).'</a></li>');
-				$menu .= self::line($depth+2, '</ul>');
-
-				$menu .= self::line($depth+1, '</li>');
-			}else
-				$menu .= self::line($depth+1, '<li><a href="'.$context->encodeText($item[1]).'">'.$context->encodeText($item[0]).'</a></li>');
-		}
-		$menu .= self::line($depth, '</ul>');
-		return $menu;
-	}
+    /**
+     * Gets the string representation of all the children in an element
+     * @param Document $context The Document in which this collection should be saved.
+     * @param int $depth The amount of spacing to prefix lines with.
+     * @return String
+     */
+    public function saveChildren(Document $context, $depth=1){
+        $saved = '';
+        // Iterate over the children, getting their string representation
+        foreach($this->children as $child){
+            if($child instanceof Navigation)
+                $child->type = Navigation::TYPE_NAVBAR; // navbar-nav
+            else if($child instanceof Text)
+                $child->addMarkupClass('navbar-text');
+            else if($child instanceof Button)
+                $child->addMarkupClass('navbar-btn');
+            else if($child instanceof Form)
+                $child->addMarkupClass('navbar-form');
+            $saved .= PHP_EOL.$child->save($context, $depth);
+        }
+        return $saved;
+    }
 }

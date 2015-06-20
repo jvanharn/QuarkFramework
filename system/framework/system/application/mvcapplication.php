@@ -127,7 +127,7 @@ abstract class MVCApplication extends Application implements IMVC {
         }catch(HttpException $e){
             $e->writeTo($responseObj);
         }catch(\Exception $e){
-            $e = new HttpException(500, 'An internal server error occurred whilst trying to load the page you requested.', $e);
+            $e = new HttpException(500, 'An internal server error occurred whilst trying to load the page you requested.'.PHP_EOL.$e->getMessage(), $e);
             $e->writeTo($responseObj);
         }
     }

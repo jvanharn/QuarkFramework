@@ -97,7 +97,7 @@ abstract class Component extends BootstrapElement implements IComponent {
 	 * @return string
 	 */
 	protected function generateId(){
-		$fqn = explode('\\', __CLASS__);
+		$fqn = explode('\\', @get_called_class());
 		//return 'component-'.strtolower(end($fqn)).'-'.mt_rand(0, 255).'-'.self::$instances++;
 		//return 'component-'.strtolower(end($fqn)).'-'.spl_object_hash($this).'-'.self::$instances++;
 		return 'component-'.strtolower(end($fqn)).'-'.self::$instances++;

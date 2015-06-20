@@ -26,6 +26,7 @@
 namespace Quark\Document\Form;
 use Quark\Document\Document;
 use Quark\Document\Utils\_;
+use Quark\Util\Type\InvalidArgumentTypeException;
 
 // Prevent individual file access
 if(!defined('DIR_BASE')) exit;
@@ -55,8 +56,8 @@ class TextField extends Field implements IValidatableField, INormalizableField {
 	 * @param string $placeholder A placeholder value for the field.
 	 */
 	public function __construct($name, $label, $value=null, $placeholder=null){
-		$this->name = (string) $name;
-		$this->label = (string) $label;
+        if(!(is_string($name) || $name === null)) throw new InvalidArgumentTypeException('name', 'string', $name);
+        if(!(is_string($label) || $label === null)) throw new InvalidArgumentTypeException('label', 'string', $label);
 		$this->value = (string) $value;
 		$this->placeholder = (string) $placeholder;
 	}

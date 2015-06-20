@@ -74,7 +74,7 @@ interface ICollection extends IElement, \IteratorAggregate{
 trait baseCollection{
 	/**
 	 * Contains the children for this object
-	 * @var Array
+	 * @var IElement[]
 	 */
 	protected $children = array();
 	
@@ -111,16 +111,17 @@ trait baseCollection{
 		return false;
 	}
 
-	/**
-	 * Gets the string representation of all the children in an element
-	 * @param Document $context The Document in which this collection should be saved.
-	 * @return String
-	 */
-	public function saveChildren(Document $context){
+    /**
+     * Gets the string representation of all the children in an element
+     * @param Document $context The Document in which this collection should be saved.
+     * @param int $depth The amount of spacing to prefix lines with.
+     * @return String
+     */
+	public function saveChildren(Document $context, $depth=1){
 		$saved = '';
 		// Iterate over the children, getting their string representation
-		foreach($this->children as $child){
-			$saved .= PHP_EOL.$child->save($context);
+        foreach($this->children as $child){
+			$saved .= PHP_EOL.$child->save($context, $depth);
 		}
 		return $saved;
 	}

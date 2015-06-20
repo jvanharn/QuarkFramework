@@ -78,8 +78,9 @@ class ResourceManager {
 	/**
 	 * Reference an asset to the given Document instance.
 	 *
-	 * This will add a reference to the given resource to the document, if possible (So for Javascript, CSS and Font
-	 * files) or return the URI to the resource. (The resource will always be registred as "used" or "referenced")
+	 * This will add a reference, pointing to the given resource, to the document, if possible (So for Javascript, CSS
+     * and Font files) or return the URI to the resource. (The resource will always be registered as "used" or
+     * "referenced")
 	 * @param string $name The name/path of the resource or asset relative to the bundle's base directory. (E.g. jquery.js OR js/bootstrap.js OR css/normalize.css)
 	 * @param string|null $type One of the Bundles::RESOURCE_TYPE_* constants. (Analyzes the given name if not set)
 	 * @param string|null $bundle The identifier of the bundle which contains said asset.

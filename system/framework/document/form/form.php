@@ -128,9 +128,9 @@ class Form implements IElement, IElementMarkupClasses {
 			$app = Loader::getApplication();
 			if(method_exists($app, 'getRouter')) {
                 try {
-                    $this->action = $app->getRouter()->getURL();
+                    $this->action = $app->getRouter()->getURL(); // @todo This no longer works. Go fix.
                 }catch(\Exception $e){
-                    throw new \RuntimeException('Tried to get router object and get its url, but this resulted in an unexpected exception.', 0, $e);
+                    throw new \RuntimeException('Tried to get router object and get the current url, but this resulted in an unexpected exception.', 0, $e);
                 }
             }else throw new \InvalidArgumentException('The argument $action should be manually defined for this application: could not get a reference to the router object (application object has no "getRouter" method).');
 		}else $this->action = $action;

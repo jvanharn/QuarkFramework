@@ -89,7 +89,7 @@ class Alert extends Component implements IElementMarkupClasses {
             case 'type':
                 return $this->type;
             case 'dismissible':
-                return $this->type;
+                return $this->dismissible;
             default:
                 throw new \UnexpectedValueException('The given class-variable "'.$name.'"" does not exist.');
         }
@@ -108,6 +108,7 @@ class Alert extends Component implements IElementMarkupClasses {
             case 'type':
                 if(!(is_string($value) && in_array($value, self::$types))) throw new InvalidArgumentTypeException('type', 'string and be one of the TYPE_* class-constants', $value);
                 $this->type = $value;
+                $this->switchMarkupClass(self::$types, $value);
                 break;
             case 'dismissible':
                 if(!is_bool($value)) throw new InvalidArgumentTypeException('dismissable', 'boolean', $value);

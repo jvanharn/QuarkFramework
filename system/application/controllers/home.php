@@ -51,6 +51,10 @@ class HomeController extends Controller {
      * @return bool
      */
     public function index(){
+        // You can place a jumbotron inside the main (grid) container, however, that breaks the jumbotron on mobile devices.
+        //$this->layout->getContainer()->prependChild(new Components\Jumbotron('MVC Sample Application', 'This is a sample Jumbotron component from Bootstrap.'));
+        $this->layout->place(new Components\Jumbotron('MVC Sample Application', 'This is a sample Jumbotron component from Bootstrap.'));
+
         $this->layout->place(new Components\Alert('YAY SUCCESS!', Components\Alert::TYPE_SUCCESS));
 
         return true;

@@ -40,6 +40,7 @@ if(!defined('DIR_BASE')) exit;
  *
  * All (new!)set methods are chainable.
  * Carets are automatically added to buttons linked to dropdowns.
+ * @todo allow setting the variation of button (danger, warning, ...)
  */
 class Button extends Component implements ISingleActivator, IElementMarkupClasses {
 	use baseSingleActivator, baseElementMarkupClasses;
@@ -57,7 +58,7 @@ class Button extends Component implements ISingleActivator, IElementMarkupClasse
 	/**
 	 * @param string $label Display text on the button.
 	 * @param string|null $href When placed in a document, this will be treated as a href, when $form is set to true it will trigger this "action" (form reset etc), when an IActivator object will activate that object.
-	 * @param bool $form Set this to true when this button should treat the href as action instead of URL.
+	 * @param bool $form Set this to true when this button should treat the href as an action instead of URL.
 	 */
 	public function __construct($label, $href=null, $form=false){
 		$this->setLabel($label);

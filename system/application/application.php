@@ -41,6 +41,8 @@ if(!defined('DIR_BASE')) exit;
 	'Framework.System.Application.Base.Extensions',
 	'Framework.System.Application.Base.Database'
 );
+use Quark\Document\Utils\Image;
+use Quark\Libraries\Bootstrap\Form\Action;
 use Quark\Protocols\HTTP\IMutableResponse;
 use Quark\Protocols\HTTP\Server\ServerResponse;
 use Quark\System\Application\MVC;
@@ -65,7 +67,6 @@ use Quark\Libraries\Bootstrap\BootstrapLayout,
 
 use Quark\Libraries\Bootstrap\Form\Form,
     Quark\Libraries\Bootstrap\Form\Plaintext,
-    Quark\Document\Form\Action,
     Quark\Document\Form\Checkbox,
     Quark\Document\Form\Selectable,
     Quark\Document\Form\Textarea,
@@ -135,13 +136,25 @@ class Application extends MVCApplication {
      */
     public function routeRequest(IRoutableRequest $request, IMutableResponse $response) {
         // Header
-        $navigation = new Components\NavigationBar('Quark App Framework');
-        $menu = new Components\NavigationBarMenu();
-        $menu->addLink('test1');
-        $menu->addLink('test2');
-        $menu->addDropdown('test3', array('text' => 'link'));
-        $navigation->addContent($menu);
-        $this->document->place($navigation);
+        //$navigation = new Components\NavigationBar('Quark App Framework');
+        $navigation = new Components\NavigationBar(Image::find($this->document, 'icon.ico', 'default', null, 'Quark Framework')->dimensions(null, 20));
+        $navigation->type = Components\NavigationBar::TYPE_INVERTED;
+        $navigation->position = Components\NavigationBar::POS_STATIC_TOP;
+
+        // Add menu
+        $menu = new Components\Navigation();
+        $menu->addLink('Home', '/home/index');
+        $menu->addLink('Domain', '/domain');
+        $menu->addDropdown('User', array('User1' => '/user/get/1'));
+        $navigation->place($menu);
+
+        // Add search form
+        $search = new Form($this->document, '/home/search', Form::METHOD_POST, false);
+        $search->place(new TextField('search', null, null, 'Search'));
+        $search->place(new Action(Action::ACTION_SUBMIT, '', Glyphicon::ICO_SEARCH));
+        $navigation->place($search, Components\NavigationBar::ALIGN_RIGHT);
+
+        $this->document->place($navigation, BootstrapLayout::POSITION_BEFORE_CONTAINER);
 
         // Run the controller
         if(!$this->router->route($request, $response)){

@@ -103,9 +103,12 @@ class Container extends BootstrapCollection {
 		else
 			$this->addMarkupClass('container');
 
+        $children = $this->saveChildren($context, $depth+1);
+        if(empty($children)) return _::line($depth, ''); // If the response is empty do not return the wrapper element.
+
 		return
 			_::line($depth, '<div '.$this->saveClassAttribute($context).'>').
-				$this->saveChildren($context).
+				$children.
 			_::line($depth, '</div>');
 	}
 }

@@ -185,4 +185,20 @@ trait baseElementMarkupClasses {
     protected function saveClassAttribute(Document $document){
         return $document->encodeAttribute('class', implode(' ', $this->cssClasses));
     }
+
+    /**
+     * Class switching helper.
+     *
+     * Helper method that makes it possible to define a list with classes, and switch to another class and automatically
+     * have the other classes removed.
+     * @param array $classes
+     * @param string $class (New) class to set.
+     */
+    protected function switchMarkupClass(array &$classes, $class){
+        foreach($this->cssClasses as $k => $v) {
+            if (in_array($v, $classes))
+                unset($this->cssClasses[$k]);
+        }
+        array_push($this->cssClasses, $class);
+    }
 }

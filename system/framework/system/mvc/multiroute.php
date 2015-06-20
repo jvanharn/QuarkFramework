@@ -108,6 +108,8 @@ class MultiRoute implements RouteInterface {
 
                 // Call the controller method
                 $fqn = $this->controllers[$controller];
+                if(!class_exists($fqn, false))
+                    throw new HttpException(500, 'The route expected the controller "'.$fqn.'" to be already available or loaded by the provided autoloader, but it wasn\'t. Please make sure the controller is in the correct namespace, or change your configuration of MultiRoute to reflect the correct namespace.');
                 try {
                     /** @var $instance Controller */
                     $instance = new $fqn();
