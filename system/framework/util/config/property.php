@@ -23,7 +23,7 @@
  */
 
 // Define Namespace
-namespace Quark\Util\Quark;
+namespace Quark\Util\Config;
 
 // Prevent individual file access
 if(!defined('DIR_BASE')) exit;
@@ -45,11 +45,18 @@ class Property implements \ArrayAccess, \Iterator {
 	protected $base;
 	
 	/**
-	 * Current type bitmask.
+	 * Current type.
 	 * @var integer
 	 */
 	protected $type;
 	
+	/**
+	 * (Cached) Result of Config->keys().
+	 * Contains either the max index value, or the actual keys.
+	 * @var integer|array|null
+	 */
+	protected $keys;
+
 	/**
 	 * Iterator Index
 	 * @var integer
@@ -64,35 +71,69 @@ class Property implements \ArrayAccess, \Iterator {
 		$this->config = $config;
 		if($base != null && is_array($base))
 			$this->base = $base;
+		else{
+			$this->type = Config::DICTIONARY;
+			$this->base = array();
+		}
 	}
 	
 	/**
 	 * Get the index $name from the current config file and path.
 	 * @param string $name Index name.
-	 * @return \Quark\Util\Config\ConfigMapper|mixed Gets another configmapper on collection or properties typed value, otherwise the value.
+	 * @return \Quark\Util\Config\Property Gets another property on collection or properties typed value, otherwise the value.
 	 * @throws \OutOfBoundsException When key is invalid.
 	 */
 	public function get($name) {
 		// Build current path
 		$path = array_merge($this->base, array($name));
-		
+
 		// Check if valid path
-		if($this->config->valid($path))
-			throw new \OutOfBoundsException('Invalid key given.');
+		if(!$this->config->valid($path))
+			throw new \OutOfBoundsException('Invalid key given ('.implode($path, ', ').').');
 		
 		// Check what to return
 		return new Property($this->config, $path);
+	}
+
+	/**
+	 * Set the index $name in the current config file and path.
+	 * @param string $name Index name.
+	 * @param mixed $value
+	 * @param int $type
+	 * @return boolean
+	 */
+	public function set($name, $value, $type=Config::PROPERTY) {
+		// Build current path
+		$path = array_merge($this->base, array($name));
+
+		// Check what to return
+		return $this->config->set($path, $value, $type);
+	}
+
+	/**
+	 * Remove the index $name from the current config file and path.
+	 * @param string $name Index name.
+	 * @return boolean
+	 * @throws \OutOfBoundsException When key is invalid.
+	 */
+	public function remove($name) {
+		// Build current path
+		$path = array_merge($this->base, array($name));
+
+		// Check what to return
+		return $this->config->remove($path);
 	}
 	
 	/**
 	 * Get the value of the current property.
 	 * @return mixed Property value.
-	 * @throws \UnderflowException When the element has no value.
+	 * @throws \UnderflowException When the element has no value, because it isn't a property.
 	 */
 	public function value() {
-		if($this->config->is($this->base, Config::VALUE))
+		/*if($this->config->is($this->base, Config::PROPERTY))
 			return $this->config->get($this->base);
-		else throw new \UnderflowException("Current config element has no Value.");
+		else throw new \UnderflowException("Current config element has no Value.");*/
+		return $this->config->get($this->base);
 	}
 	
 	/**
@@ -101,19 +142,18 @@ class Property implements \ArrayAccess, \Iterator {
 	 * @return boolean
 	 */
 	public function has($name){
-		if($this->is(Config::COLLECTION) || $this->is(Config::PROPERTIES)){
-			$path = array_merge($this->base, array($name));
-			return $this->config->valid($path);
-		}else return false;
+		if($this->is(Config::COLLECTION) || $this->is(Config::DICTIONARY))
+			return $this->config->valid(array_merge($this->base, array($name)));
+		else return false;
 	}
 	
 	/**
-	 * Get the type bitmask of the currently referenced property path.
+	 * Get the type of the currently referenced property path.
 	 * @return integer
 	 */
-	public function types(){
+	public function type(){
 		if($this->type === null)
-			$this->type = $this->config->types($this->base);
+			$this->type = $this->config->type($this->base);
 		return $this->type;
 	}
 	
@@ -124,8 +164,16 @@ class Property implements \ArrayAccess, \Iterator {
 	 */
 	public function is($type){
 		if(is_integer($type))
-			return $this->types() & $type;
+			return $this->type();
 		else return false;
+	}
+
+	/**
+	 * Get the wrapped config object.
+	 * @return Config
+	 */
+	public function getConfig(){
+		return $this->config;
 	}
 	
 	// Magic Access
@@ -134,6 +182,13 @@ class Property implements \ArrayAccess, \Iterator {
 	 */
 	public function __get($name) {
 		return $this->get($name);
+	}
+
+	/**
+	 * @ignore
+	 */
+	public function __set($name, $value) {
+		return $this->set($name, $value);
 	}
 	
 	/**
@@ -162,14 +217,14 @@ class Property implements \ArrayAccess, \Iterator {
 	 * @ignore
 	 */
 	public function offsetSet($offset, $value) {
-		throw new \RuntimeException("Cannot set values with the ConfigMapper.");
+		$this->set($offset, $value);
 	}
 	
 	/**
 	 * @ignore
 	 */
 	public function offsetUnset($offset) {
-		throw new \RuntimeException("Cannot remove values with the ConfigMapper.");
+		$this->remove($offset);
 	}
 	
 	// Iterator Implementation
@@ -177,14 +232,21 @@ class Property implements \ArrayAccess, \Iterator {
 	 * @ignore
 	 */
 	public function current() {
-		return $this->get($this->index);
+		return $this->get($this->key());
 	}
 	
 	/**
 	 * @ignore
 	 */
 	public function key() {
-		return $this->index;
+		if(!$this->valid())
+			throw new \OutOfRangeException('Current key is out of range.');
+		if($this->type() == Config::COLLECTION)
+			return $this->index;
+		else if($this->type() == Config::DICTIONARY)
+			return $this->keys[$this->index];
+		else
+			throw new \BadMethodCallException('Cannot iterate over a property.');
 	}
 	
 	/**
@@ -204,8 +266,12 @@ class Property implements \ArrayAccess, \Iterator {
 	/**
 	 * @ignore
 	 */
-	public function valid() {
-		return $this->has($this->index);
+	public function valid(){
+		if($this->type() == Config::COLLECTION)
+			return $this->index < $this->keys;
+		else if($this->type() == Config::DICTIONARY)
+			return $this->index < count($this->keys);
+		else
+			throw new \BadMethodCallException('Cannot iterate over a property.');
 	}
-	
 }

@@ -212,13 +212,13 @@ class Extensions implements Singleton{
 			return false;
 		else if(count($suppliers) <= 0)
 			return false;
-		else{
-			foreach($suppliers as $sup){
-				if(!is_object($sup) || (is_object($sup) &&!($sup instanceof Suppliers\Supplier)))
-					return false;
-			}
+
+		// Check array contents
+		foreach($suppliers as $sup){
+			if(!is_object($sup) || (is_object($sup) &&!($sup instanceof Supplier)))
+				return false;
 		}
-		
+
 		// Set it.
 		$this->suppliers = $suppliers;
 		return true;
@@ -277,7 +277,7 @@ class Extensions implements Singleton{
 			foreach($this->suppliers as $supplier){
 				if($supplier instanceof BuildingSupplier){
 					if($supplier->available()){
-						$supplier->fill($this);
+						$supplier->update($this);
 						return true;
 					}
 				}
@@ -295,7 +295,7 @@ class Extensions implements Singleton{
 	public function cache(){
 		if(count($this->extensions) <= 0)
 			return true;
-		
+
 		$found = false;
 		foreach($this->suppliers as $supplier){
 			if($supplier instanceof CachingSupplier){
@@ -371,9 +371,8 @@ class Extensions implements Singleton{
 			return true;
 		
 		$return = true;
-		$this->enabled->top();
+		$this->enabled->rewind();
 		while($this->enabled->valid()){
-			$this->enabled->next();
 			$name = $this->enabled->current();
 			$entry = $this->extensions->get($name);
 			if(!$this->handlers->exists($entry['handler']))
@@ -384,6 +383,8 @@ class Extensions implements Singleton{
 				$return = false;
 				Error::raiseWarning('Failed to load extension "'.$name.'" while trying to load all extensions.');
 			}else $this->loaded[] = $name;
+
+			$this->enabled->next();
 		}
 		return $return;
 	}
@@ -431,8 +432,10 @@ class Extensions implements Singleton{
 			));
 		
 		$handler = null;
+		$handlerName = null;
 		foreach($handlers as $eh){
 			$handler = $this->handlers->getObject($eh);
+			$handlerName = $eh;
 			if($handler->test($path) === true)
 				break;
 			else $handler = null;
@@ -454,7 +457,7 @@ class Extensions implements Singleton{
 			return $this->extensions->register($name, array(
 				'path'			=> $path,
 				'type'			=> $type,
-				'handler'		=> $eh,
+				'handler'		=> $handlerName,
 				'state'			=> self::STATE_NEW,
 				'priority'		=> $handler->defaultPriority(),
 				'dependencies'	=> $handler->dependencies($path),
@@ -558,6 +561,16 @@ class Extensions implements Singleton{
 				return $this->extensions->register($name, $entry, true);
 			}else return false;
 		}else return false;
+	}
+
+	/**
+	 * Set the state of the given extension.
+	 * @param string $name Full extension name.
+	 * @param string $state The state of the extension. One of the Extension::STATE_* constants.
+	 * @return boolean
+	 */
+	public function setState($name, $state){
+		return $this->extensions->setState($name, $state);
 	}
 	
 	// Static Methods

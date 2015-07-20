@@ -29,6 +29,7 @@ use Quark\Document\IElement;
 use Quark\Document\Utils\_;
 use Quark\Libraries\Bootstrap\baseElementDataAttributes;
 use Quark\Libraries\Bootstrap\baseElementMarkupClasses;
+use Quark\Libraries\Bootstrap\Glyphicon;
 use Quark\Libraries\Bootstrap\IActivator;
 use Quark\Libraries\Bootstrap\IElementDataAttributes;
 use Quark\Libraries\Bootstrap\IElementMarkupClasses;
@@ -192,16 +193,19 @@ class NavigationLink implements INavigationElement {
     /**
      * @var string $text Contains the link text.
      * @var string $href Contains the link.
+     * @var Glyphicon $icon Contains the optional icon.
      */
-    public $text, $href;
+    public $text, $href, $icon;
 
     /**
      * @param string $text The link text.
      * @param string $href The linked location.
+     * @param Glyphicon $icon The optional icon.
      */
-    public function __construct($text, $href){
+    public function __construct($text, $href, Glyphicon $icon=null){
         $this->text = (string) $text;
         $this->href = (string) $href;
+        $this->icon = $icon;
     }
 
     /**
@@ -211,7 +215,7 @@ class NavigationLink implements INavigationElement {
      * @return String HTML Representation
      */
     public function save(Document $context, $depth=0){
-        return _::line($depth+1, '<li><a '.$context->encodeAttribute('href', $this->href).'>'.$context->encodeText($this->text).'</a></li>');
+        return _::line($depth+1, '<li><a '.$context->encodeAttribute('href', $this->href).'>'.(!is_null($this->icon)?$this->icon->save($context).' ':'').$context->encodeText($this->text).'</a></li>');
     }
 }
 

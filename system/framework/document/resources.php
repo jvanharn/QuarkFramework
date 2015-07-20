@@ -90,7 +90,7 @@ class ResourceManager {
 	 */
 	public function reference($name, $type=null, $bundle=null, $version=null, $forceURI=false){
 		// Check already referenced assets
-		if(isset($this->referenced[strtolower($name)]))
+		if(isset($this->referenced[strtolower($name)]) && !$forceURI)
 			return true;
 
 		// Resolve type
@@ -334,7 +334,7 @@ class BundleResourceRoute implements Route {
 	 * @throws \InvalidArgumentException
 	 * @return string The URI that leads to the specified location.
 	 */
-	public function build(array $params, $optimized = false) {
+	public function build($params, $optimized = false) {
 		if(empty($params) && count($params) == 2)
 			throw new \InvalidArgumentException('Argument $params has to be set and consist of 2 parts (bundle id, resource name).');
 

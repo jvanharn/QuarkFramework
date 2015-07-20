@@ -62,7 +62,7 @@ class HandlerRegistry extends \Quark\Util\Registry {
 	 * Get a handler for a extension typename
 	 * (A type is the extension part like "mysql.driver", then drive is the type, mostly the same as the handler name)
 	 * @param string $type Type to check for
-	 * @return bool|string The handler name.
+	 * @return bool|string[] The handler names.
 	 */
 	public function getByType($type){
 		$handlers = array();
@@ -77,11 +77,11 @@ class HandlerRegistry extends \Quark\Util\Registry {
 	
 	/**
 	 * Get the object for a specific handler
-	 * @param $name Handler name to get the object for
+	 * @param string $name Handler name to get the object for
 	 * @return bool|Handler Boolean on error, object on success
 	 */
 	public function getObject($name){
-		// Check if the handler is registred
+		// Check if the handler is registered
 		if($this->exists($name)){
 			$handler = $this->registry[$name];
 			if(!isset($this->objects[$name])){

@@ -1,32 +1,20 @@
 <?php
 /**
- * 
+ * Extension handler for database driver extensions.
  * 
  * @package		Quark-Framework
- * @version		$Id: driver.php 69 2013-01-24 15:14:45Z Jeffrey $
- * @author		Jeffrey van Harn <support@pagetreecms.org>
+ * @author		Jeffrey van Harn <support AT lessthanthree.nl>
  * @since		March 4, 2012
  * @copyright	Copyright (C) 2012 Jeffrey van Harn. All rights reserved.
  * @license		http://opensource.org/licenses/gpl-3.0.html GNU Public License Version 3
- * 
- * Copyright (C) 2012 Jeffrey van Harn
- * 
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License (License.txt) for more details.
  */
 
 // Define Namespace
 namespace Quark\Extensions\Handlers;
 
-use \Quark\Extensions\Handler,
-	\Quark\Extensions\baseHandler;
+use Quark\Extensions\Handler,
+	Quark\Extensions\baseHandler;
+use Quark\Util\Config\Config;
 
 // Prevent individual file access
 if(!defined('DIR_BASE')) exit;
@@ -53,7 +41,7 @@ class DriverHandler implements Handler{
 	 * @access private
 	 */
 	public static $map = array(
-		'type' => \Quark\Util\Config\Config::DICTIONARY,
+		'type' => Config::DICTIONARY,
 		'struct' => [
 			'title'			=> false,
 			'description'	=> true,
@@ -65,9 +53,9 @@ class DriverHandler implements Handler{
 			'classname'		=> false,
 			
 			'dependencies' => [
-				'type' => \Quark\Util\Config\Config::COLLECTION,
+				'type' => Config::COLLECTION,
 				'struct' => [
-					'type' => \Quark\Util\Config\Config::PROPERTY,
+					'type' => Config::PROPERTY,
 					'struct' => [
 						'name'		=> false,
 						'type'		=> false,
@@ -78,9 +66,9 @@ class DriverHandler implements Handler{
 			],
 			
 			'settings' => [
-				'type' => \Quark\Util\Config\Config::COLLECTION,
+				'type' => Config::COLLECTION,
 				'struct' => [
-					'type' => \Quark\Util\Config\Config::PROPERTY,
+					'type' => Config::PROPERTY,
 					'struct' => [
 						'index'			=> false,
 						'name'			=> true,
@@ -103,7 +91,7 @@ class DriverHandler implements Handler{
 		if(!$this->baseTest($path))
 			return false;
 		
-		// Check if the necessery components are there
+		// Check if the necessary components are there
 		if(!is_file($path.'driver.php') || !is_file($path.'query.php') || !is_file($path.'result.php') || !is_file($path.'statement.php'))
 			return false;
 		

@@ -13,6 +13,7 @@
 namespace Quark\Database\Driver;
 
 // Prevent individual file access
+use PDO;
 use Quark\Database\DatabaseException;
 use Quark\Database\Driver;
 
@@ -46,6 +47,7 @@ class SQLiteDriver implements Driver {
 		// Create the pdo object
 		try {
 			$this->pdo = new \PDO('sqlite:'.$settings['database']);
+			$this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 		}catch(\PDOException $e){
 			throw new DatabaseException('Could not open the SQLite database.', E_USER_ERROR, $e);
 		}
@@ -80,12 +82,15 @@ class SQLiteDriver implements Driver {
 	public function query($statement, $cursor=false) {
 		if(is_bool($cursor)){
 			if(is_string($statement) || $statement instanceof SQLiteQuery){
-				if($cursor == true)
-					return new SQLiteResult($this->pdo->query((string) $statement), false);
-				else {
-					$stmt = $this->pdo->prepare((string) $statement, [\PDO::ATTR_CURSOR => \PDO::CURSOR_SCROLL]);
+				if($cursor == true){
+					$this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+					$stmt = $this->pdo->prepare((string) $statement, [PDO::ATTR_CURSOR => PDO::CURSOR_SCROLL]);
+					if($stmt === false)
+						throw new DatabaseException('Something went wrong whilst preparing the statement "'.$statement.'": '.implode($this->pdo->errorInfo(), ' - ').'.');
 					$stmt->execute();
 					return new SQLiteResult($stmt, true);
+				}else{
+					return new SQLiteResult($this->pdo->query((string) $statement), false);
 				}
 			}else throw new DatabaseException('Invalid statement type given. SQLite Driver can only execute SQL Query strings and SQLite Query\'s.');
 		}else throw new DatabaseException('$cursor should be a boolean, but got "'.gettype($cursor).'".');
@@ -146,7 +151,7 @@ class SQLiteDriver implements Driver {
 	public static function testSettings(array $settings) {
 		// Check settings array
 		if(!self::checkSettings($settings))
-			return 'Settings incorrectly formatted see the driver info for the required attributes, and make sure the hostname and database fields are non-empty.';
+			return 'The database field must be non-empty, and must point to a valid path. A common value for this field is: "'.DIR_DATA.'db.sqlite3".';
 		
 		// Check if SQLite is available
 		if(!self::driverAvailable())

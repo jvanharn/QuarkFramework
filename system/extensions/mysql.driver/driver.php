@@ -96,12 +96,12 @@ class MySQLDriver implements Driver {
 	public function query($statement, $cursor=false) {
 		if(is_bool($cursor)){
 			if(is_string($statement) || $statement instanceof MySQLQuery){
-				if($cursor == true)
-					return new MySQLResult($this->pdo->query((string) $statement), false);
-				else {
+				if($cursor == true){
 					$stmt = $this->pdo->prepare((string) $statement, [\PDO::ATTR_CURSOR => \PDO::CURSOR_SCROLL]);
 					$stmt->execute();
 					return new MySQLResult($stmt, true);
+				}else{
+					return new MySQLResult($this->pdo->query((string) $statement), false);
 				}
 			}else throw new DatabaseException('Invalid statement type given. MySQL Driver can only execute SQL Query strings and MySQL Query\'s.');
 		}else throw new DatabaseException('$cursor should be a boolean, but got "'.gettype($cursor).'".');

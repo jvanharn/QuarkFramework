@@ -42,6 +42,7 @@ if(!defined('DIR_BASE')) exit;
 /**
  * Quark uses namespaces to prevent class name duplication and box in dependencies. 'use' makes it easy to use the class without their FQN or namespaces.
  */
+use Quark\Document\Headers;
 use	\Quark\Document\Utils\Text,
 	\Quark\Document\Utils\Literal,
 	\Quark\Document\Utils\Paragraph,
@@ -73,6 +74,9 @@ class IntroApplication extends Application{
 		 * If you would like to use any of the other available layouts, try one of the commented out variations. (use only one!)
 		 */
 		$this->initDocument();
+		$this->document->headers->add(Headers::TITLE, array(), 'Quark Framework Sample');
+		$this->document->headers->add(Headers::META, array('name'=>'viewport', 'content'=>'width=device-width, initial-scale=1.0, maximum-scale=1.0'));
+		$this->document->headers->add(Headers::LINK, array('rel'=>'shortcut icon', 'href'=>'/assets/images/icon.ico', 'type'=>'image/x-icon'));
 		//$this->initDocumentWithLayout(new GridLayout(16, 10)); // When using this layout, make sure you adjust the regions/positions of the elements in display, as this layout does not have the "header" and "footer" regions.
 
 		// Fix timezone warnings.

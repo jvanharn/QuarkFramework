@@ -32,6 +32,8 @@ use Quark\Extensions\Extensions;
 // Prevent individual file access
 if(!defined('DIR_BASE')) exit;
 
+define('DEFAULT_JSON_CACHE_PATH', DIR_DATA.'extensions.json');
+
 /**
  * Cached Extension Supplier
  * 
@@ -50,15 +52,16 @@ if(!defined('DIR_BASE')) exit;
  * ]
  */
 class JSONCachingSupplier implements CachingSupplier{
-	const DEFAULT_FILENAME = 'extensions.json';
-	
+	/**
+	 * @var string
+	 */
 	protected $path;
 
 	/**
-	 * @param string $filename
+	 * @param string $path Full path to the extension cache file.
 	 */
-	public function __construct($filename=self::DEFAULT_FILENAME) {
-		$this->path = DIR_DATA.$filename;
+	public function __construct($path=DEFAULT_JSON_CACHE_PATH) {
+		$this->path = $path;
 	}
 
 	/**
@@ -150,5 +153,6 @@ class JSONCachingSupplier implements CachingSupplier{
 				'info'			=> $props['info']
 			));
 		}
+		return true;
 	}
 }

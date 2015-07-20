@@ -5,47 +5,49 @@
  * Scans the extension directory and notifies the system of the existence of these extensions.
  * 
  * @package		Quark-Framework
- * @version		$Id: diskbuildingsupplier.php 69 2013-01-24 15:14:45Z Jeffrey $
  * @author		Jeffrey van Harn <Jeffrey at lessthanthree.nl>
  * @since		16 december 2012
- * @copyright	Copyright (C) 2012 Jeffrey van Harn. All rights reserved.
+ * @copyright	Copyright (C) 2012-2015 Jeffrey van Harn. All rights reserved.
  * @license		http://opensource.org/licenses/gpl-3.0.html GNU Public License Version 3
- * 
- * Copyright (C) 2012 Jeffrey van Harn
- * 
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License (License.txt) for more details.
  */
 
 // Define Namespace
 namespace Quark\Extensions\Suppliers;
 
 // Import namespace
-use	\Quark\Extensions\Extensions;
+use Quark\Extensions\BuildingSupplier;
+use Quark\Extensions\Extensions;
 
 // Prevent individual file access
 if(!defined('DIR_BASE')) exit;
 
 /**
  * Get available extensions by scanning the extensions directory.
- *
- * @author Jeffrey van Harn <Jeffrey at lessthanthree.nl>
  */
-class DiskBuildingSupplier implements \Quark\Extensions\BuildingSupplier {
+class DiskBuildingSupplier implements BuildingSupplier {
+	/**
+	 * Current availability of the supplier.
+	 *
+	 * Whether or not this supplier is available or able to fill the extension
+	 * registry at the moment. If it is always in this state, just return true.
+	 * @return boolean
+	 */
 	public function available() {
 		if(!is_dir(DIR_EXTENSIONS))
 			throw new \RuntimeException('The Extension directory as defined in the DIR_EXTENSIONS constant does not exist!');
 		return true;
 	}
 
-	public function fill(\Quark\Extensions\Extensions $registry) {
+	/**
+	 * Fills the given Extension Registry with the available extensions.
+	 *
+	 * This function should fill the extension registry with extensions that are
+	 * currently available. This means that it should also contain extensions with statuses
+	 * like enabled, disabled, new etc.
+	 * @param Extensions $registry Current (empty) registry to fill.
+	 * @return void
+	 */
+	public function fill(Extensions $registry) {
 		// Create a new Directory Iterator
 		$extensions = new \DirectoryIterator(DIR_EXTENSIONS);
 		
@@ -62,7 +64,12 @@ class DiskBuildingSupplier implements \Quark\Extensions\BuildingSupplier {
 		}
 	}
 
-	public function update(\Quark\Extensions\Extensions $registry) {
+	/**
+	 * Update an already filled registry.
+	 * @param Extensions $registry
+	 * @return void
+	 */
+	public function update(Extensions $registry) {
 		// Create a new Directory Iterator
 		$extensions = new \DirectoryIterator(DIR_EXTENSIONS);
 		

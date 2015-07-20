@@ -24,6 +24,7 @@
 
 // Define Namespace
 namespace Quark\Extensions;
+use Quark\Util\Registry;
 
 // Prevent individual file access
 if(!defined('DIR_BASE')) exit;
@@ -34,11 +35,12 @@ if(!defined('DIR_BASE')) exit;
  * The value for a Registry entry should be formatted in the following way:
  * array(
  *   path => (string) '/Full/Path/to/the/extension/directory/',
- *   handler => (string) 'RegistredHandlerName',
+ *   handler => (string) 'RegisteredHandlerName',
+ *   state => (int) State type,
  *   info => (array) Key value pairs of info about the extension.
  * )
  */
-class ExtensionRegistry extends \Quark\Util\Registry {
+class ExtensionRegistry extends Registry {
 	/**
 	 * Handler Registry
 	 * @var \Quark\Extensions\HandlerRegistry
@@ -99,6 +101,24 @@ class ExtensionRegistry extends \Quark\Util\Registry {
 		// Return the results
 		return $return;
 	}
+
+	/**
+	 * Set the state of an extension.
+	 * @param string $name Name of the extension.
+	 * @param string $state One of the Extensions::STATE_* constants.
+	 * @return bool
+	 */
+	public function setState($name, $state){
+		if(!Extensions::isState($state))
+			return false;
+		foreach($this->registry as $ext => $value){
+			if($ext == $name){
+				$this->registry[$ext]['state'] = $state;
+				return true;
+			}
+		}
+		return false;
+	}
 	
 	// Override the registry helper functions
 	/**
@@ -121,7 +141,6 @@ class ExtensionRegistry extends \Quark\Util\Registry {
 		// Check if the handler exists.
 		if(!$this->handlers->exists($value['handler']) && !is_null($value['handler'])){
 			throw new \UnexpectedValueException('Handler "'.$value['handler'].'" does not exist!');
-			return false;
 		}
 		
 		// Everything went well.

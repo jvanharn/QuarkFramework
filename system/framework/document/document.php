@@ -221,8 +221,8 @@ class Document implements Singleton, Observable {
 
 		// Initialize the headers object
 		$this->headers->add(Headers::TITLE, array(), 'Quark Framework');
-		$this->headers->add(Headers::META, array('name'=>'viewport', 'content'=>'width=device-width, initial-scale=1.0, maximum-scale=1.0'));
-		$this->headers->add(Headers::LINK, array('rel'=>'shortcut icon', 'href'=>'/assets/images/icon.ico', 'type'=>'image/x-icon'));
+		//$this->headers->add(Headers::META, array('name'=>'viewport', 'content'=>'width=device-width, initial-scale=1.0, maximum-scale=1.0'));
+		//$this->headers->add(Headers::LINK, array('rel'=>'shortcut icon', 'href'=>'/assets/images/icon.ico', 'type'=>'image/x-icon'));
 		
 		// Register the shutdown function to make sure there always is some output
 		register_shutdown_function(function(){

@@ -33,6 +33,16 @@ if(!defined('DIR_BASE')) exit;
  */
 interface Config {
 	/**
+	 * Open the config file in read only mode.
+	 */
+	const MODE_READONLY = 1;
+
+	/**
+	 * Open the config in read and write mode.
+	 */
+	const MODE_READWRITE = 2;
+
+	/**
 	 * Plain Text Value with or without property's
 	 */
 	const PROPERTY = 1;
@@ -46,26 +56,36 @@ interface Config {
 	 * Path is Collection of paths of the same or multiple types (Array, zero indexed)
 	 */
 	const COLLECTION = 3;
-	
+
 	/**
 	 * Open a configuration file.
 	 * @param string $file File path to the configuration file to parse.
+	 * @param int $mode Mode to open the file in.
 	 */
-	public function __construct($file);
+	public function __construct($file, $mode=self::MODE_READWRITE);
 	
 	/**
-	 * Get the plain value of a property (If it is a valid proprty or value).
+	 * Get the plain value of a property (If it is a valid property or value).
 	 * @param array $property Property path.
 	 * @return mixed Property value.
 	 */
 	public function get(array $property);
-	
+
 	/**
-	 * Set the value of the property
+	 * Set the value of the property.
 	 * @param array $property
 	 * @param mixed $value
+	 * @param int $type
+	 * @return boolean
 	 */
 	public function set(array $property, $value, $type=self::PROPERTY);
+
+	/**
+	 * Remove a property.
+	 * @param array $property
+	 * @return boolean
+	 */
+	public function remove(array $property);
 	
 	/**
 	 * Check if the property path is valid.
@@ -88,6 +108,13 @@ interface Config {
 	 * @return integer Type of the property.
 	 */
 	public function type(array $property);
+
+	/**
+	 * Get the keys of a collection or dictionary property.
+	 * @param array $property Property path.
+	 * @return int|array Int if the value is a collection, an array when it is a dictionary.
+	 */
+	public function keys(array $property);
 	
 	/**
 	 * Check if the config properties have changed since opening.

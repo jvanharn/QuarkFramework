@@ -30,6 +30,15 @@ if(!defined('DIR_BASE')) exit;
 
 /**
  * Basic Query Builder Interface
+ *
+ * @method Query from() from(string $table)
+ * @method Query into() into(string $column)
+ * @method Query where() where($predictate)
+ * @method Query groupBy() groupBy(string $column)
+ * @method Query having() having($predictate)
+ * @method Query orderBy() orderBy(string $column)
+ * @method Query limit() limit(string $expression)
+ * @method Query set() set($assignment)
  */
 interface Query {
 	/**
@@ -73,6 +82,15 @@ interface Query {
 	 * Get the database connection used for this query.
 	 */
 	public function getDatabase();
+
+	/**
+	 * Makes it possible for the queries to dynamically compile.
+	 * @param string $name
+	 * @param array $params
+	 * @return $this
+	 * @throws \InvalidArgumentException When arguments are invalid.
+	 */
+	public function __call($name, array $params);
 	
 	/**
 	 * Get a list of all the valid statement types for the query builder.
@@ -220,6 +238,7 @@ abstract class SQLQuery implements Query {
 	/**
 	 * Statement aliasses
 	 * @var array
+	 * @todo fix this giant spelling mistake.
 	 */
 	protected static $aliasses = array(
 		'DELETE' => 'DELETE FROM'

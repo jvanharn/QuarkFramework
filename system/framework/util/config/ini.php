@@ -43,6 +43,11 @@ class INI implements Config {
 	 * @var string
 	 */
 	protected $file;
+
+	/**
+	 * @var int File read mode.
+	 */
+	protected $mode;
 	
 	/**
 	 * Map of all the key value pairs.
@@ -58,10 +63,12 @@ class INI implements Config {
 	
 	/**
 	 * Open the given file path.
-	 * @param string $file
+	 * @param string $file Path to readable config file.
+	 * @param int $mode Mode to open the file in.
 	 * @throws \RuntimeException
 	 */
-	public function __construct($file) {
+	public function __construct($file, $mode=self::MODE_READWRITE) {
+		//@todo implement the File-Modes (see JSON for a working implementation)
 		if(is_readable($file)){
 			$this->file = $file;
 			$this->map = parse_ini_file($this->file, true, INI_SCANNER_RAW);
@@ -85,19 +92,31 @@ class INI implements Config {
 	}
 
 	public function get(array $property) {
-		return $this->find($property);
-	}
-
-	public function is(array $property, $type) {
-		return $type & $this->types($property);
-	}
-
-	public function set(array $property, $value, $type = self::VALUE) {
 		$cnt = count($property);
 		if($cnt < 1)
 			throw new \UnexpectedValueException('Expected property array to be at least one element long.');
 		if($cnt > self::MAX_DEPTH)
-			throw new \OutOfRangeException('Property path given is longeer than 2 elements, you cannot do this in ini files.');
+			throw new \OutOfRangeException('Property path given is longer than '.self::MAX_DEPTH.' elements, which exceeds the set max depth.');
+
+		$cur = $this->map;
+		for($i=0; $i<$cnt; $i++){
+			if(isset($cur[$property[$i]]))
+				$cur = $cur[$property[$i]];
+			else throw new \OutOfBoundsException('Key "'.$property[$i].'" could not be found.');
+		}
+		return $cur;
+	}
+
+	public function is(array $property, $type) {
+		return $type == $this->type($property);
+	}
+
+	public function set(array $property, $value, $type = self::PROPERTY) {
+		$cnt = count($property);
+		if($cnt < 1)
+			throw new \UnexpectedValueException('Expected property array to be at least one element long.');
+		if($cnt > self::MAX_DEPTH)
+			throw new \OutOfRangeException('Property path given is longer than '.self::MAX_DEPTH.' elements, which exceeds the set max depth.');
 		
 		$cur = &$this->changes;
 		for($i=0; $i<$cnt; $i++){
@@ -110,41 +129,39 @@ class INI implements Config {
 		return false;
 	}
 
-	public function types(array $property) {
-		$prop = $this->find($property);
-		return is_array($prop) ? Config::COLLECTION : Config::PROPERTY;
-	}
-
 	public function valid(array $property) {
 		try{
-			$this->find($property);
+			$this->get($property);
 			return true;
 		}catch(\OutOfBoundsException $e){
 			return false;
 		}
 	}
-	
-	protected function find(array $property){
-		$cnt = count($property);
-		if($cnt < 1)
-			throw new \UnexpectedValueException('Expected property array to be at least one element long.');
-		if($cnt > self::MAX_DEPTH)
-			throw new \OutOfRangeException('Property path given is longeer than 2 elements, you cannot do this in ini files.');
-		
-		$cur = $this->map;
-		for($i=0; $i<$cnt; $i++){
-			if(isset($cur[$property[$i]]))
-				$cur = $cur[$property[$i]];
-			else throw new \OutOfBoundsException('Key "'.$property[$i].'" could not be found.');
-		}
-		return $cur;
-	}
 
 	public function type(array $property) {
-		
+		$prop = $this->find($property);
+		return is_array($prop) ? Config::COLLECTION : Config::PROPERTY;
 	}
 
 	public function write() {
-		
+		// TODO: Implement write() method.
+	}
+
+	/**
+	 * Remove a property.
+	 * @param array $property
+	 * @return boolean
+	 */
+	public function remove(array $property){
+		// TODO: Implement remove() method.
+	}
+
+	/**
+	 * Get the keys of a collection or dictionary property.
+	 * @param array $property Property path.
+	 * @return int|array Int if the value is a collection, an array when it is a dictionary.
+	 */
+	public function keys(array $property){
+		// TODO: Implement keys() method.
 	}
 }

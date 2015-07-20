@@ -42,6 +42,11 @@ class JSON implements Config{
 	 * @var string
 	 */
 	protected $file;
+
+	/**
+	 * @var int Mode the file was opened in.
+	 */
+	protected $mode;
 	
 	/**
 	 * Map of all the key value pairs.
@@ -58,15 +63,27 @@ class JSON implements Config{
 	/**
 	 * Open new config file.
 	 * @param string $file Path to readable config file.
+	 * @param int $mode Mode to open the file in.
 	 * @throws \RuntimeException When file is unreadable
 	 */
-	public function __construct($file) {
-		if(is_readable($file)){
-			$this->file = $file;
+	public function __construct($file, $mode=self::MODE_READWRITE) {
+		$this->file = $file;
+		$this->mode = (int) $mode;
+
+		if(!file_exists($file)){
+			if($mode == self::MODE_READONLY)
+				throw new \RuntimeException('The config file "'.$file.'" doesn\'t exist and was opened in read-only mode.');
+			$this->map = array();
+		}else{
+			if(!is_readable($file))
+				throw new \RuntimeException('The config file "'.$file.'" specified, is not readable.');
+			if($mode == self::MODE_READWRITE && !is_writeable($file))
+				throw new \RuntimeException('The config file "'.$file.'" specified, is not writable.');
+
 			$this->map = json_decode(file_get_contents($file), true, self::MAX_DEPTH);
 			if(!is_array($this->map))
 				throw new ConfigFormatException('The json config file could not be properly parse by the php JSON_DECODE function. Please check the file for writing problems.');
-		}else throw new \RuntimeException('The config file "'.$file.'" specified, is not readable.');
+		}
 	}
 	
 	/**
@@ -75,8 +92,9 @@ class JSON implements Config{
 	 * @return integer
 	 */
 	public function type(array $property){
-		$prop = $this->find($property);
+		$prop = $this->get($property);
 		if(is_array($prop)){
+			// make sure that all keys are integers.
 			for (reset($prop); is_int(key($prop)); next($prop));
 			return is_null(key($prop))? Config::COLLECTION : Config::DICTIONARY;
 		}else return Config::PROPERTY;
@@ -96,7 +114,19 @@ class JSON implements Config{
 	 * @return mixed
 	 */
 	public function get(array $property) {
-		return $this->find($property);
+		$cnt = count($property);
+		if($cnt < 1)
+			return $this->map;
+		if($cnt > self::MAX_DEPTH)
+			throw new \OutOfRangeException('Property path given is longer than '.self::MAX_DEPTH.' elements, which exceeds the set max depth.');
+
+		$cur = $this->map;
+		for($i=0; $i<$cnt; $i++){
+			if(isset($cur[$property[$i]]))
+				$cur = $cur[$property[$i]];
+			else throw new \OutOfBoundsException('Key "'.$property[$i].'" could not be found.');
+		}
+		return $cur;
 	}
 	
 	/**
@@ -106,7 +136,7 @@ class JSON implements Config{
 	 * @return boolean
 	 */
 	public function is(array $property, $type) {
-		return $type == $this->types($property);
+		return $type == $this->type($property);
 	}
 	
 	/**
@@ -119,33 +149,83 @@ class JSON implements Config{
 	 * @throws \OutOfRangeException When property path is larger than the max. allowed depth.
 	 */
 	public function set(array $property, $value, $type = self::PROPERTY) {
+		if($this->mode == self::MODE_READONLY)
+			throw new \BadMethodCallException('You cannot set properties on a readonly configuration object.');
+
 		$cnt = count($property);
 		if($cnt < 1)
 			throw new \UnexpectedValueException('Expected property array to be at least one element long.');
 		if($cnt > self::MAX_DEPTH)
-			throw new \OutOfRangeException('Property path given is longeer than 2 elements, you cannot do this in ini files.');
+			throw new \OutOfRangeException('Property path given is longer than '.self::MAX_DEPTH.' elements, which exceeds the set max depth.');
 		
 		$this->changed = true;
-		
-		$cur = &$this->map;
-		for($i=0; $i<$cnt; $i++){
-			if($i == $cnt-1){
-				$cur[$property[$i]] = $value;
-				return true;
-			}else
-				$cur[$property[$i]] &= array();
+
+		if($cnt == 1){
+			$this->map[$property[0]] = $value;
+			return true;
 		}
-		return false;
+
+		$cur =& $this->map;
+		for($i=0; $i<$cnt; $i++){
+			if($i == $cnt-1)
+				$cur[$property[$i]] = $value;
+			else if(isset($cur[$property[$i]]))
+				$cur =& $cur[$property[$i]];
+			else return false;
+		}
+		return true;
+	}
+
+	/**
+	 * Remove a property.
+	 * @param array $property
+	 * @return boolean
+	 */
+	public function remove(array $property){
+		if($this->mode == self::MODE_READONLY)
+			throw new \BadMethodCallException('You cannot set properties on a readonly configuration object.');
+
+		$cnt = count($property);
+		if($cnt < 1)
+			throw new \UnexpectedValueException('Expected property array to be at least one element long.');
+		if($cnt > self::MAX_DEPTH)
+			throw new \OutOfRangeException('Property path given is longer than '.self::MAX_DEPTH.' elements, which exceeds the set max depth.');
+
+		$this->changed = true;
+
+		if($cnt == 1){
+			unset($this->map[$property[0]]);
+			return true;
+		}
+
+		$cur =& $this->map;
+		for($i=0; $i<$cnt; $i++){
+			if($i == $cnt-1)
+				unset($cur[$property[$i]]);
+			else if(isset($cur[$property[$i]]))
+				$cur =& $cur[$property[$i]];
+			else return false;
+		}
+		return true;
+	}
+
+	/**
+	 * Get the keys of a collection or dictionary property.
+	 * @param array $property Property path.
+	 * @return int|array Int if the value is a collection, an array when it is a dictionary.
+	 */
+	public function keys(array $property){
+		return array_keys($this->get($property));
 	}
 	
 	/**
 	 * Check if a property path exists/is valid.
-	 * @param array $property Proeprty path.
+	 * @param array $property Property path.
 	 * @return boolean
 	 */
 	public function valid(array $property) {
 		try{
-			$this->find($property);
+			$this->get($property);
 			return true;
 		}catch(\OutOfBoundsException $e){
 			return false;
@@ -157,36 +237,23 @@ class JSON implements Config{
 	 * @return boolean
 	 */
 	public function write() {
+		if($this->mode == self::MODE_READONLY)
+			throw new \BadMethodCallException('You cannot write a readonly configuration object to a file.');
+
 		if($this->changed){
 			$result = json_encode($this->map);
-			if(is_string($result))
-				file_put_contents($this->file, $result);
-			else throw new \LogicException('Unencodable array was produced, could not write config file, please report.');
-		}
+			if(is_string($result)){
+				if(file_put_contents($this->file, $result) === false)
+					throw new \RuntimeException('The config file could not be written, because I do not have permission to write on the given location "' . $this->file . '".');
+			}else throw new \LogicException('Something went wrong while encoding the properties, could not write the config file, please report.');
+			return true;
+		}else return false;
 	}
-	
+
 	/**
-	 * Finds the property path in the map.
-	 * @param array $property Property path.
-	 * @return mixed Property value.
-	 * @throws \UnexpectedValueException When path is too short.
-	 * @throws \OutOfRangeException When path is too long.
-	 * @throws \OutOfBoundsException When a key in the path could not be found.
-	 * @access private
+	 * Force the mode the config file was opened in to writable.
 	 */
-	protected function find(array $property){
-		$cnt = count($property);
-		if($cnt < 1)
-			throw new \UnexpectedValueException('Expected property array to be at least one element long.');
-		if($cnt > self::MAX_DEPTH)
-			throw new \OutOfRangeException('Property path given is longeer than 2 elements, you cannot do this in ini files.');
-		
-		$cur = $this->map;
-		for($i=0; $i<$cnt; $i++){
-			if(isset($cur[$property[$i]]))
-				$cur = $cur[$property[$i]];
-			else throw new \OutOfBoundsException('Key "'.$property[$i].'" could not be found.');
-		}
-		return $cur;
+	public function forceWritable(){
+		$this->mode = self::MODE_READWRITE;
 	}
 }

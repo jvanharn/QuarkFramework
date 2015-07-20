@@ -42,6 +42,7 @@ if(!defined('DIR_BASE')) exit;
 	'Framework.System.Application.Base.Database'
 );
 
+use Quark\Document\Headers;
 use Quark\System\Application\Application,
     Quark\Util\baseSingleton,
     Quark\Bundles\Bundles;
@@ -88,6 +89,9 @@ class BootsrapApplication extends Application{
 
 		$this->initDocumentWithLayout(new BootstrapLayout());
 		$this->document->resources->reference('bootstrap.css');
+		$this->document->headers->add(Headers::TITLE, array(), 'Quark Framework Sample');
+		$this->document->headers->add(Headers::META, array('name'=>'viewport', 'content'=>'width=device-width, initial-scale=1.0, maximum-scale=1.0'));
+		$this->document->headers->add(Headers::LINK, array('rel'=>'shortcut icon', 'href'=>'/assets/images/icon.ico', 'type'=>'image/x-icon'));
 
 		$this->initExtensions();
 		$this->initDatabaseWithDriverName( // Database no longer available on Debug VM

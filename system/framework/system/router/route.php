@@ -67,7 +67,7 @@ interface Route {
 	 * @return string The URI that leads to the specified location.
 	 * @throws RouteBuilderParameterException Exception that is thrown when the method cannot build the URI/URL with the given parameters because they are either incorrectly formatted or are missing essential/non-optional params.
 	 */
-	public function build(array $params, $optimized=false);
+	public function build($params, $optimized=false);
 }
 
 /**

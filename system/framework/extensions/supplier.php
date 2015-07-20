@@ -40,15 +40,15 @@ interface Supplier {
 	 * Fills the given Extension Registry with the available extensions.
 	 *
 	 * This function should fill the extension registry with extensions that are
-	 * currently available. This means that it should also contain enabled,
-	 * disabled, new etc. statussed extensions.
+	 * currently available. This means that it should also contain extensions with statuses
+	 * like enabled, disabled, new etc.
 	 * @param \Quark\Extensions\Extensions $registry Current (empty) registry to fill.
-	 * @return
+	 * @return void
 	 */
 	public function fill(Extensions $registry);
 	
 	/**
-	 * Current availibility of the supplier.
+	 * Current availability of the supplier.
 	 * 
 	 * Whether or not this supplier is available or able to fill the extension
 	 * registry at the moment. If it is always in this state, just return true.
@@ -95,8 +95,9 @@ interface CachingSupplier extends Supplier {
  */
 interface BuildingSupplier extends Supplier {
 	/**
+	 * Update an already filled registry.
 	 * @param Extensions $registry
-	 * @return mixed
+	 * @return void
 	 */
 	public function update(Extensions $registry);
 }

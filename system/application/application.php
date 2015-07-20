@@ -41,6 +41,7 @@ if(!defined('DIR_BASE')) exit;
 	'Framework.System.Application.Base.Extensions',
 	'Framework.System.Application.Base.Database'
 );
+use Quark\Document\Headers;
 use Quark\Document\Utils\Image;
 use Quark\Libraries\Bootstrap\Form\Action;
 use Quark\Protocols\HTTP\IMutableResponse;
@@ -107,6 +108,11 @@ class Application extends MVCApplication {
 
         // Reference the bootstrap library
 		$this->document->resources->reference('bootstrap.css');
+
+		// Setup the document
+		$this->document->headers->add(Headers::TITLE, array(), 'Quark Framework Sample');
+		$this->document->headers->add(Headers::META, array('name'=>'viewport', 'content'=>'width=device-width, initial-scale=1.0, maximum-scale=1.0'));
+		$this->document->headers->add(Headers::LINK, array('rel'=>'shortcut icon', 'href'=>'/assets/images/icon.ico', 'type'=>'image/x-icon'));
 
         // Set the default/home controller
         foreach($this->router as $route){

@@ -58,6 +58,8 @@ class TextField extends Field implements IValidatableField, INormalizableField {
 	public function __construct($name, $label, $value=null, $placeholder=null){
         if(!(is_string($name) || $name === null)) throw new InvalidArgumentTypeException('name', 'string', $name);
         if(!(is_string($label) || $label === null)) throw new InvalidArgumentTypeException('label', 'string', $label);
+		$this->name = $name;
+		$this->label = $label;
 		$this->value = (string) $value;
 		$this->placeholder = (string) $placeholder;
 	}

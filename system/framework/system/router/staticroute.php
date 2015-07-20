@@ -133,7 +133,7 @@ class StaticRoute implements Route {
 	 * @throws \InvalidArgumentException
 	 * @return string The URI that leads to the specified location.
 	 */
-	public function build(array $params, $optimized = false) {
+	public function build($params, $optimized = false) {
 		if(empty($params['resource']))
 			throw new \InvalidArgumentException('Parameter resource is required to build a URI.');
 		$path = new URLPathInfo($this->base.$params['resource']);

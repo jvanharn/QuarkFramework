@@ -178,12 +178,13 @@ class Form implements IElement, IElementMarkupClasses {
 	public function group($name, $title='', array $fields=array()){
 		if(!(is_string($name) || is_integer($name))) throw new \InvalidArgumentException('Parameter $name for the method group should be of type "string" or "integer" but got "'.gettype($name).'".');
 		if(!is_string($title)) throw new \InvalidArgumentException('Parameter $title for method group should be of type "string" but got "'.gettype($title).'".');
-		
+
+		$this->fid = null; // reset form id
 		$this->groups[$name] = $title;
 		$this->fields[$name] = array();
 		foreach($fields as $field){
 			if($field instanceof Field)
-				$this->fields[$name] = $field;
+				$this->fields[$name][] = $field;
 			else throw new \UnexpectedValueException('Tried to place a field inside a group, but the given field value wasn\'t a \\Quark\\Document\\Form\\Field instance.');
 		}
 	}
