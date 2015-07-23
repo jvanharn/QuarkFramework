@@ -36,6 +36,11 @@ interface Driver {
 	 * @param array $settings Settings to initialize the driver with.
 	 */
 	public function __construct(array $settings);
+
+	/**
+	 * Force disconnect from the database.
+	 */
+	public function disconnect();
 	
 	/**
 	 * Execute a statement with the Database

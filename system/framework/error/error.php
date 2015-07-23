@@ -5,19 +5,18 @@
  * @package		Quark-Framework
  * @author		Jeffrey van Harn
  * @since		June 23, 2011
- * @copyright	Copyright (C) 2014 Jeffrey van Harn. All rights reserved.
+ * @copyright	Copyright (C) 2011-2015 Jeffrey van Harn. All rights reserved.
  * @license		http://opensource.org/licenses/gpl-3.0.html GNU Public License Version 3
  */
 
 // Set the namespace
 namespace Quark;
-
-// Prevent access to this standalone file
 use Quark\Document\Document;
 use Quark\Document\ErrorBox;
 use Quark\Document\ErrorFrame;
 use Quark\Error\Debug;
 
+// Prevent access to this standalone file
 if(!defined('DIR_BASE')) exit;
 
 /**
@@ -26,7 +25,7 @@ if(!defined('DIR_BASE')) exit;
 if(!defined('MAX_ERRORS')) define('MAX_ERRORS', 10);
 
 /**
- * This boolean constant is normally only used by (Module/Plugin) Developpers. HAVING THIS ON IN PRODUCTION ENVIRONMENTS WILL EXPOSE ALL YOUR DATA (Default: false)
+ * This boolean constant is normally only used by (Module/Plugin) Developers. HAVING THIS ON IN PRODUCTION ENVIRONMENTS WILL EXPOSE ALL YOUR DATA (Default: false)
  */
 // This will unleash the full debugging power of the Framework, it helps you find the exact problem and even helps debug your queries
 if(!defined('EXTENDED_DEBUG')) define('EXTENDED_DEBUG', true); 
@@ -454,7 +453,7 @@ function raiseError($debugMessage, $userMessage=null, $debugCode=E_USER_ERROR){
  * @private
  */
 function __err_handler($errno, $errstr, $errfile){
-	// Check if the error occured in this file, of so, dont handle
+	// Check if the error occurred in this file, of so, don't handle
 	if($errfile != __FILE__)
 		return Error::raise($errstr,null,$errno) || true;
 	else return false;

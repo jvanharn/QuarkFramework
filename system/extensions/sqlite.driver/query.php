@@ -111,6 +111,11 @@ class SQLiteQuery extends SQLQuery {
 			'type'		=> self::PARAM_ASSIGNMENT,
 			'subquery'	=> false
 		],
+		'VALUES' => [
+			'multiple'	=> true,
+			'type'		=> self::PARAM_EXPRESSION,
+			'subquery'	=> false // @todo maybe allow this here and in set.
+		],
 
 		// JOINs
 		'JOIN' => [
@@ -155,5 +160,5 @@ class SQLiteQuery extends SQLQuery {
 	 * All statement aliases
 	 * @var array
 	 */
-	protected static $aliasses = array();
+	protected static $aliases = array('DELETE' => 'DELETE FROM');
 }

@@ -82,7 +82,7 @@ interface Result extends \Countable, \Traversable{
 	/**
 	 * Fetch the next row in the result set.
 	 * @param integer $style A FETCH_* Constant.
-	 * @return mixed Array of row values or object depending on $style.
+	 * @return array|ResultRow|null Array of row values or object depending on $style.
 	 */
 	public function fetchNext($style=self::FETCH_NAMED);
 	

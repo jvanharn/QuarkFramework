@@ -26,6 +26,9 @@
 namespace Quark\Database;
 
 // Prevent individual file access
+use Quark\Error;
+use Quark\Util\Type\InvalidArgumentTypeException;
+
 if(!defined('DIR_BASE')) exit;
 
 /**
@@ -39,6 +42,7 @@ if(!defined('DIR_BASE')) exit;
  * @method Query orderBy() orderBy(string $column)
  * @method Query limit() limit(string $expression)
  * @method Query set() set($assignment)
+ * @method Query values() values(array $values)
  */
 interface Query {
 	/**
@@ -80,6 +84,7 @@ interface Query {
 	
 	/**
 	 * Get the database connection used for this query.
+	 * @return Database
 	 */
 	public function getDatabase();
 
@@ -143,7 +148,18 @@ abstract class SQLQuery implements Query {
 	 * 
 	 * Structure: [
 	 *   'stmtType' => [
-	 *      
+	 * 		// Statement parameter options.
+	 *      'default' => <mixed> // A default parameter value for this statement, which allows user to create this statement without parameters.
+	 *      'empty' => <boolean> // Whether or not this parameter may be empty.
+	 *      'multiple' => <boolean> // Whether or not multiple parameters are allowed
+	 *      'keyvalue' => <boolean> // When multiple parameters are allowed, this says whether or not the multiple parameters can be defined using key-value pairs.
+	 *
+	 *      // Statement clauses:
+	 *      'clauses' => array(clause:<string>) // An array of clauses that are allowed to be used in conjunction with a statement, in the order they should be saved.
+	 *      'required' => array(clause:<string>) // An array of clause names that *have to be set* or are required in order to save the query.
+	 *
+	 *      // Statement results.
+	 *      'resultset' => <boolean> // Whether or not this statement results in a set of results (true) or results in a number like "number of affected rows" (false).
 	 *   ]
 	 * ]
 	 * @var array
@@ -155,8 +171,10 @@ abstract class SQLQuery implements Query {
 			'empty'		=> false,
 			'keyvalue'	=> false,
 			'multiple'	=> true,
+
 			'clauses'	=> ['FROM', 'WHERE', 'GROUP BY', 'HAVING', 'ORDER BY', 'LIMIT'],
 			'required'	=> ['FROM'],
+
 			'resultset'	=> true
 		],
 		'INSERT' => [
@@ -164,8 +182,10 @@ abstract class SQLQuery implements Query {
 			'empty'		=> true,
 			'keyvalue'	=> false,
 			'multiple'	=> false,
+
 			'clauses'	=> ['INTO', 'VALUES'],
 			'required'	=> ['INTO', 'VALUES'],
+
 			'resultset'	=> false
 		],
 		'UPDATE' => [
@@ -173,8 +193,10 @@ abstract class SQLQuery implements Query {
 			'empty'		=> false,
 			'keyvalue'	=> true,
 			'multiple'	=> false,
+
 			'clauses'	=> ['SET', 'WHERE', 'ORDER BY', 'LIMIT'],
 			'required'	=> ['SET'],
+
 			'resultset'	=> false
 		],
 		'DELETE FROM' => [
@@ -182,8 +204,10 @@ abstract class SQLQuery implements Query {
 			'empty'		=> false,
 			'keyvalue'	=> false,
 			'multiple'	=> false,
+
 			'clauses'	=> ['WHERE', 'ORDER BY', 'LIMIT'],
 			'required'	=> [],
+
 			'resultset'	=> false
 		]
 	);
@@ -232,25 +256,31 @@ abstract class SQLQuery implements Query {
 			'multiple'	=> true,
 			'type'		=> self::PARAM_ASSIGNMENT,
 			'subquery'	=> false
+		],
+		'VALUES' => [
+			'multiple'	=> true,
+			'type'		=> self::PARAM_EXPRESSION,
+			'subquery'	=> false // @todo maybe allow this here and in set.
 		]
 	);
 	
 	/**
-	 * Statement aliasses
+	 * Statement aliases.
+	 *
+	 * The given keys are statements that will be converted to the statement in the value.
 	 * @var array
-	 * @todo fix this giant spelling mistake.
 	 */
-	protected static $aliasses = array(
+	protected static $aliases = array(
 		'DELETE' => 'DELETE FROM'
 	);
 	
 	/**
-	 * Reserved words in this SQL dialect
+	 * Reserved words in this SQL dialect.
 	 * @var array
 	 */
 	protected static $reserved = array(
 		'select', 'insert', 'delete', 'update', 'into', 'from', 'where',
-		'group', 'by', 'having', 'order', 'limit', 'set', '?'
+		'group', 'by', 'having', 'order', 'limit', 'set', 'values', '?'
 	);
 	
 	/**
@@ -261,47 +291,67 @@ abstract class SQLQuery implements Query {
 	
 	/**
 	 * Current query/statement type.
+	 *
+	 * E.g. SELECT, INSERT INTO, UPDATE, ...
 	 * @var string
 	 */
 	protected $type;
 	
 	/**
 	 * Params for that statement.
+	 *
+	 * E.g. a table name for SELECT or a table name and columns for INSERT INTO.
 	 * @var array|string
 	 */
 	protected $param;
 	
 	/**
 	 * Current statement type's properties.
+	 *
+	 * The value of the sub-array with a key with the same name as $type (the current statement name).
 	 * @var array
 	 */
 	protected $props;
 	
 	/**
-	 * Clauses added to the current query
+	 * Clauses added to the current query.
+	 *
+	 * All the clauses that have been added to the statement, like FROM or WHERE for the SELECT statement, and it's parameters.
+	 *   array(
+	 *   	<statementName> => array(<parameters>),
+	 *   	<statementName2> => array(<parameters>),
+	 *      ...
+	 *   )
 	 * @var array
 	 */
 	protected $stmt = array();
 	
 	/**
-	 * All the queries in union with this query
-	 * @var array
+	 * All the queries in union with this query.
+	 * @var SQLQuery[]
 	 */
 	protected $union = array();
 	
 	/**
 	 * Saved version of the query (Cache).
+	 *
+	 * This is currently a dumb cache, so if you alter the query after saving it, the text wont be changed to reflect that.
+	 * @todo See above comment.
 	 * @var string
 	 */
 	protected $query;
 	
 	/**
-	 * Bound parameters for prepared query's
+	 * Bound parameters for prepared query's.
+	 *
+	 * Once the query get's saved (in the value above), if the user preferred the parameters bound in a prepared statement,
+	 * this array will contain all the values that have been bound in the query cached above.
 	 * @var array
 	 */
 	protected $bound = array();
 	
 	/**
+	 * Create a new generic query object.
 	 * @param \Quark\Database\Database $db
 	 * @param string $type
 	 * @param array $param
@@ -315,9 +365,10 @@ abstract class SQLQuery implements Query {
 		
 		$class = get_called_class();
 		$type = strtoupper($type);
+		/** @var SQLQuery $class */
 		if(is_string($type) && in_array($type, $class::statements())){
-			if(isset($class::$aliasses[$type]))
-				$type = $class::$aliasses[$type];
+			if(isset($class::$aliases[$type]))
+				$type = $class::$aliases[$type];
 			$this->type = $type;
 			$this->props = $class::$statements[$this->type];
 		}else throw new \InvalidArgumentException('Invalid statement type given. Please check available statements using the Query::statements method.');
@@ -342,8 +393,8 @@ abstract class SQLQuery implements Query {
 	}
 
 	/**
-	 *
-	 * @param string $name
+	 * Add a clause to the statement/query.
+	 * @param string $name Clause type/name like WHERE or FROM.
 	 * @param array $params
 	 * @return $this|Query
 	 * @throws \OutOfBoundsException
@@ -360,14 +411,21 @@ abstract class SQLQuery implements Query {
 				throw new \OutOfBoundsException('"'.$name.'" is a invalid SQL clause (at least for this database).');
 			$prop = $class::$clauses[$name];
 			if($prop['multiple']){
-				if($prop['type'] == self::PARAM_EXPRESSION && isset($params[count($params)-1]))
+				if($prop['type'] == self::PARAM_EXPRESSION){
+				 	if(!isset($params[count($params)-1]))// Check that the array is a numerical array.
+						throw new \InvalidArgumentException('Expected a numeric array for the clause "'.$name.'" because it is of type PARAM_EXPRESSION. Please provide a numerically indexed array, instead of an associative array.');
 					$this->stmt[$name] = $params;
-				else if($prop['type'] == self::PARAM_ASSIGNMENT && !isset($params[count($params)-1]))
+				}else if($prop['type'] == self::PARAM_ASSIGNMENT && !isset($params[count($params)-1]))
 					$this->stmt[$name] = $params;
-				else if($prop['type'] == self::PARAM_PREDICTATE && isset($params[count($params)-1])){
-					if(count($params[0]) == 3)
-						$this->stmt[$name] = $params;
-					else throw new \InvalidArgumentException('Parameter for "'.$name.'" was incorrectly formatted. Should be in the format of array(array("keyorcolumn", ">=", "expected value"), ...).');
+				else if($prop['type'] == self::PARAM_PREDICTATE){
+					foreach($params as $key => $value){
+						if(
+							(is_integer($key) && !(is_array($value) && count($value) == 3)) ||
+							(is_string($key) && !(is_array($value) || is_scalar($value)))
+						)
+							throw new \InvalidArgumentException('Parameter for "'.$name.'" was incorrectly formatted. Should be in the format of array(array("keyorcolumn", ">=", "expected value"), ...) or using key value pairs.');
+					}
+					$this->stmt[$name] = $params;
 				}else
 					throw new \InvalidArgumentException('Invalid parameter for the defined parameter type for the clause "'.$name.'".');
 			}else $this->stmt[$name] = [$params[0]];
@@ -385,7 +443,7 @@ abstract class SQLQuery implements Query {
 	public function union(Query $query){
 		if($query->getDatabase()->getName() == $this->db->getName()){
 			// Check if both query's have resultsets
-			if($this->props['resultset'] == $query->getProperties()['resultset'])
+			if($this->props['resultset'] == $query->getProperties()['resultset']) // @todo check validity, this seems to no longer work
 				$this->union[] = $query;
 			else throw new DatabaseException('The query given is not unionable with this query because their return values are different.');
 		}else
@@ -415,14 +473,7 @@ abstract class SQLQuery implements Query {
 		}
 		
 		// Set statement base
-		$query = $this->type.' ';
-		if(!empty($this->param))
-			$query .= $this->saveParameter(
-				$this->param,
-				($this->props['keyvalue'] ? self::PARAM_ASSIGNMENT : self::PARAM_COLUMNNAME),
-				$this->props['multiple'],
-				false
-			);
+		$query = $this->saveStatement();
 		
 		// Add clauses
 		foreach($this->stmt as $clause => $param){
@@ -432,7 +483,7 @@ abstract class SQLQuery implements Query {
 			// Save param
 			$query .= "\n".$clause.' '.$this->saveParameter($param, $props['type'], $props['multiple'], $prepared);
 		}
-		
+
 		// Union with the other query's
 		foreach($this->union as $query)
 			$query .= "\nUNION\n".$query->save($prepared);
@@ -457,7 +508,32 @@ abstract class SQLQuery implements Query {
 			return $this->bound;
 		else throw new \BadMethodCallException('This method can only be called after this query was saved preparated.');
 	}
-	
+
+	/**
+	 * Saves the first part of the query.
+	 * (The Initial statement, e.g. SELECT or UPDATE)
+	 * @return string
+	 */
+	protected function saveStatement(){
+		$stmt = $this->type.' ';
+		if(!empty($this->param))
+			$stmt .= $this->saveParameter(
+				$this->param,
+				($this->props['keyvalue'] ? self::PARAM_ASSIGNMENT : self::PARAM_COLUMNNAME),
+				$this->props['multiple'],
+				false
+			);
+		return $stmt;
+	}
+
+	/**
+	 * Save a clause to its SQL representation.
+	 * @param mixed $parameter The parameter for the clause.
+	 * @param int $type One of the PARAM_* constants.
+	 * @param bool $multiple Whether or not this parameter is saved with multiple parameters.
+	 * @param bool $prepared Whether or not the clause should be saved with bound values, instead of inline values.
+	 * @return string
+	 */
 	protected function saveParameter($parameter, $type, $multiple, $prepared){
 		if(!$multiple){
 			if((is_array($parameter) && $type != self::PARAM_PREDICTATE) || (is_array($parameter) && is_array($parameter[0])))
@@ -472,18 +548,26 @@ abstract class SQLQuery implements Query {
 						else return $parameter;
 					}
 				case self::PARAM_EXPRESSION:
-					if($prepared){
+					if(!is_array($parameter) && $prepared){
 						$this->bound[] = $parameter;
 						return '?';
 					}
-					else if(is_numeric($parameter)) return $parameter;
-					else return '\''.$parameter.'\'';
+					//else if(is_numeric($parameter)) return $parameter;
+					else if(is_array($parameter)) return $this->saveParameter($parameter, self::PARAM_EXPRESSION, true, $prepared);
+					//else return '\''.$parameter.'\'';
+				else return $this->db->quote($parameter);
 				case self::PARAM_ASSIGNMENT:
-					throw new \LogicException('PARAM_ASIGNMENT cannot have single value, internal parser error.');
+					throw new \LogicException('Internal parser error; PARAM_ASSIGNMENT cannot have a single value.');
 				case self::PARAM_PREDICTATE:
-					return $this->saveParameter($parameter[0], self::PARAM_COLUMNNAME, false, $prepared).' '.$parameter[1].' '.$this->saveParameter($parameter[2], self::PARAM_EXPRESSION, false, $prepared);
+					$pcnt = count($parameter);
+					if($pcnt == 3)
+						return $this->saveParameter($parameter[0], self::PARAM_COLUMNNAME, false, $prepared).' '.$parameter[1].' '.$this->saveParameter($parameter[2], self::PARAM_EXPRESSION, false, $prepared);
+					else if($pcnt == 2)
+						return $this->saveParameter($parameter[0], self::PARAM_COLUMNNAME, false, $prepared).(is_array($parameter[1]) ? ' IN ' : ' = ').$this->saveParameter($parameter[1], self::PARAM_EXPRESSION, false, $prepared);
+					else
+						throw new \LogicException('Internal parse error; PARAM_PREDICTATE expected $parameter to be array of 3 long: [column, comparison_func, value] or of two long [key, value]. It was "'.$pcnt.'".');
 				default:
-					throw new \LogicException('Unexpected type.');
+					throw new \LogicException('Internal structure error: Unexpected parameter or clause type.');
 			}
 		}else{
 			switch($type){
@@ -498,33 +582,41 @@ abstract class SQLQuery implements Query {
 					foreach($parameter as $param){
 						$save .= $this->saveParameter($param, self::PARAM_EXPRESSION, false, $prepared).', ';
 					}
-					return substr($save, 0, -2);
+					return '('.substr($save, 0, -2).')';
 				case self::PARAM_ASSIGNMENT:
 					$save = '';
 					foreach($parameter as $param => $value){
 						$save .= $param.' = '.$this->saveParameter($value, self::PARAM_EXPRESSION, false, $prepared).', ';
 					}
-					return substr($save, 0 -2);
+					return substr($save, 0, -2);
 				case self::PARAM_PREDICTATE:
 					$save = '';
-					foreach($parameter as $param){
-						$save .= $this->saveParameter($param, self::PARAM_PREDICTATE, false, $prepared).', ';
+					foreach($parameter as $key => $param){
+						if(is_integer($key))
+							$save .= $this->saveParameter($param, self::PARAM_PREDICTATE, false, $prepared).', ';
+						else if(is_string($key))
+							$save .= $this->saveParameter(array($key, $param), self::PARAM_PREDICTATE, false, $prepared).', ';
+						else throw new \LogicException('Internal parse error; PARAM_PREDICTATE expected $parameter to be array containing key value pairs with string keys and arrays of 3 defined as predictates, but found something else.');
 					}
 					return substr($save, 0, -2);
 				default:
-					throw new \LogicException('Unexpected type.');
+					throw new \LogicException('Internal structure error: Unexpected parameter or clause type.');
 			}
 		}
 	}
 
 	/**
 	 * Try to execute this query with the connection it was created at.
+	 *
+	 * This is the same as saving this query with $prepared=true, and then feeding the query and bound parameters to prepare.
+	 * @param bool $cursor Whether or not to make it possible to efficiently seek within the query. Not supported by all drivers.
 	 * @return bool|int|Result
 	 */
-	public function execute(){
+	public function execute($cursor=false){
+		$stmt = $this->db->prepare($this->save(true), $cursor);
 		if($this->props['resultset'])
-			return $this->db->query($this);
-		else return $this->db->execute($this);
+			return $stmt->query($this->bound);
+		else return $stmt->execute($this->bound);
 	}
 
 	/**
@@ -536,7 +628,7 @@ abstract class SQLQuery implements Query {
 	}
 
 	/**
-	 * Get the set proeprties for this query.
+	 * Get the set properties for this query.
 	 * @return array
 	 */
 	public function getProperties(){
@@ -549,7 +641,7 @@ abstract class SQLQuery implements Query {
 	 */
 	public static function statements(){
 		$class = get_called_class();
-		return array_merge(array_keys($class::$statements), array_keys($class::$aliasses));
+		return array_merge(array_keys($class::$statements), array_keys($class::$aliases));
 	}
 	
 	// Magic methods
@@ -574,6 +666,11 @@ abstract class SQLQuery implements Query {
 	 * @return string
 	 */
 	public function __toString() {
-		return $this->save();
+		try{
+			return $this->save();
+		}catch(\Exception $e){
+			Error::raiseError($e->getMessage().' '.PHP_EOL.'Trace: '.$e->getTraceAsString(), 'Something went wrong compiling a query in runtime.');
+			return '';
+		}
 	}
 }

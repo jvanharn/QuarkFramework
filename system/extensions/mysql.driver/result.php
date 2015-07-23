@@ -97,7 +97,7 @@ class MySQLResult implements \IteratorAggregate, \Quark\Database\Result {
 	 * Fetch the next row in the result set.
 	 * @param int $style A FETCH_* Constant.
 	 * @throws \InvalidArgumentException
-	 * @return mixed Array of row values or object depending on $style.
+	 * @return array|ResultRow|null Array of row values or object depending on $style.
 	 */
 	public function fetchNext($style = self::FETCH_NAMED) {
 		switch($style) {

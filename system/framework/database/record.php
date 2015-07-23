@@ -37,7 +37,7 @@ if(!defined('DIR_BASE')) exit;
  */
 abstract class Record {
 	// Relation Constants
-	// These constants are only here for conveniance, it's easier just to define the multiplicity as a string or array.
+	// These constants are only here for convenience, it's easier just to define the multiplicity as a string or array.
 	/**
 	 * Relation - This record has one record of the other type. (Multiplicity: 1..1)
 	 */
@@ -182,14 +182,14 @@ abstract class Record {
 	 * update action ACTION_* constant, delete action].
 	 * @return array
 	 */
-	public static function getRelations();
+	abstract public static function getRelations();
 	
 	/**
 	 * Get all records that have the given key(s).
 	 * @param integer|string|array $value
 	 * @return array
 	 */
-	public static function key($value);
+	abstract public static function key($value);
 	
 	/**
 	 * Find all the records that have the given value in the specified column.
@@ -197,7 +197,7 @@ abstract class Record {
 	 * @param mixed $value Value of the column.
 	 * @return \Quark\Database\Result
 	 */
-	public static function find($column, $value, $type=Statement::PARAM_STRING);
+	abstract public static function find($column, $value, $type=Statement::PARAM_STRING);
 	
 	/**
 	 * Find records that are like the given value in the given column.
@@ -205,13 +205,13 @@ abstract class Record {
 	 * @param mixed $value Value of the column.
 	 * @return \Quark\Database\Result
 	 */
-	public static function like($column, $value);
+	abstract public static function like($column, $value);
 	
 	/**
 	 * Get all records that have a set relation with the given object.
 	 * @param string $record Name of the record this record has a relation with.
 	 */
-	public static function with($record);
+	abstract public static function with($record);
 	
 	/**
 	 * Get a query builder object.
@@ -234,6 +234,10 @@ abstract class Record {
 	}
 }
 
+/**
+ * Interface RecordDriver
+ * @package Quark\Database
+ */
 interface RecordDriver {
 	/**
 	 * Update a record to the given value(s).
@@ -251,6 +255,6 @@ interface RecordDriver {
  * 
  * Implements the active record classes using the SQLQuery classes.
  */
-class SQLQueryRecordDriver implements RecordDriver {
+class QueryBuilderRecordDriver implements RecordDriver {
 	
 }

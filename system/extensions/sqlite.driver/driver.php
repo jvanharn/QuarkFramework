@@ -16,6 +16,9 @@ namespace Quark\Database\Driver;
 use PDO;
 use Quark\Database\DatabaseException;
 use Quark\Database\Driver;
+use Quark\Database\SQLQuery;
+use Quark\Error;
+use Quark\Util\Type\InvalidArgumentTypeException;
 
 if(!defined('DIR_BASE')) exit;
 
@@ -52,26 +55,37 @@ class SQLiteDriver implements Driver {
 			throw new DatabaseException('Could not open the SQLite database.', E_USER_ERROR, $e);
 		}
 	}
+
+	/**
+	 * Force disconnect from the database.
+	 */
+	public function disconnect(){
+		$this->pdo = null;
+	}
 	
 	/**
 	 * Closes the connection.
 	 */
 	public function __destruct() {
-		$this->pdo = null;
+		$this->disconnect();
 	}
 	
 	/**
 	 * SQLite Query to Execute
 	 * @param string|\Quark\Database\Driver\SQLiteQuery $statement Statement to execute.
 	 * @throws DatabaseException When something was wrong with the query/statement.
-	 * @return boolean|integer Boolean false on failure or the number of affected rows on succes. Beware that the number of rows on succes can also be evaluated as an boolean, try to use the === operator to be sure.
+	 * @return boolean|integer Boolean false on failure or the number of affected rows on success. Beware that the number of rows on success can also be evaluated as an boolean, try to use the === operator to be sure.
 	 */
 	public function execute($statement) {
 		if(is_string($statement) || $statement instanceof SQLiteQuery){
-			return $this->pdo->exec((string) $statement);
+			try{
+				return $this->pdo->exec((string)$statement);
+			}catch(\PDOException $e){
+				throw new DatabaseException('Something went wrong trying to execute the given statement: ('.$e->getCode().') '.$e->getMessage(), null, $e);
+			}
 		}else throw new DatabaseException('Invalid statement type given. SQLite Driver can only execute SQL Query strings and SQLite Query\'s.');
 	}
-	
+
 	/**
 	 * SQLite Query to query the database with for results.
 	 * @param string|\Quark\Database\Driver\SQLiteStatement $statement Statement to query with.
@@ -81,16 +95,27 @@ class SQLiteDriver implements Driver {
 	 */
 	public function query($statement, $cursor=false) {
 		if(is_bool($cursor)){
-			if(is_string($statement) || $statement instanceof SQLiteQuery){
-				if($cursor == true){
-					$this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-					$stmt = $this->pdo->prepare((string) $statement, [PDO::ATTR_CURSOR => PDO::CURSOR_SCROLL]);
-					if($stmt === false)
-						throw new DatabaseException('Something went wrong whilst preparing the statement "'.$statement.'": '.implode($this->pdo->errorInfo(), ' - ').'.');
-					$stmt->execute();
-					return new SQLiteResult($stmt, true);
-				}else{
-					return new SQLiteResult($this->pdo->query((string) $statement), false);
+			if(is_string($statement) || (is_object($statement) && $statement instanceof SQLiteQuery)){
+				if(is_object($statement)){
+					$statement = $statement->save(false);
+					Error::raiseWarning('Executing queries build with the querybuilder can be done more securely by using the "prepare" method. This significantly reduces the chances of SQL Injection.', 'The way queries are executed in this application is inefficient.');
+				}
+				try{
+					if($cursor == true){
+						$this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+						$stmt = $this->pdo->prepare($statement, [PDO::ATTR_CURSOR => PDO::CURSOR_SCROLL]);
+						if($stmt === false)
+							throw new DatabaseException('Something went wrong whilst preparing the statement "' . $statement . '": ' . implode($this->pdo->errorInfo(), ' - ') . '.');
+						$stmt->execute();
+						return new SQLiteResult($stmt, true);
+					}else{
+						$result = $this->pdo->query($statement);
+						if($result === false)
+							throw new DatabaseException('Something went wrong whilst querying the database: ' . implode($this->pdo->errorInfo(), ' - ') . '.');
+						return new SQLiteResult($result, false);
+					}
+				}catch(\PDOException $e){
+					throw new DatabaseException('Something went wrong whilst querying the database: ('.$e->getCode().') '.$e->getMessage(), null, $e);
 				}
 			}else throw new DatabaseException('Invalid statement type given. SQLite Driver can only execute SQL Query strings and SQLite Query\'s.');
 		}else throw new DatabaseException('$cursor should be a boolean, but got "'.gettype($cursor).'".');
@@ -104,17 +129,20 @@ class SQLiteDriver implements Driver {
 	 * @throws \InvalidArgumentException When something was wrong with the query/statement.
 	 * @return \Quark\Database\Statement
 	 */
-	public function prepare($statement, $cursor = false) {
-		if(is_string($statement) && is_bool($cursor))
+	public function prepare($statement, $cursor=false) {
+		if(!is_string($statement)) throw new InvalidArgumentTypeException('statement', 'string', $statement);
+		if(!is_bool($cursor)) throw new InvalidArgumentTypeException('status', 'boolean', $cursor);
+		try{
 			return new SQLiteStatement(
 				$this->pdo->prepare(
 					$statement,
-					[\PDO::ATTR_CURSOR => ($cursor?\PDO::CURSOR_SCROLL:\PDO::CURSOR_FWDONLY)]
+					[\PDO::ATTR_CURSOR => ($cursor ? \PDO::CURSOR_SCROLL : \PDO::CURSOR_FWDONLY)]
 				),
 				$cursor
 			);
-		else
-			throw new \InvalidArgumentException('Invalid statement type (should be string) or invalid cursor type (Should be boolean).');
+		}catch(\PDOException $e){
+			throw new DatabaseException('SQLiteDriver: Query preparation failed: '.$e->getMessage(), null, $e);
+		}
 	}
 	
 	/**

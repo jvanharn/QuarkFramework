@@ -29,6 +29,7 @@ namespace Quark;
 
 // Prevent individual file access
 use Quark\Error;
+use Quark\Error\Debug;
 use Quark\System\Log;
 
 if(!defined('DIR_BASE'))
@@ -269,9 +270,9 @@ class Loader{
 				Error::prettyPrintErrorMessage(
 					'An uncaught exception occurred in the Application that was running, which led to an application abort.',
 					$exception->getCode(),
-					'An exception occurred in the application.',
+					'An exception of type "'.get_class($exception).'" occurred in the application. It was then caught in the \Quark\Loader class.',
 					$exception->getMessage(),
-					\Quark\Error\Debug::traceToString($exception->getTrace(), defined('EXTENDED_DEBUG') && EXTENDED_DEBUG)
+					Debug::traceToString($exception->getTrace(), defined('EXTENDED_DEBUG') && EXTENDED_DEBUG)
 				);
 			else
 				print((string) $exception);

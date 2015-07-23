@@ -1,29 +1,17 @@
 <?php
 /**
- * Database 
+ * Database Management
  * 
  * @package		Quark-Framework
- * @version		$Id: database.php 75 2013-04-17 20:53:45Z Jeffrey $
  * @author		Jeffrey van Harn <support@pagetreecms.org>
  * @since		March 4, 2012
- * @copyright	Copyright (C) 2012 Jeffrey van Harn. All rights reserved.
+ * @copyright	Copyright (C) 2012-2015 Jeffrey van Harn. All rights reserved.
  * @license		http://opensource.org/licenses/gpl-3.0.html GNU Public License Version 3
- * 
- * Copyright (C) 2012 Jeffrey van Harn
- * 
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License (License.txt) for more details.
  */
 
 // Define Namespace
 namespace Quark\Database;
+use Quark\Util\Multiton;
 
 // Prevent individual file access
 if(!defined('DIR_BASE')) exit;
@@ -34,7 +22,16 @@ if(!defined('DIR_BASE')) exit;
 	'Framework.Database.Statement',
 true);
 
-class Database implements \Quark\Util\Multiton{
+/**
+ * Database management class.
+ *
+ * Represents the connection to a database, and makes it possible to interact with it, regardless of what backend is used.
+ * @method Query select() select(string $columns)
+ * @method Query update() update(string $table)
+ * @method Query insert() insert()
+ * @method Query deleteFrom() deleteFrom(string $table)
+ */
+class Database implements Multiton{
 	/**
 	 * Contains the current Database Instance
 	 * @var Array
@@ -58,16 +55,18 @@ class Database implements \Quark\Util\Multiton{
 	 * @var string
 	 */
 	private $queryClass;
-	
+
 	/**
-	 * Start the database connection 
+	 * Start the database connection
+	 * @param string $name Connection name.
+	 * @param Driver $driver Driver to use for this database instance.
 	 */
 	private function __construct($name, Driver $driver){
-		$this->name = $name;
+		$this->name = (string) $name;
 		$this->driver = $driver;
 		$this->queryClass = $driver->getQueryClassname();
 	}
-	
+
 	/**
 	 * Query the Database
 	 * @param mixed $statement (SQL) Query statement for the database
@@ -132,11 +131,11 @@ class Database implements \Quark\Util\Multiton{
 	/**
 	 * Quote an expression or value for use in a statement.
 	 * 
-	 * This part of the api is mostly provided for backwards compability and
-	 * people who requested this feature. For compability and especially
+	 * This part of the api is mostly provided for backwards compatibility and
+	 * people who requested this feature. For compatibility and especially
 	 * security reasons, prepared statements are recommended over the quoted
 	 * feature or even better, the query builder option of our api. These
-	 * options offer greater compability and more security.
+	 * options offer greater compatibility and more security.
 	 * 
 	 * @param mixed $expression Expression to properly format.
 	 * @return mixed A expression that may be safely used in a statement.
@@ -146,7 +145,7 @@ class Database implements \Quark\Util\Multiton{
 	}
 	
 	/**
-	 * Dynamicly map method calls to the query builder.
+	 * Dynamically map method calls to the query builder.
 	 * @param string $name Method name.
 	 * @param array $arguments Arguments for the function.
 	 * @return \Quark\Database\Query
@@ -180,6 +179,16 @@ class Database implements \Quark\Util\Multiton{
 	 */
 	public function getRawConnection(){
 		return $this->driver->getRawConnection();
+	}
+
+	/**
+	 * Force disconnection from the database.
+	 *
+	 * Also removes this instance from the multiton.
+	 */
+	public function disconnect(){
+		$this->driver->disconnect();
+		unset(self::$_instances[$this->name]);
 	}
 	
 	/**

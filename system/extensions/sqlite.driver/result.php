@@ -24,6 +24,7 @@
 
 // Define Namespace
 namespace Quark\Database\Driver;
+use Quark\Database\DatabaseException;
 use Quark\Database\Result;
 use Quark\Database\ResultRow;
 
@@ -95,18 +96,26 @@ class SQLiteResult implements \IteratorAggregate, Result {
 	 * Fetch the next row in the result set.
 	 * @param int $style A FETCH_* Constant.
 	 * @throws \InvalidArgumentException
-	 * @return mixed Array of row values or object depending on $style.
+	 * @return array|ResultRow|null Array of row values or object depending on $style.
 	 */
 	public function fetchNext($style = self::FETCH_NAMED) {
-		switch($style) {
-			case self::FETCH_NAMED:
-				return $this->stmt->fetch(\PDO::FETCH_ASSOC, \PDO::FETCH_ORI_NEXT);
-			case self::FETCH_LIST:
-				return $this->stmt->fetch(\PDO::FETCH_NUM, \PDO::FETCH_ORI_NEXT);
-			case self::FETCH_OBJECT:
-				return new ResultRow($this->stmt->fetch(\PDO::FETCH_ASSOC, \PDO::FETCH_ORI_NEXT));
-			default:
-				throw new \InvalidArgumentException('Invalid Result::FETCH_* constant used.');
+		try{
+			switch($style){
+				case self::FETCH_NAMED:
+					return $this->stmt->fetch(\PDO::FETCH_ASSOC, \PDO::FETCH_ORI_NEXT);
+				case self::FETCH_LIST:
+					return $this->stmt->fetch(\PDO::FETCH_NUM, \PDO::FETCH_ORI_NEXT);
+				case self::FETCH_OBJECT:
+					$result = $this->stmt->fetch(\PDO::FETCH_ASSOC, \PDO::FETCH_ORI_NEXT);
+					if($result === false)
+						return null;
+					else
+						return new ResultRow($result);
+				default:
+					throw new \InvalidArgumentException('Invalid Result::FETCH_* constant used.');
+			}
+		}catch(\PDOException $e){
+			throw new DatabaseException('Exception occurred whilst trying to query the database: ('.$e->getCode().') '.$e->getMessage(), null, $e);
 		}
 	}
 

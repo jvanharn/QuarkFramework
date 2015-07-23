@@ -3,36 +3,20 @@
  * Makes debugging a peace of cake.
  * 
  * @package		Quark-Framework
- * @version		$Id: debug.php 23 2012-01-23 18:52:43Z Jeffrey $
  * @author		Jeffrey van Harn
  * @since		June 23, 2011
- * @copyright	Copyright (C) 2006-2009 Jeffrey van Harn
+ * @copyright	Copyright (C) 2006-2015 Jeffrey van Harn
  * @license		http://opensource.org/licenses/gpl-3.0.html GNU Public License Version 3
- * 
- * Copyright (C) 2011 Jeffrey van Harn
- * 
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License (License.txt) for more details.
  */
 
 // Set the namespace
 namespace Quark\Error;
 
-// Prevent acces to this standalone file
+// Prevent access to this standalone file
 if(!defined('DIR_BASE')) exit;
 
 /**
  * Adds extended Debugging functionality to the error handler of PageTree CMS.
- * 
- * @package Quark-Framework
- * @subpackage System
  */
 class Debug{
 	/**
@@ -190,17 +174,19 @@ class Debug{
 			if($code === true){
 				$highlighted = '';
 				try { // lets prevented nested errors, as that really /is/ deadly.
-					// @todo Replace with class reflection to prevent Infinite Recursion depth Fatals caused by var_export in HHVM.
-					//$highlighted = @highlight_string('<?php'.PHP_EOL.@var_export($var, true), true);
-					$highlighted = \Reflection::export(new \ReflectionClass($var), true);
+					// Bugfix: Replaced with class reflection to prevent Infinite Recursion depth Fatals caused by var_export in HHVM.
+					if(defined('HHVM_VERSION')) // @todo Once this gets fixed, make this a version check too.
+						$highlighted = htmlentities(\Reflection::export(new \ReflectionClass($var), true));
+					else
+						$highlighted = @highlight_string('<?php'.PHP_EOL.@var_export($var, true), true);
 				}catch(\Exception $e){}
-				$content = '<a style="text-decoration: none" href="#" title="Click to see the complete object." onclick="var w = window.open(\'\', \'\', \'width=600,height=400,resizeable,scrollbars\');w.document.body.appendChild(this.children[1].children[0]);w.document.close();return false;">';
+				$content = '<a style="text-decoration: none" href="#" title="Click to see the complete object." onclick="var w = window.open(\'\', \'\', \'width=1280,height=700,resizeable,scrollbars\');var p=w.document.createElement(\'pre\');p.style.fontFamily=\'Lucida Sans Typewriter, monospace\';p.innerHTML = this.children[1].children[0].innerHTML;w.document.body.appendChild(p);w.document.close();return false;">';
 				$content .= '<span style="color: #007700">(Object) ['.get_class($var).']</span><span style="display:none"><pre>'.$highlighted.'</pre></span></a>';
 				return $content;
 			}else return '(Object) ['.get_class($var).']';
 		}else if(is_string($var) && strlen($var) > 30){
 			if($code === true){
-				$content = '<a style="text-decoration: none" href="#" title="Click to see the complete string." onclick="var w = window.open(\'\', \'\', \'width=600,height=400,resizeable,scrollbars\');w.document.body.appendChild(this.children[1].children[0]);w.document.close();return false;">';
+				$content = '<a style="text-decoration: none" href="#" title="Click to see the complete string." onclick="var w = window.open(\'\', \'\', \'width=1280,height=700,resizeable,scrollbars\');var p=w.document.createElement(\'pre\');p.style.fontFamily=\'Lucida Sans Typewriter, monospace\';p.innerHTML = this.children[1].children[0].innerHTML;w.document.body.appendChild(p);w.document.close();return false;">';
 				$content .= '<span style="color: #DD0000">[String('.strlen($var).')]</span><span style="display:none"><pre>'.@var_export($var, true).'</pre></span></a>';
 				return $content;
 			}else return '[String('.strlen($var).')]';

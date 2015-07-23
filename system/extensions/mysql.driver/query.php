@@ -124,12 +124,17 @@ class MySQLQuery extends SQLQuery {
 			'multiple'	=> true,
 			'type'		=> self::PARAM_ASSIGNMENT,
 			'subquery'	=> false
-		]
+		],
+		'VALUES' => [
+			'multiple'	=> true,
+			'type'		=> self::PARAM_ASSIGNMENT,
+			'subquery'	=> false // @todo maybe allow this here and in set.
+		],
 	);
 	
 	/**
 	 * All statement aliases
 	 * @var array
 	 */
-	protected static $aliasses = array();
+	protected static $aliases = array();
 }

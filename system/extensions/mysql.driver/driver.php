@@ -66,12 +66,19 @@ class MySQLDriver implements Driver {
 			throw new DatabaseException('Could not connect to the database: '.$e->getMessage(), E_USER_ERROR, $e);
 		}
 	}
+
+	/**
+	 * Disconnects from the database.
+	 */
+	public function disconnect(){
+		$this->pdo = null;
+	}
 	
 	/**
 	 * Closes the connection.
 	 */
 	public function __destruct() {
-		$this->pdo = null;
+		$this->disconnect();
 	}
 
 	/**
