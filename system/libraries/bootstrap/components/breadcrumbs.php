@@ -5,7 +5,7 @@
  * @package		Quark-Framework
  * @author		Jeffrey van Harn <Jeffrey at lessthanthree.nl>
  * @since		Juli 4, 2014
- * @copyright	Copyright (C) 2012-2014 Jeffrey van Harn. All rights reserved.
+ * @copyright	Copyright (C) 2012-2015 Jeffrey van Harn. All rights reserved.
  * @license		http://opensource.org/licenses/gpl-3.0.html GNU Public License Version 3
  */
 
@@ -14,11 +14,11 @@ namespace Quark\Libraries\Bootstrap\Components;
 
 // Import namespaces
 use Quark\Document\Document,
-	Quark\Libraries\Bootstrap\Component,
-	Quark\Libraries\Bootstrap\BootstrapElement;
+	Quark\Libraries\Bootstrap\Component;
+use Quark\Document\IElement;
 use Quark\Document\Utils\_;
-use Quark\Libraries\Bootstrap\IElementMarkupClasses,
-	Quark\Libraries\Bootstrap\baseElementMarkupClasses;
+use Quark\Document\IElementMarkupClasses,
+	Quark\Document\baseElementMarkupClasses;
 
 // Prevent individual file access
 if(!defined('DIR_BASE')) exit;
@@ -30,7 +30,7 @@ if(!defined('DIR_BASE')) exit;
  * @package Quark\Libraries\Bootstrap\Components
  */
 class Breadcrumbs extends Component implements \IteratorAggregate, IElementMarkupClasses {
-	use baseElementMarkupClasses;
+	use \Quark\Document\baseElementMarkupClasses;
 
 	/**
 	 * @var BreadcrumbPart[] Contains all the breadcrumbs
@@ -81,7 +81,7 @@ class Breadcrumbs extends Component implements \IteratorAggregate, IElementMarku
  * Breadcrumb Part Struct
  * @package Quark\Libraries\Bootstrap\Components
  */
-class BreadcrumbPart extends BootstrapElement {
+class BreadcrumbPart implements IElement {
 	/**
 	 * @var boolean Whether or not this breadcrumb is active.
 	 */

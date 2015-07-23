@@ -25,6 +25,8 @@
 namespace Quark\Libraries\Bootstrap;
 use Quark\Document\baseCollection,
 	Quark\Document\Document;
+use Quark\Document\baseElementDataAttributes;
+use Quark\Document\IElementDataAttributes;
 use Quark\Util\Type\InvalidArgumentTypeException;
 
 // Dependencies

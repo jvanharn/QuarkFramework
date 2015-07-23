@@ -27,12 +27,12 @@ use Quark\Document\baseCollection,
 	Quark\Document\Document;
 use Quark\Document\Utils\_;
 use Quark\Libraries\Bootstrap\baseActivatable;
-use Quark\Libraries\Bootstrap\baseElementMarkupClasses;
+use Quark\Document\baseElementMarkupClasses;
 use Quark\Libraries\Bootstrap\BootstrapLayoutException;
 use Quark\Libraries\Bootstrap\Component;
 use Quark\Libraries\Bootstrap\IActivatable;
 use Quark\Libraries\Bootstrap\IActivator;
-use Quark\Libraries\Bootstrap\IElementMarkupClasses;
+use Quark\Document\IElementMarkupClasses;
 
 // Prevent individual file access
 if(!defined('DIR_BASE')) exit;
@@ -41,7 +41,7 @@ if(!defined('DIR_BASE')) exit;
  * Simple implementation of the Collection Interface.
  */
 class Dropdown extends Component implements IActivatable, IElementMarkupClasses {
-	use baseActivatable, baseElementMarkupClasses;
+	use baseActivatable, \Quark\Document\baseElementMarkupClasses;
 
 	/**
 	 * @var array Array of arrays with the first always being the display text, and the second being the href and/or dropdown.

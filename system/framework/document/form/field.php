@@ -28,8 +28,8 @@ namespace Quark\Document\Form;
 // Import namespaces
 use Quark\Document\IElement;
 use Quark\Document\IIndependentElement;
-use Quark\Libraries\Bootstrap\baseElementMarkupClasses;
-use Quark\Libraries\Bootstrap\IElementMarkupClasses;
+use Quark\Document\baseElementMarkupClasses;
+use Quark\Document\IElementMarkupClasses;
 
 // Prevent individual file access
 if(!defined('DIR_BASE')) exit;
@@ -38,7 +38,7 @@ if(!defined('DIR_BASE')) exit;
  * Form Field.
  */
 abstract class Field implements IElement, IElementMarkupClasses {
-    use baseElementMarkupClasses;
+    use \Quark\Document\baseElementMarkupClasses;
 
 	/**
 	 * Name of the field in the form.

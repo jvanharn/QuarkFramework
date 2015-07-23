@@ -26,9 +26,9 @@ namespace Quark\Libraries\Bootstrap\Components;
 use Quark\Document\baseCollection,
 	Quark\Document\Document,
 	Quark\Libraries\Bootstrap\Component,
-	Quark\Libraries\Bootstrap\IElementMarkupClasses,
-	Quark\Libraries\Bootstrap\baseElementMarkupClasses,
-	Quark\Libraries\Bootstrap\baseElementDataAttributes,
+	Quark\Document\IElementMarkupClasses,
+	Quark\Document\baseElementMarkupClasses,
+	Quark\Document\baseElementDataAttributes,
 	Quark\Util\Type\InvalidArgumentTypeException;
 use Quark\Document\Utils\_;
 use Quark\Libraries\Bootstrap\baseMultiActivator;
@@ -42,7 +42,7 @@ if(!defined('DIR_BASE')) exit;
  * Grouping element that can group buttons together, and can group a drop-down and a button together.
  */
 class Pager extends Component implements IMultiActivator, IElementMarkupClasses {
-	use baseElementMarkupClasses, baseMultiActivator;
+	use \Quark\Document\baseElementMarkupClasses, baseMultiActivator;
 
 	/**
 	 * Used to perform actions on the Previous button.

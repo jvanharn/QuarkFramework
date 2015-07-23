@@ -26,9 +26,9 @@ namespace Quark\Libraries\Bootstrap\Components;
 use Quark\Document\Document;
 use Quark\Document\IElement;
 use Quark\Document\Utils\_;
-use Quark\Libraries\Bootstrap\baseElementMarkupClasses;
+use Quark\Document\baseElementMarkupClasses;
 use Quark\Libraries\Bootstrap\Component;
-use Quark\Libraries\Bootstrap\IElementMarkupClasses;
+use Quark\Document\IElementMarkupClasses;
 use Quark\Util\Type\InvalidArgumentTypeException;
 
 // Prevent individual file access
@@ -38,7 +38,7 @@ if(!defined('DIR_BASE')) exit;
  * Jumbotron Bootstrap Component.
  */
 class Jumbotron extends Component implements IElementMarkupClasses {
-    use baseElementMarkupClasses;
+    use \Quark\Document\baseElementMarkupClasses;
 
     /**
      * @var string $header

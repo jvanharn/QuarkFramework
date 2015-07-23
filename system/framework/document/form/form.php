@@ -27,8 +27,8 @@ namespace Quark\Document\Form;
 use Quark\Document\Document,
 	Quark\Document\IElement;
 use Quark\Document\Utils\_;
-use Quark\Libraries\Bootstrap\baseElementMarkupClasses;
-use Quark\Libraries\Bootstrap\IElementMarkupClasses;
+use Quark\Document\baseElementMarkupClasses;
+use Quark\Document\IElementMarkupClasses;
 use Quark\Loader;
 
 // Prevent individual file access
@@ -42,7 +42,7 @@ if(!defined('DIR_BASE')) exit;
  * the resulting submit.
  */
 class Form implements IElement, IElementMarkupClasses {
-    use baseElementMarkupClasses;
+    use \Quark\Document\baseElementMarkupClasses;
 
 	/**
 	 * The hash algorithm to use to hash the "unique" form identifiers.

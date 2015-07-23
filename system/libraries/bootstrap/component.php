@@ -5,27 +5,13 @@
  * @package		Quark-Framework
  * @author		Jeffrey van Harn <Jeffrey at lessthanthree.nl>
  * @since		December 15, 2012
- * @copyright	Copyright (C) 2012-2013 Jeffrey van Harn. All rights reserved.
+ * @copyright	Copyright (C) 2012-2015 Jeffrey van Harn. All rights reserved.
  * @license		http://opensource.org/licenses/gpl-3.0.html GNU Public License Version 3
- *
- * Copyright (C) 2012-2013 Jeffrey van Harn
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License (License.txt) for more details.
  */
 
 // Define Namespace
 namespace Quark\Libraries\Bootstrap;
-use Quark\Document\baseCollection,
-	Quark\Document\IElement,
-	Quark\Document\Document;
+use Quark\Document\IElement;
 
 // Dependencies
 \Quark\import(
@@ -59,7 +45,7 @@ interface IComponent extends IElement {
  * Class Component
  * @package Quark\Libraries\Bootstrap\Components
  */
-abstract class Component extends BootstrapElement implements IComponent {
+abstract class Component implements IComponent {
 	/**
 	 * @var int Number of instances this component has, used for id generation.
 	 */

@@ -23,12 +23,12 @@
 
 // Define Namespace
 namespace Quark\Libraries\Bootstrap\Elements;
+use Quark\Document\baseElementMarkupClasses;
 use Quark\Document\Document,
     Quark\Document\Utils\_,
     Quark\Document\IIndependentElement,
-	Quark\Libraries\Bootstrap\BootstrapElement,
-    Quark\Libraries\Bootstrap\IElementMarkupClasses,
-    Quark\Libraries\Bootstrap\baseElementMarkupClasses;
+    Quark\Document\IElementMarkupClasses,
+	Quark\Document\IElement;
 
 // Prevent individual file access
 if(!defined('DIR_BASE')) exit;
@@ -36,7 +36,7 @@ if(!defined('DIR_BASE')) exit;
 /**
  * Class that provides static helpers to help with common operations on (Hyper) Text and an basic implementation of an element.
  */
-class Text extends BootstrapElement implements IElementMarkupClasses {
+class Text implements IElement, IElementMarkupClasses {
     use baseElementMarkupClasses;
 
     /**

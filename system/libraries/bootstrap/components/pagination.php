@@ -5,31 +5,17 @@
  * @package		Quark-Framework
  * @author		Jeffrey van Harn <Jeffrey at lessthanthree.nl>
  * @since		July 9, 2014
- * @copyright	Copyright (C) 2012-2014 Jeffrey van Harn. All rights reserved.
+ * @copyright	Copyright (C) 2012-2015 Jeffrey van Harn. All rights reserved.
  * @license		http://opensource.org/licenses/gpl-3.0.html GNU Public License Version 3
- *
- * Copyright (C) 2012-2014 Jeffrey van Harn
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License (License.txt) for more details.
  */
 
 // Define Namespace
 namespace Quark\Libraries\Bootstrap\Components;
-use Quark\Document\baseCollection,
-	Quark\Document\Document,
-	Quark\Libraries\Bootstrap\BootstrapElement;
+use Quark\Document\Document;
+use Quark\Document\IElement;
 use Quark\Document\Utils\_;
-use Quark\Libraries\Bootstrap\baseBootstrapElement;
-use Quark\Libraries\Bootstrap\baseElementMarkupClasses;
-use Quark\Libraries\Bootstrap\IElementMarkupClasses;
+use Quark\Document\baseElementMarkupClasses;
+use Quark\Document\IElementMarkupClasses;
 use Quark\Util\Type\InvalidArgumentTypeException;
 
 // Prevent individual file access
@@ -38,7 +24,7 @@ if(!defined('DIR_BASE')) exit;
 /**
  * Pagination element for displaying pages to a user.
  */
-class Pagination extends BootstrapElement implements \IteratorAggregate, IElementMarkupClasses {
+class Pagination implements \IteratorAggregate, IElement, IElementMarkupClasses {
 	use baseElementMarkupClasses;
 
 	const PAGINATION_SM = 'pagination-sm';

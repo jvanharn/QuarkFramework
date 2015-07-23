@@ -27,12 +27,12 @@ use IteratorAggregate;
 use Quark\Document\Document;
 use Quark\Document\IElement;
 use Quark\Document\Utils\_;
-use Quark\Libraries\Bootstrap\baseElementDataAttributes;
-use Quark\Libraries\Bootstrap\baseElementMarkupClasses;
+use Quark\Document\baseElementDataAttributes;
+use Quark\Document\baseElementMarkupClasses;
 use Quark\Libraries\Bootstrap\Glyphicon;
 use Quark\Libraries\Bootstrap\IActivator;
-use Quark\Libraries\Bootstrap\IElementDataAttributes;
-use Quark\Libraries\Bootstrap\IElementMarkupClasses;
+use Quark\Document\IElementDataAttributes;
+use Quark\Document\IElementMarkupClasses;
 use Traversable;
 
 // Prevent individual file access
@@ -48,7 +48,7 @@ if(!defined('DIR_BASE')) exit;
  * Bootstrap Navigation (Navs) Component
  */
 class Navigation implements IElement, IElementMarkupClasses, IElementDataAttributes, IteratorAggregate {
-    use baseElementMarkupClasses, baseElementDataAttributes;
+    use \Quark\Document\baseElementMarkupClasses, \Quark\Document\baseElementDataAttributes;
 
     // Navigation types
     const TYPE_TABS = 'nav-tabs';

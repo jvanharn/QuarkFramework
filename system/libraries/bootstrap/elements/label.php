@@ -7,18 +7,6 @@
  * @since		June 17, 2015
  * @copyright	Copyright (C) 2012-2015 Jeffrey van Harn. All rights reserved.
  * @license		http://opensource.org/licenses/gpl-3.0.html GNU Public License Version 3
- *
- * Copyright (C) 2012-2015 Jeffrey van Harn
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License (License.txt) for more details.
  */
 
 // Define Namespace
@@ -26,8 +14,7 @@ namespace Quark\Libraries\Bootstrap\Elements;
 use Quark\Document\Document,
     Quark\Document\Utils\_,
     Quark\Document\IIndependentElement,
-    Quark\Document\baseIndependentElement,
-    Quark\Libraries\Bootstrap\BootstrapElement;
+    Quark\Document\baseIndependentElement;
 use Quark\Libraries\Bootstrap\Glyphicon;
 use Quark\Util\Type\InvalidArgumentTypeException;
 
@@ -39,7 +26,7 @@ if(!defined('DIR_BASE')) exit;
  *
  * Simple class representing a label.
  */
-class Label extends BootstrapElement implements IIndependentElement {
+class Label implements IIndependentElement {
     use baseIndependentElement;
 
     // Label types or label modifiers.
@@ -50,7 +37,7 @@ class Label extends BootstrapElement implements IIndependentElement {
     const LBL_WARNING   = 'warning';
     const LBL_DANGER    = 'danger';
 
-    // Icon prositions
+    // Icon positions
     /**
      * Places the icon before the label text.
      */

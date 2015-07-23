@@ -11,14 +11,12 @@
 
 // Define Namespace
 namespace Quark\Libraries\Bootstrap\Components;
-use Quark\Document\baseCollection,
-	Quark\Document\Document;
+use Quark\Document\Document;
 use Quark\Document\IElement;
 use Quark\Document\Utils\_;
-use Quark\Libraries\Bootstrap\BootstrapElement;
 use Quark\Libraries\Bootstrap\Component;
-use Quark\Libraries\Bootstrap\IElementMarkupClasses;
-use Quark\Libraries\Bootstrap\baseElementMarkupClasses;
+use Quark\Document\IElementMarkupClasses;
+use Quark\Document\baseElementMarkupClasses;
 
 // Prevent individual file access
 if(!defined('DIR_BASE')) exit;
@@ -41,7 +39,7 @@ class ButtonGroup extends Component implements \IteratorAggregate, IElementMarku
 
 	/**
 	 * Contains the children for this object
-	 * @var BootstrapElement[]
+	 * @var IElement[]
 	 */
 	protected $children = array();
 

@@ -25,8 +25,8 @@
 namespace Quark\Libraries\Bootstrap\Components;
 use Quark\Document\Document;
 use Quark\Document\Utils\_;
-use Quark\Libraries\Bootstrap\IElementMarkupClasses;
-use Quark\Libraries\Bootstrap\baseElementMarkupClasses;
+use Quark\Document\IElementMarkupClasses;
+use Quark\Document\baseElementMarkupClasses;
 use Quark\Libraries\Bootstrap\baseSingleActivator;
 use Quark\Libraries\Bootstrap\IActivatable;
 use Quark\Libraries\Bootstrap\ISingleActivator;
@@ -43,7 +43,7 @@ if(!defined('DIR_BASE')) exit;
  * @todo allow setting the variation of button (danger, warning, ...)
  */
 class Button extends Component implements ISingleActivator, IElementMarkupClasses {
-	use baseSingleActivator, baseElementMarkupClasses;
+	use baseSingleActivator, \Quark\Document\baseElementMarkupClasses;
 
 	protected $forcedButton = false;
 

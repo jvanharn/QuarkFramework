@@ -25,8 +25,8 @@
 namespace Quark\Libraries\Bootstrap\Components;
 use Quark\Document\Document;
 use Quark\Document\Utils\_;
-use Quark\Libraries\Bootstrap\IElementMarkupClasses;
-use Quark\Libraries\Bootstrap\baseElementMarkupClasses;
+use Quark\Document\IElementMarkupClasses;
+use Quark\Document\baseElementMarkupClasses;
 use Quark\Libraries\Bootstrap\Component;
 use Quark\Util\Type\InvalidArgumentTypeException;
 
@@ -39,7 +39,7 @@ if(!defined('DIR_BASE')) exit;
  * Allows you to have a styled alert, info success or warning box on your pages.
  */
 class Alert extends Component implements IElementMarkupClasses {
-    use baseElementMarkupClasses;
+    use \Quark\Document\baseElementMarkupClasses;
 
     // Alert types.
     const TYPE_SUCCESS = 'alert-success';
