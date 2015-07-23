@@ -228,7 +228,7 @@ class SchemaMigration {
 				$this->current[] = array(
 					'name' => $row['name'],
 					'version' => explode('.', $row['version']),
-					'last_update' => new \DateTime($row['last_update']),
+					'last_update' => \DateTime::createFromFormat('U', $row['last_update']),
 					'migrations' => array_map(function($elem){ return explode('.', $elem); }, explode(',', (string) $row['migrations']))
 				);
 			}
