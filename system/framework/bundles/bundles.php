@@ -94,7 +94,7 @@ class Bundles {
 
 		self::_invalidateMatchingCache(); // Reset matching cache
 
-		$match = self::_findClosestMatching($bundleId, $version); // Find the repo and version we want
+		$match = self::_findClosestMatchingBundle($bundleId, $version); // Find the repo and version we want
 
 		// Get package info
 		/*$sourceObj = Repository::GetBundleObject($match['repo'], $bundleId, $match['ver']);
@@ -192,7 +192,7 @@ class Bundles {
 	 * @return RemoteBundle|bool
 	 */
 	public static function info($bundleId, $version=null){
-		$match = self::_findClosestMatching($bundleId, $version);
+		$match = self::_findClosestMatchingBundle($bundleId, $version);
 
 		if($match !== false)
 			return Repository::GetBundleObject($match['repo'], $bundleId, $match['ver']);
@@ -435,13 +435,13 @@ class Bundles {
 
 		// When nothing was found cache empty result.
 		if(empty($matches)){
-			self::$provideMatchingCache[$matchId] = array(false, 2);
-			$quality = 2;
+			self::$provideMatchingCache[$matchId] = array(false, 3);
+			$quality = 3;
 			return false;
 		}
 
 		// Find the best match quality
-		$best = 2;
+		$best = 3;
 		foreach($matches as $match){
 			foreach($match as $grade){
 				if($grade < $best)
@@ -485,7 +485,7 @@ class Bundles {
 	 * @param string $asset Name of an asset or resource that is required. (Ex. 'jquery.js')
 	 * @param string|null $type The type of the asset required. Will try to determine the type of asset from the file's extension when empty. (Optional but recommended)
 	 * @param string|array|null $version The *minimum* version of the package providing said asset OR an array where the first element is the compare function and the second the version string. (Optional)
-	 * @return array An array containing: [matched bundle => ['assetname' => match quality (int) 0-2] ]
+	 * @return array An array containing: [matched bundle => ['assetname' => match quality (int) 0-3] ]
 	 */
 	public static function providers($asset, $type=null, $version=null){
 		// Built list of matched resources per installed bundle
@@ -494,14 +494,14 @@ class Bundles {
 		if(!empty($version)){ // if version was set immediately filter out the incorrect versions
 			foreach(self::$installed as $id => $bundle){
 				if(check_version_rule($bundle->version, $version)){
-					$current = self::_findApproximateMatchingAssets($id, $type, $asset);
+					$current = self::_findApproximateMatchingAssets($id, $type, $asset, false);
 					if(!empty($current))
 						$matches[$id] = $current;
 				}
 			}
 		}else{ // just do it without the version check
 			foreach(self::$installed as $id => $bundle){
-				$current = self::_findApproximateMatchingAssets($id, $type, $asset);
+				$current = self::_findApproximateMatchingAssets($id, $type, $asset, false);
 				if(!empty($current))
 					$matches[$id] = $current;
 			}
@@ -569,25 +569,32 @@ class Bundles {
 	 * @param string $bundleId
 	 * @param string $type
 	 * @param string $asset
-	 * @return array Array of matches in the form of ['AssetName' => (int) MatchLevel] where MatchLevel is one of 0 => Exact Match, 1 => found basename in resource name, 2 => found basename with any possible versioning data removed.
+	 * @param boolean $preferMinified
+	 * @return array Array of matches in the form of ['AssetName' => (int) MatchLevel] where MatchLevel is one of 0 => Better version than the one requested (e.g. minified), 1 => Exact Match, 2 => found basename in resource name, 3 => found basename with any possible versioning data removed.
 	 *
 	 * @access private
 	 * @ignore
 	 */
-	public static function _findApproximateMatchingAssets($bundleId, $type, $asset){
+	public static function _findApproximateMatchingAssets($bundleId, $type, $asset, $preferMinified){
 		// Split up the asset name
 		$file = basename($asset);
-		$name = \Quark\Filter\filter_string($file, array('chars' => array(CONTAINS_ALPHANUMERIC, true))); // Filter $file and allow only letters and numbers of any case, when a non-allowed character is found, return everything you already had up until that point.
+		$name = \Quark\Filter\filter_string($file, array('chars' => array(CONTAINS_ALPHANUMERIC, true)));
 		$nameSize = strlen($name);
 
 		$found = array();
 		foreach(self::$installed[$bundleId]->resources[$type] as $resource => $properties){
-			if($asset == $resource) // exact match
+			if($preferMinified && (
+					(isset($properties['minified']) && $properties['minified'] === true && str_replace(['.min', '.css'], '', $resource) == basename($asset, '.css')) ||
+					($type == self::RESOURCE_TYPE_CSS && basename($resource, '.min.css') == basename($asset, '.css')) ||
+					($type == self::RESOURCE_TYPE_JS && basename($resource, '.min.js') == basename($asset, '.js'))
+				)){
 				$found[$resource] = 0;
-			else if(stripos($resource, $file) !== false)
+			}else if($asset == $resource) // exact match
 				$found[$resource] = 1;
-			else if($nameSize > 4 && stripos($resource, $name) !== false)
+			else if(stripos($resource, $file) !== false)
 				$found[$resource] = 2;
+			else if($nameSize > 4 && stripos($resource, $name) !== false)
+				$found[$resource] = 3;
 		}
 
 		return $found;
@@ -603,7 +610,7 @@ class Bundles {
 	 * @access private
 	 * @ignore
 	 */
-	private static function _findClosestMatching($bundleId, $version=null){
+	private static function _findClosestMatchingBundle($bundleId, $version=null){
 		self::_loadCache();
 
 		if(!isset(self::$bundleListCache[$bundleId]))

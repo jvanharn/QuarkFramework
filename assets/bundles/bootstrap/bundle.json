@@ -10,9 +10,9 @@
 	"resources": {
 		"css": {
 			"css/bootstrap.css": {},
-			"css/bootstrap.min.css": {},
+			"css/bootstrap.min.css": { "minified": true },
 			"css/bootstrap-theme.css": {},
-			"css/bootstrap-theme.min.css": {}
+			"css/bootstrap-theme.min.css": { "minified": true }
 		},
 		"font": {
 			"fonts/glyphicons-halflings-regular.eot": {},
@@ -22,7 +22,7 @@
 		},
 		"js": {
 			"js/bootstrap.js": {},
-			"js/bootstrap.min.js": {}
+			"js/bootstrap.min.js": { "minified": true }
 		}
 	},
 

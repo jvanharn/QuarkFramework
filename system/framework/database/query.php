@@ -91,11 +91,11 @@ interface Query {
 	/**
 	 * Makes it possible for the queries to dynamically compile.
 	 * @param string $name
-	 * @param array $params
+	 * @param array $arguments
 	 * @return $this
 	 * @throws \InvalidArgumentException When arguments are invalid.
 	 */
-	public function __call($name, array $params);
+	public function __call($name, array $arguments);
 	
 	/**
 	 * Get a list of all the valid statement types for the query builder.
@@ -421,7 +421,7 @@ abstract class SQLQuery implements Query {
 					foreach($params as $key => $value){
 						if(
 							(is_integer($key) && !(is_array($value) && count($value) == 3)) ||
-							(is_string($key) && !(is_array($value) || is_scalar($value)))
+							(is_string($key) && !((is_object($value) && $value instanceof SQLQuery) || is_array($value) || is_scalar($value)))
 						)
 							throw new \InvalidArgumentException('Parameter for "'.$name.'" was incorrectly formatted. Should be in the format of array(array("keyorcolumn", ">=", "expected value"), ...) or using key value pairs.');
 					}
@@ -548,7 +548,13 @@ abstract class SQLQuery implements Query {
 						else return $parameter;
 					}
 				case self::PARAM_EXPRESSION:
-					if(!is_array($parameter) && $prepared){
+					if(is_object($parameter) && $parameter instanceof SQLQuery){// @todo check allow subquery
+						if($prepared){
+							$query = $parameter->save(true);
+							$this->bound = array_merge($this->bound, $parameter->getBoundParams()); // @todo probably need to make subqueries a separate PARAM_* constant, for easier saving.
+							return '('.substr($query, 0, -1).')';
+						}else return $parameter->save();
+					}else if(!is_array($parameter) && $prepared){
 						$this->bound[] = $parameter;
 						return '?';
 					}
@@ -563,7 +569,7 @@ abstract class SQLQuery implements Query {
 					if($pcnt == 3)
 						return $this->saveParameter($parameter[0], self::PARAM_COLUMNNAME, false, $prepared).' '.$parameter[1].' '.$this->saveParameter($parameter[2], self::PARAM_EXPRESSION, false, $prepared);
 					else if($pcnt == 2)
-						return $this->saveParameter($parameter[0], self::PARAM_COLUMNNAME, false, $prepared).(is_array($parameter[1]) ? ' IN ' : ' = ').$this->saveParameter($parameter[1], self::PARAM_EXPRESSION, false, $prepared);
+						return $this->saveParameter($parameter[0], self::PARAM_COLUMNNAME, false, $prepared).((is_array($parameter[1]) || is_object($parameter[1])) ? ' IN ' : ' = ').$this->saveParameter($parameter[1], self::PARAM_EXPRESSION, false, $prepared);
 					else
 						throw new \LogicException('Internal parse error; PARAM_PREDICTATE expected $parameter to be array of 3 long: [column, comparison_func, value] or of two long [key, value]. It was "'.$pcnt.'".');
 				default:
@@ -647,17 +653,27 @@ abstract class SQLQuery implements Query {
 	// Magic methods
 	/**
 	 * Makes it possible for the queries to dynamically compile.
-	 * @param string $name
-	 * @param array $params
+	 * @param string $name The called method.
+	 * @param array $arguments The arguments of the original call.
 	 * @return $this
 	 * @throws \InvalidArgumentException When arguments are invalid.
+	 * @see clause()
 	 */
-	public function __call($name, array $params){
-		if(is_string($params[0]) || (is_object($params[0]) && $params[0] instanceof SQLQuery))
-			$params[0] = array($params[0]);
-		else if(!is_array($params[0]))
-			throw new \InvalidArgumentException('Argument $params should be of type array.');
-		return $this->clause(str_replace('_',' ',$name), $params[0]);
+	public function __call($name, array $arguments){
+		// Process arguments
+		$argCount = count($arguments);
+		if($argCount == 1 && is_array($arguments[0]))
+			$params = $arguments[0];
+		else $params = $arguments;
+
+		// Process any camel casing and return
+		return $this->clause(
+			str_replace(
+				'_',
+				' ',
+				implode(' ',
+					preg_split('/(?<=[a-z])(?=[A-Z])/x', $name))
+			), $params);
 	}
 
 	/**

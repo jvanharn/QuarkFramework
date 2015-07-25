@@ -47,8 +47,10 @@ class MySQLQuery extends SQLQuery {
 			'empty'		=> false,
 			'keyvalue'	=> false,
 			'multiple'	=> true,
-			'clauses'	=> ['FROM', 'WHERE', 'GROUP BY', 'HAVING', 'ORDER BY', 'LIMIT'],
+
+			'clauses'	=> ['FROM', 'JOIN', 'LEFT JOIN', 'LEFT OUTER JOIN', 'INNER JOIN', 'CROSS JOIN', 'USING', 'ON', 'WHERE', 'GROUP BY', 'HAVING', 'ORDER BY', 'LIMIT'],
 			'required'	=> ['FROM'],
+
 			'resultset'	=> true
 		],
 		'INSERT' => [
@@ -56,8 +58,10 @@ class MySQLQuery extends SQLQuery {
 			'empty'		=> true,
 			'keyvalue'	=> false,
 			'multiple'	=> false,
+
 			'clauses'	=> ['INTO', 'VALUES'],
 			'required'	=> ['INTO', 'VALUES'],
+
 			'resultset'	=> false
 		],
 		'UPDATE' => [
@@ -127,8 +131,46 @@ class MySQLQuery extends SQLQuery {
 		],
 		'VALUES' => [
 			'multiple'	=> true,
-			'type'		=> self::PARAM_ASSIGNMENT,
+			'type'		=> self::PARAM_EXPRESSION,
 			'subquery'	=> false // @todo maybe allow this here and in set.
+		],
+
+		// JOINs
+		'JOIN' => [
+			'multiple'	=> true,
+			'type'		=> self::PARAM_COLUMNNAME,
+			'subquery'	=> true
+		],
+		'LEFT JOIN' => [
+			'multiple'	=> true,
+			'type'		=> self::PARAM_COLUMNNAME,
+			'subquery'	=> true
+		],
+		'LEFT OUTER JOIN' => [
+			'multiple'	=> true,
+			'type'		=> self::PARAM_COLUMNNAME,
+			'subquery'	=> true
+		],
+		'INNER JOIN' => [
+			'multiple'	=> true,
+			'type'		=> self::PARAM_COLUMNNAME,
+			'subquery'	=> true
+		],
+		'CROSS JOIN' => [
+			'multiple'	=> true,
+			'type'		=> self::PARAM_COLUMNNAME,
+			'subquery'	=> true
+		],
+
+		'USING' => [
+			'multiple'	=> true,
+			'type'		=> self::PARAM_COLUMNNAME,
+			'subquery'	=> false
+		],
+		'ON' => [
+			'multiple'	=> true,
+			'type'		=> self::PARAM_EXPRESSION,
+			'subquery'	=> false
 		],
 	);
 	
@@ -136,5 +178,7 @@ class MySQLQuery extends SQLQuery {
 	 * All statement aliases
 	 * @var array
 	 */
-	protected static $aliases = array();
+	protected static $aliases = array(
+		'DELETE' => 'DELETE FROM'
+	);
 }

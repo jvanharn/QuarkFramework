@@ -24,13 +24,12 @@
 // Define Namespace
 namespace Quark\Libraries\Bootstrap\Components;
 use IteratorAggregate;
+use Quark\Document\baseElementDataAttributes;
+use Quark\Document\baseElementMarkupClasses;
 use Quark\Document\Document;
 use Quark\Document\IElement;
 use Quark\Document\Utils\_;
-use Quark\Document\baseElementDataAttributes;
-use Quark\Document\baseElementMarkupClasses;
 use Quark\Libraries\Bootstrap\Glyphicon;
-use Quark\Libraries\Bootstrap\IActivator;
 use Quark\Document\IElementDataAttributes;
 use Quark\Document\IElementMarkupClasses;
 use Traversable;
@@ -48,7 +47,7 @@ if(!defined('DIR_BASE')) exit;
  * Bootstrap Navigation (Navs) Component
  */
 class Navigation implements IElement, IElementMarkupClasses, IElementDataAttributes, IteratorAggregate {
-    use \Quark\Document\baseElementMarkupClasses, \Quark\Document\baseElementDataAttributes;
+    use baseElementMarkupClasses, baseElementDataAttributes;
 
     // Navigation types
     const TYPE_TABS = 'nav-tabs';

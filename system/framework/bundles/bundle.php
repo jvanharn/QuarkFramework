@@ -155,9 +155,9 @@ class LocalBundle extends Bundle {
 					if(is_string($resource) && \Quark\Filter\validate_string($resource, array('CHARS' => CONTAINS_ALPHANUMERIC.'/\\.-_ ')) && is_array($properties)){
 						$bundle->resources[$type][$resource] = array();
 						if($type == 'css')
-							$keys = array('media');
+							$keys = array('minified', 'media');
 						else if($type == 'js')
-							$keys = array();
+							$keys = array('minified');
 						else if($type == 'font')
 							$keys = array();
 						else if($type == 'image')

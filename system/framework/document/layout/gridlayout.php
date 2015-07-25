@@ -222,9 +222,10 @@ class GridLayout extends Layout implements Style{
 	/**
 	 * Retrieve the HTML representation of the element
 	 * @param Document $context The context within which the Element gets saved. (Contains data like encoding, XHTML or not etc.)
+	 * @param int $depth Depth of the element in tabs.
 	 * @return String HTML Representation
 	 */
-	public function save(Document $context) {
+	public function save(Document $context, $depth=0) {
 		// Save the elements
 		$saved = "\t<section class=\"grid\">\n";
 		foreach($this->elements as $row){

@@ -35,7 +35,10 @@ true);
 
 /**
  * Bootstrap Navigation-bar IComponent
- * @property string $blub
+ * @property string $brand
+ * @property string $type
+ * @property string|null $position
+ * @property string|null $container
  */
 class NavigationBar extends Component implements IElementMarkupClasses, ICollection {
     use baseElementMarkupClasses, baseCollection;

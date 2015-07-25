@@ -36,7 +36,9 @@ class Row implements ICollection, IElementMarkupClasses {
 	 * @see Column::spanning
 	 */
 	public function column($span, $classes=array()){
-		return Column::spanning($span, BootstrapLayout::BP_MEDIUM_DEVICES, $classes);
+		$column = Column::spanning($span, BootstrapLayout::BP_MEDIUM_DEVICES, $classes);
+		$this->appendChild($column);
+		return $column;
 	}
 
 	/**

@@ -38,6 +38,7 @@ if(!defined('DIR_BASE')) exit;
  * @property-read string $fragment Everything after the hashtag.
  */
 class URL {
+	// @todo This class doesnt seem complete.
 	/**
 	 * Whether or not to sanitize all URL parts to only make them contain allowed characters and decode all characters.
 	 * @var boolean
@@ -111,7 +112,7 @@ class URL {
 	 */
 	public function getPathInfo(){
 		if(is_null($this->pathinfo))
-			$this->pathinfo = new URLPathInfo($this->parsed['path'], $this->parsed['query'], ($this->parsed['scheme'] == 'https'));
+			$this->pathinfo = new URLPathInfo($this->parsed['path'], $this->parsed['query'] ?: array(), ($this->parsed['scheme'] == 'https'));
 		return $this->pathinfo;
 	}
 	
@@ -124,7 +125,7 @@ class URL {
 	public function __get($key){
 		if($key == 'secure')
 			return ($this->parsed['scheme'] == 'https');
-		else if($key == 'secure')
+		else if($key == 'pathinfo')
 			return $this->getPathInfo();
 		else if(isset($this->parsed[$key]))
 			return $this->parsed[$key];

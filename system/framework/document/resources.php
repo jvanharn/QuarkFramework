@@ -55,6 +55,11 @@ class ResourceManager {
 	protected $router;
 
 	/**
+	 * @var boolean Whether or not, when considering which file to choose, to consider minified superior to non-minified fields.
+	 */
+	protected $preferMinified = true;
+
+	/**
 	 * @param Headers $headers
 	 * @param Router $router The router to use for building resource/bundle asset urls
 	 */
@@ -73,6 +78,14 @@ class ResourceManager {
 	 */
 	public function setRouter(Router $router){
 		$this->router = $router;
+	}
+
+	/**
+	 * Set whether or not the reference resolving protocol should prefer minimized/smaller files over larger files. (E.g. .min.js over .js) Even if the larger file is requested.
+	 * @param boolean $preferation
+	 */
+	public function setPreferMinified($preferation){
+		$this->preferMinified = $preferation;
 	}
 
 	/**
@@ -130,10 +143,11 @@ class ResourceManager {
 		// Check if the given bundle has the actual resource/asset
 		// ... and find it's name in the best providing bundle.
 		// @todo Runtime Conflict Checking: Make sure that conflicts get checked with already referenced resources (But only for Javascript and CSS)
+		// @todo Make it possible for bundles to (de)prioritize themselves.
 		if(!isset($object->resources[$name])){
-			$assets = Bundles::_findApproximateMatchingAssets($bundle, $type, $name);// otherwise look for similar
+			$assets = Bundles::_findApproximateMatchingAssets($bundle, $type, $name, $this->preferMinified);// otherwise look for similar
 			$asset = false;
-			$best = 2;
+			$best = 3;
 			foreach($assets as $current => $quality){
 				if($quality < $best)
 					$asset = $current;

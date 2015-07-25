@@ -29,12 +29,14 @@ class SQLiteQuery extends SQLQuery {
 	protected static $statements = array(
 		// 'method' =>array('default value' or null if none, (array) with possible other values, (array) allowed statements with this method, (bool) whether or not to allow k=>v parameters)
 		'SELECT' => [
-			'default'	=> 'ALL',
+			'default'	=> '*',
 			'empty'		=> false,
 			'keyvalue'	=> false,
 			'multiple'	=> true,
+
 			'clauses'	=> ['FROM', 'JOIN', 'LEFT JOIN', 'LEFT OUTER JOIN', 'INNER JOIN', 'CROSS JOIN', 'USING', 'ON', 'WHERE', 'GROUP BY', 'HAVING', 'ORDER BY', 'LIMIT'],
 			'required'	=> ['FROM'],
+
 			'resultset'	=> true
 		],
 		'INSERT' => [
@@ -42,8 +44,10 @@ class SQLiteQuery extends SQLQuery {
 			'empty'		=> true,
 			'keyvalue'	=> false,
 			'multiple'	=> false,
+
 			'clauses'	=> ['INTO', 'VALUES'],
 			'required'	=> ['INTO', 'VALUES'],
+
 			'resultset'	=> false
 		],
 		'UPDATE' => [

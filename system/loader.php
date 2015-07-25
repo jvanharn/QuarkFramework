@@ -688,26 +688,23 @@ class Loader{
 			}else $path = $path.DS.$subdir;
 		}
 		
-		// Scan the package dir
-		$files = scandir($path);
-		
 		// Make sure the main package file get's loaded first(If it exists)
 		self::_loadComponent(array_merge($packagePath, [end($packagePath)]), $rpath);
 		
 		// Loop through the files
+		$files = new \DirectoryIterator(realpath($path)); // Scan the package dir
 		foreach($files as $file){
-			if(is_file($path.$file) && pathinfo($file, PATHINFO_EXTENSION) == 'php'){
+			if($file->isFile() && $file->getExtension() == 'php'){
 				// Build file classpath
-				$cpath = implode($packagePath, '.').strtolower(substr($file, 0, -4));
-				
+				$cpath = implode($packagePath, '.').'.'.strtolower($file->getBasename('.php'));
+
 				// Try to Include
-				$inc = include_once($path.$file);
+				$inc = include_once($file->getPathname());
 				if($inc !== false){
 					// Register the component
-					self::$loaded[$cpath] = $path.$file;
-					return true;
+					self::$loaded[$cpath] = $file->getPathname();
 				}else{
-					return false;
+					throw new Exception('Quark\\Loader was unable to include the file "'.$file->getFilename().'", during the importing of the package "'.implode('.', $packagePath).'".', 'Was unable to include a file during the importing of a class package.');
 				}
 			}
 		}

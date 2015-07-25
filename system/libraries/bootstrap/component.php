@@ -13,11 +13,6 @@
 namespace Quark\Libraries\Bootstrap;
 use Quark\Document\IElement;
 
-// Dependencies
-\Quark\import(
-	'Libraries.Bootstrap.Element',
-true);
-
 // Prevent individual file access
 if(!defined('DIR_BASE')) exit;
 

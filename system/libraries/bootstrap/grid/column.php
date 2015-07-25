@@ -150,7 +150,14 @@ class Column implements ICollection, IElementMarkupClasses {
 	 * @return \Quark\Libraries\Bootstrap\Grid\Column
 	 */
 	public static function spanning($columns=BootstrapLayout::GRID_COLUMNS, $on=BootstrapLayout::BP_MEDIUM_DEVICES, $classes=array()){
-		if(is_int($columns) && $columns <= BootstrapLayout::GRID_COLUMNS)
-			return new Column($classes, array($on => $columns));
+		if(is_int($columns) && $columns > 0 && $columns <= BootstrapLayout::GRID_COLUMNS){
+			$col = new Column(array($on => $columns));
+			if(!empty($classes) && is_array($classes)){
+				foreach($classes as $class)
+					$col->addMarkupClass($class);
+			}else if(is_string($classes))
+				$col->addMarkupClass((string) $classes);
+			return $col;
+		}else throw new \InvalidArgumentException('Argument $columns has to be a positive integer, and it has to be lower than the maximum number of columns in the grid.');
 	}
 }
